@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Heartwood</string>
+    <string name="widget_dashboard_name">Heartwood dashboard</string>
+    <string name="widget_metric_name">Heartwood metric</string>
+    <string name="widget_description">Glanceable health metrics from Health Connect.</string>
+    <string name="metric_widget_description">A single health metric with a graph, pick which one.</string>
+</resources>
