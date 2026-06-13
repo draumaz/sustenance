@@ -11,6 +11,21 @@ IssueTracker: https://github.com/GuyOnWifi/heartwood/issues
 RepoType: git
 Repo: https://github.com/GuyOnWifi/heartwood.git
 
+# Reproducible builds: F-Droid builds from source, downloads your signed APK from this URL for
+# the same version, and if they match byte-for-byte it ships YOUR signed APK. The release
+# workflow uploads heartwood-v<versionName>.apk to the GitHub Release for tag v<versionName>,
+# so %v (versionName) fills both slots.
+Binaries: https://github.com/GuyOnWifi/heartwood/releases/download/v%v/heartwood-v%v.apk
+
+# SHA-256 of YOUR real signing certificate, lowercase hex, no colons. Pin it so F-Droid only
+# trusts APKs from the Binaries URL that are signed by your key. Get it from a signed APK:
+#   apksigner verify --print-certs heartwood-v1.0.0.apk | grep -i SHA-256
+# or from the keystore:
+#   keytool -list -v -keystore heartwood-release.jks -alias <alias> | grep SHA256
+# then strip the colons and lowercase it.
+AllowedAPKSigningKeys:
+  - 0000000000000000000000000000000000000000000000000000000000000000
+
 Builds:
   - versionName: 1.0.0
     versionCode: 1
