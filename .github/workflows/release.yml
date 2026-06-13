@@ -47,7 +47,7 @@ jobs:
               echo "HEARTWOOD_KEY_PASSWORD=$KEY_PASSWORD"
             } >> "$GITHUB_ENV"
           else
-            echo "No signing secrets set — building an unsigned release APK."
+            echo "No signing secrets set, building an unsigned release APK."
           fi
 
       - name: Build release APK
