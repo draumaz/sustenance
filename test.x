@@ -1,2 +1,0 @@
-- Implement Food as a metric, viewable both as a card and within a widget. Health Connect already provides this, we just need to implement the feature into Heartwood as it currently lacks it.
-- Add a third widget, following the design philosophy of the other two, that shows Food-related metrics pulled in from health connect; it should cleanly display Calories, Protein, Carbs, Fat, Fiber.
