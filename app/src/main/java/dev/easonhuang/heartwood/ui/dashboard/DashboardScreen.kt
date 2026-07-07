@@ -36,6 +36,7 @@ import dev.easonhuang.heartwood.ui.components.MetricCard
 @Composable
 fun DashboardScreen(
     manager: HealthConnectManager,
+    granted: Set<String>,
     bottomInset: androidx.compose.ui.unit.Dp,
     onOpenMetric: (Metric) -> Unit,
     onManagePermissions: () -> Unit,
@@ -44,6 +45,11 @@ fun DashboardScreen(
     val summaries by vm.summaries.collectAsStateWithLifecycle()
     val refreshing by vm.refreshing.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
+
+    // Refresh when permissions change (e.g. Food just granted).
+    androidx.compose.runtime.LaunchedEffect(granted) {
+        vm.refresh()
+    }
 
     Scaffold(
         modifier = Modifier.fillMaxSize().nestedScroll(scrollBehavior.nestedScrollConnection),

@@ -14,6 +14,7 @@ import androidx.health.connect.client.records.HeartRateRecord
 import androidx.health.connect.client.records.HeartRateVariabilityRmssdRecord
 import androidx.health.connect.client.records.HeightRecord
 import androidx.health.connect.client.records.HydrationRecord
+import androidx.health.connect.client.records.NutritionRecord
 import androidx.health.connect.client.records.OxygenSaturationRecord
 import androidx.health.connect.client.records.Record
 import androidx.health.connect.client.records.RespiratoryRateRecord
@@ -167,7 +168,7 @@ class HealthConnectManager(private val context: Context) {
 
     // ---- Detail --------------------------------------------------------------------------------
 
-    suspend fun readDetail(metric: Metric): MetricDetail {
+    suspend fun readDetail(metric: Metric): MetricDetail = runCatching {
         if (metric == Metric.HEART_RATE) return heartRateDetail()
         if (metric == Metric.BLOOD_PRESSURE) return bloodPressureDetail()
 
@@ -200,7 +201,10 @@ class HealthConnectManager(private val context: Context) {
         val recent = points.takeLast(20).reversed().map {
             RecordRow("${formatValue(metric, it.value)} ${metric.unit}", dayMonthTime(it.time))
         }
-        return MetricDetail(metric, headline, caption, points, stats, recent)
+        MetricDetail(metric, headline, caption, points, stats, recent)
+    }.getOrElse {
+        val msg = if (isGranted(metric)) "Error reading data" else "Permission not granted"
+        MetricDetail(metric, "-", msg, emptyList())
     }
 
     private suspend fun heartRateDetail(): MetricDetail {
@@ -283,10 +287,27 @@ class HealthConnectManager(private val context: Context) {
 
     private suspend fun series(metric: Metric, days: Int): List<SeriesPoint> =
         when (metric.kind) {
-            MetricKind.DAILY_TOTAL ->
-                if (metric == Metric.EXERCISE) exerciseSeries(days) else dailyTotalSeries(metric, days)
+            MetricKind.DAILY_TOTAL -> when (metric) {
+                Metric.EXERCISE -> exerciseSeries(days)
+                Metric.FOOD -> foodSeries(days)
+                else -> dailyTotalSeries(metric, days)
+            }
             MetricKind.LATEST -> latestSeries(metric, days)
         }
+
+    private suspend fun foodSeries(days: Int): List<SeriesPoint> {
+        val recs = read(NutritionRecord::class, daysAgoStart(days), Instant.now())
+            .filterIsInstance<NutritionRecord>()
+        if (recs.isEmpty()) return emptyList()
+        val byDate = recs.groupBy { it.startTime.atZone(zone).toLocalDate() }
+            .mapValues { (_, list) ->
+                list.sumOf { it.energy?.inKilocalories ?: 0.0 }.toFloat()
+            }
+        return (0 until days).map { i ->
+            val date = LocalDate.now().minusDays((days - 1 - i).toLong())
+            SeriesPoint(date.atStartOfDay(zone).toInstant(), byDate[date] ?: 0f, dowFmt.format(date))
+        }.let { pts -> if (pts.all { it.value == 0f }) emptyList() else pts }
+    }
 
     private suspend fun dailyTotalSeries(metric: Metric, days: Int): List<SeriesPoint> {
         val agg = aggregateMetricFor(metric) ?: return emptyList()
@@ -353,6 +374,7 @@ class HealthConnectManager(private val context: Context) {
         is BloodPressureRecord -> r.time
         is SleepSessionRecord -> r.startTime
         is ExerciseSessionRecord -> r.startTime
+        is NutritionRecord -> r.startTime
         else -> null
     }
 
@@ -378,6 +400,7 @@ class HealthConnectManager(private val context: Context) {
         Metric.DISTANCE -> DistanceRecord::class
         Metric.ACTIVE_CALORIES -> ActiveCaloriesBurnedRecord::class
         Metric.TOTAL_CALORIES -> TotalCaloriesBurnedRecord::class
+        Metric.FOOD -> NutritionRecord::class
         Metric.FLOORS -> FloorsClimbedRecord::class
         Metric.EXERCISE -> ExerciseSessionRecord::class
         Metric.HYDRATION -> HydrationRecord::class
@@ -399,6 +422,7 @@ class HealthConnectManager(private val context: Context) {
         Metric.DISTANCE -> DistanceRecord.DISTANCE_TOTAL
         Metric.ACTIVE_CALORIES -> ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL
         Metric.TOTAL_CALORIES -> TotalCaloriesBurnedRecord.ENERGY_TOTAL
+        Metric.FOOD -> NutritionRecord.ENERGY_TOTAL
         Metric.FLOORS -> FloorsClimbedRecord.FLOORS_CLIMBED_TOTAL
         Metric.HYDRATION -> HydrationRecord.VOLUME_TOTAL
         else -> null
@@ -410,6 +434,7 @@ class HealthConnectManager(private val context: Context) {
             Metric.DISTANCE -> (result[DistanceRecord.DISTANCE_TOTAL]?.inKilometers ?: 0.0).toFloat()
             Metric.ACTIVE_CALORIES -> (result[ActiveCaloriesBurnedRecord.ACTIVE_CALORIES_TOTAL]?.inKilocalories ?: 0.0).toFloat()
             Metric.TOTAL_CALORIES -> (result[TotalCaloriesBurnedRecord.ENERGY_TOTAL]?.inKilocalories ?: 0.0).toFloat()
+            Metric.FOOD -> (result[NutritionRecord.ENERGY_TOTAL]?.inKilocalories ?: 0.0).toFloat()
             Metric.FLOORS -> (result[FloorsClimbedRecord.FLOORS_CLIMBED_TOTAL] ?: 0.0).toFloat()
             Metric.HYDRATION -> (result[HydrationRecord.VOLUME_TOTAL]?.inLiters ?: 0.0).toFloat()
             else -> 0f
@@ -417,6 +442,7 @@ class HealthConnectManager(private val context: Context) {
 
     private fun formatValue(metric: Metric, v: Float): String = when (metric) {
         Metric.STEPS, Metric.FLOORS -> "%,d".format(v.toLong())
+        Metric.FOOD -> "%,d".format(v.toLong())
         Metric.DISTANCE, Metric.HYDRATION -> "%.2f".format(v)
         Metric.VO2MAX, Metric.WEIGHT, Metric.SLEEP -> "%.1f".format(v)
         else -> "%.0f".format(v)

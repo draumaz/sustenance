@@ -42,6 +42,7 @@ import dev.easonhuang.heartwood.ui.onboarding.OnboardingScreen
 import dev.easonhuang.heartwood.ui.onboarding.UnavailableScreen
 import dev.easonhuang.heartwood.ui.settings.SettingsScreen
 import dev.easonhuang.heartwood.ui.summary.SummaryScreen
+import dev.easonhuang.heartwood.widget.WidgetUpdateWorker
 
 private const val HEALTH_CONNECT_PACKAGE = "com.google.android.apps.healthdata"
 private const val ACTION_HC_SETTINGS = "androidx.health.connect.action.HEALTH_CONNECT_SETTINGS"
@@ -83,11 +84,20 @@ fun HeartwoodRoot(
 
     val permissionLauncher = rememberLauncherForActivityResult(
         PermissionController.createRequestPermissionResultContract()
-    ) { result -> granted = result }
+    ) { result ->
+        granted = result
+        WidgetUpdateWorker.enqueue(context)
+    }
 
     // Re-read grants every time we return to the app (e.g. after toggling in HC settings).
     LifecycleResumeEffect(Unit) {
-        scope.launch { granted = manager.grantedPermissions() }
+        scope.launch {
+            val next = manager.grantedPermissions()
+            if (next != granted) {
+                granted = next
+                WidgetUpdateWorker.enqueue(context)
+            }
+        }
         onPauseOrDispose { }
     }
 
@@ -116,9 +126,10 @@ fun HeartwoodRoot(
 
     fun manageAccess() {
         val g = granted ?: emptySet()
+        val missingMetrics = manager.metricPermissions.filter { it !in g }
         when {
-            // No data access yet → run the full setup chain again.
-            !manager.metricPermissions.any { it in g } -> startSetup()
+            // New metrics added to the app won't be in the existing grant set.
+            missingMetrics.isNotEmpty() -> permissionLauncher.launch(missingMetrics.toSet())
             // Data granted but background (for widgets) missing → add it now.
             HealthConnectManager.PERMISSION_READ_IN_BACKGROUND !in g ->
                 permissionLauncher.launch(manager.extraPermissions)
@@ -142,6 +153,7 @@ fun HeartwoodRoot(
         else -> {
             MainNav(
                 manager, goalsRepo, exporter,
+                granted = granted ?: emptySet(),
                 onManagePermissions = ::manageAccess,
                 deepLinkMetric = deepLinkMetric,
                 onDeepLinkConsumed = onDeepLinkConsumed,
@@ -155,6 +167,7 @@ private fun MainNav(
     manager: HealthConnectManager,
     goalsRepo: GoalsRepository,
     exporter: ExportManager,
+    granted: Set<String>,
     onManagePermissions: () -> Unit,
     deepLinkMetric: String? = null,
     onDeepLinkConsumed: () -> Unit = {},
@@ -169,7 +182,12 @@ private fun MainNav(
     LaunchedEffect(deepLinkMetric) {
         val metric = deepLinkMetric?.let { Metric.fromKey(it) }
         if (metric != null) {
-            navController.navigate("detail/${metric.key}")
+            val isGranted = manager.permissionFor(metric) in granted
+            if (isGranted) {
+                navController.navigate("detail/${metric.key}")
+            } else {
+                onManagePermissions()
+            }
             onDeepLinkConsumed()
         }
     }
@@ -206,6 +224,7 @@ private fun MainNav(
             composable(Dest.TODAY.route) {
                 DashboardScreen(
                     manager = manager,
+                    granted = granted,
                     bottomInset = bottomInset,
                     onOpenMetric = { metric -> navController.navigate("detail/${metric.key}") },
                     onManagePermissions = onManagePermissions,

@@ -4,6 +4,9 @@ import android.content.Context
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.updateAll
 import androidx.work.CoroutineWorker
+import androidx.work.ExistingWorkPolicy
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 
 /** Periodically re-renders the home-screen widget(s) with fresh Health Connect data. */
@@ -23,5 +26,16 @@ class WidgetUpdateWorker(
             MetricWidget().updateAll(applicationContext)
             Result.success()
         }.getOrElse { Result.retry() }
+    }
+
+    companion object {
+        fun enqueue(context: Context) {
+            val request = OneTimeWorkRequestBuilder<WidgetUpdateWorker>().build()
+            WorkManager.getInstance(context).enqueueUniqueWork(
+                "heartwood_widget_refresh_now",
+                ExistingWorkPolicy.REPLACE,
+                request
+            )
+        }
     }
 }

@@ -16,6 +16,7 @@ private val Context.goalsDataStore by preferencesDataStore(name = "heartwood_goa
 object GoalCatalog {
     val defaults: Map<Metric, Float> = linkedMapOf(
         Metric.STEPS to 10_000f,
+        Metric.FOOD to 2000f,
         Metric.ACTIVE_CALORIES to 500f,
         Metric.EXERCISE to 30f,
         Metric.DISTANCE to 5f,

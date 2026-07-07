@@ -12,6 +12,7 @@ import androidx.compose.material.icons.rounded.Height
 import androidx.compose.material.icons.rounded.LocalFireDepartment
 import androidx.compose.material.icons.rounded.MonitorHeart
 import androidx.compose.material.icons.rounded.MonitorWeight
+import androidx.compose.material.icons.rounded.Restaurant
 import androidx.compose.material.icons.rounded.Route
 import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.material.icons.rounded.Stairs
@@ -44,6 +45,7 @@ enum class Metric(
     DISTANCE("distance", "Distance", "km", MetricKind.DAILY_TOTAL, Color(0xFF26A69A), Icons.Rounded.Route),
     ACTIVE_CALORIES("active_calories", "Active energy", "kcal", MetricKind.DAILY_TOTAL, Color(0xFFFF7043), Icons.Rounded.LocalFireDepartment),
     TOTAL_CALORIES("total_calories", "Total energy", "kcal", MetricKind.DAILY_TOTAL, Color(0xFFEF5350), Icons.Rounded.Bolt),
+    FOOD("food", "Food", "kcal", MetricKind.DAILY_TOTAL, Color(0xFFFF9800), Icons.Rounded.Restaurant),
     FLOORS("floors", "Floors climbed", "floors", MetricKind.DAILY_TOTAL, Color(0xFF8D6E63), Icons.Rounded.Stairs),
     EXERCISE("exercise", "Exercise", "min", MetricKind.DAILY_TOTAL, Color(0xFF7E57C2), Icons.Rounded.DirectionsRun),
     HYDRATION("hydration", "Hydration", "L", MetricKind.DAILY_TOTAL, Color(0xFF42A5F5), Icons.Rounded.WaterDrop),

@@ -34,7 +34,7 @@ import dev.easonhuang.heartwood.data.MetricSummary
 
 /** Preferred metrics to surface on the home screen, in priority order. */
 private val WIDGET_METRICS = listOf(
-    Metric.STEPS, Metric.HEART_RATE, Metric.ACTIVE_CALORIES, Metric.SLEEP, Metric.DISTANCE,
+    Metric.STEPS, Metric.HEART_RATE, Metric.FOOD, Metric.ACTIVE_CALORIES, Metric.SLEEP, Metric.DISTANCE,
 )
 
 class HeartwoodWidget : GlanceAppWidget() {
