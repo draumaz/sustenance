@@ -36,13 +36,15 @@ class SummaryViewModel(
             val stats = GoalCatalog.metrics.mapNotNull { metric ->
                 val pts = seriesByMetric[metric]
                 if (pts.isNullOrEmpty()) return@mapNotNull null
-                val thisWeek = pts.takeLast(7)
-                val lastWeek = pts.dropLast(7).takeLast(7)
+                
+                val today = pts.last().value
+                val yesterday = if (pts.size >= 2) pts[pts.size - 2].value else 0f
+                
                 WeeklyStat(
                     metric = metric,
-                    perDay = thisWeek,
-                    thisWeekAvg = thisWeek.map { it.value }.average().toFloat(),
-                    lastWeekAvg = if (lastWeek.isEmpty()) 0f else lastWeek.map { it.value }.average().toFloat(),
+                    perDay = pts.takeLast(7),
+                    todayValue = today,
+                    yesterdayValue = yesterday,
                     goal = goals[metric] ?: GoalCatalog.defaults.getValue(metric),
                 )
             }

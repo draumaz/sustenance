@@ -119,7 +119,7 @@ class HealthConnectManager(private val context: Context) {
         return when (metric.kind) {
             MetricKind.DAILY_TOTAL -> {
                 val today = points.last().value
-                val avg = spark.average().toFloat()
+                val yesterday = if (points.size >= 2) points[points.size - 2].value else 0f
                 val displayValue = when {
                     metric == Metric.CALORIC_BALANCE -> {
                         when {
@@ -139,11 +139,11 @@ class HealthConnectManager(private val context: Context) {
                 }
 
                 val displayCaption = if (metric == Metric.CALORIC_BALANCE) {
-                    val absAvg = if (avg < 0) -avg else avg
-                    val label = if (avg < 0) "surplus" else "deficit"
-                    "7-day avg ${metric.formatValue(absAvg)}${metric.unit} $label"
+                    val absYesterday = if (yesterday < 0) -yesterday else yesterday
+                    val label = if (yesterday < 0) "surplus" else "deficit"
+                    "Yesterday: ${metric.formatValue(absYesterday)}${metric.unit} $label"
                 } else {
-                    "7-day avg ${metric.formatValue(avg)}${metric.unit}"
+                    "Yesterday: ${metric.formatValue(yesterday)}${metric.unit}"
                 }
 
                 MetricSummary(

@@ -4,7 +4,6 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -57,7 +56,6 @@ import dev.easonhuang.sustenance.data.HealthConnectManager
 import dev.easonhuang.sustenance.data.Metric
 import dev.easonhuang.sustenance.data.WeeklyStat
 import dev.easonhuang.sustenance.data.formatValue
-import dev.easonhuang.sustenance.ui.components.BarChart
 import dev.easonhuang.sustenance.ui.components.GoalRing
 import kotlin.math.roundToInt
 
@@ -103,7 +101,7 @@ fun SummaryScreen(
         ) {
             item {
                 Text(
-                    "7-DAY AVERAGES VS GOALS",
+                    "TODAY'S PROGRESS",
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.ExtraBold,
                     letterSpacing = 1.sp,
@@ -119,7 +117,7 @@ fun SummaryScreen(
                     visible = true,
                     enter = fadeIn() + slideInVertically(initialOffsetY = { it / 4 })
                 ) {
-                    WeeklyCard(
+                    InsightCard(
                         stat = stat,
                         onEdit = { editing = stat },
                         editEnabled = !(stat.metric == Metric.FOOD && programmedDeficit)
@@ -139,14 +137,14 @@ fun SummaryScreen(
 }
 
 @Composable
-private fun WeeklyCard(stat: WeeklyStat, onEdit: () -> Unit, editEnabled: Boolean = true) {
+private fun InsightCard(stat: WeeklyStat, onEdit: () -> Unit, editEnabled: Boolean = true) {
     val accent = stat.metric.accent
     Card(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
         shape = MaterialTheme.shapes.extraLarge,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+        colors = CardDefaults.cardColors(containerColor = accent.copy(alpha = 0.18f)),
     ) {
-        Column(Modifier.padding(24.dp)) {
+        Column(Modifier.padding(horizontal = 24.dp, vertical = 18.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 GoalRing(progress = stat.progress, color = accent, diameter = 64.dp, stroke = 10.dp) {
                     Text(
@@ -164,7 +162,7 @@ private fun WeeklyCard(stat: WeeklyStat, onEdit: () -> Unit, editEnabled: Boolea
                         letterSpacing = (-0.5).sp
                     )
                     Text(
-                        "${stat.metric.formatValue(stat.thisWeekAvg)} / ${stat.metric.formatValue(stat.goal)} ${stat.metric.unit}",
+                        "${stat.metric.formatValue(stat.todayValue)} / ${stat.metric.formatValue(stat.goal)} ${stat.metric.unit}",
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -175,15 +173,11 @@ private fun WeeklyCard(stat: WeeklyStat, onEdit: () -> Unit, editEnabled: Boolea
                 if (editEnabled) {
                     IconButton(
                         onClick = onEdit,
-                        modifier = Modifier.clip(CircleShape).background(MaterialTheme.colorScheme.surfaceContainer)
+                        modifier = Modifier.clip(CircleShape).background(accent.copy(alpha = 0.2f))
                     ) {
                         Icon(Icons.Rounded.Edit, contentDescription = "Edit goal", tint = accent, modifier = Modifier.size(20.dp))
                     }
                 }
-            }
-            Spacer(Modifier.height(32.dp))
-            Box(Modifier.fillMaxWidth().height(110.dp)) {
-                BarChart(stat.perDay, accent, Modifier.fillMaxSize())
             }
         }
     }
@@ -194,14 +188,14 @@ private fun DeltaChip(stat: WeeklyStat) {
     val delta = stat.deltaPercent
     val (icon, tint, label) = when {
         delta == null -> Triple(Icons.AutoMirrored.Rounded.TrendingFlat, MaterialTheme.colorScheme.onSurfaceVariant, "New")
-        delta >= 1f -> Triple(Icons.AutoMirrored.Rounded.TrendingUp, stat.metric.accent, "+${delta.roundToInt()}% vs last week")
-        delta <= -1f -> Triple(Icons.AutoMirrored.Rounded.TrendingDown, MaterialTheme.colorScheme.error, "${delta.roundToInt()}% vs last week")
+        delta >= 1f -> Triple(Icons.AutoMirrored.Rounded.TrendingUp, stat.metric.accent, "+${delta.roundToInt()}% vs yesterday")
+        delta <= -1f -> Triple(Icons.AutoMirrored.Rounded.TrendingDown, MaterialTheme.colorScheme.error, "${delta.roundToInt()}% vs yesterday")
         else -> Triple(Icons.AutoMirrored.Rounded.TrendingFlat, MaterialTheme.colorScheme.onSurfaceVariant, "Steady")
     }
     Row(
         Modifier
             .clip(RoundedCornerShape(50))
-            .background(tint.copy(alpha = 0.12f))
+            .background(tint.copy(alpha = 0.25f))
             .padding(horizontal = 12.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -224,7 +218,7 @@ private fun EmptyState() {
         )
         Spacer(Modifier.height(12.dp))
         Text(
-            "Grant access to nutrition data in Settings to see your weekly insights.",
+            "Grant access to nutrition data in Settings to see your insights.",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,

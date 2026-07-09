@@ -1,17 +1,17 @@
 package dev.easonhuang.sustenance.data
 
-/** This-week vs last-week comparison for a goal-capable metric. */
+/** Today's performance vs goal and yesterday's comparison for a metric. */
 data class WeeklyStat(
     val metric: Metric,
     val perDay: List<SeriesPoint>,   // last 7 days, oldest → newest
-    val thisWeekAvg: Float,
-    val lastWeekAvg: Float,
+    val todayValue: Float,
+    val yesterdayValue: Float,
     val goal: Float,
 ) {
-    /** 0f..1f progress of this week's daily average toward the goal. */
-    val progress: Float get() = if (goal > 0f) (thisWeekAvg / goal).coerceIn(0f, 1f) else 0f
+    /** 0f..1f progress of today toward the goal. */
+    val progress: Float get() = if (goal > 0f) (todayValue / goal).coerceIn(0f, 1f) else 0f
 
-    /** Week-over-week change as a percentage, or null when there's no prior-week baseline. */
+    /** Day-over-day change as a percentage. */
     val deltaPercent: Float? get() =
-        if (lastWeekAvg > 0f) (thisWeekAvg - lastWeekAvg) / lastWeekAvg * 100f else null
+        if (yesterdayValue > 0f) (todayValue - yesterdayValue) / yesterdayValue * 100f else null
 }
