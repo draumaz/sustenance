@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.OpenInNew
 import androidx.compose.material.icons.rounded.Check
@@ -36,7 +35,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -59,7 +57,6 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -155,51 +152,6 @@ fun SettingsScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                     )
-
-                    HorizontalDivider(Modifier.padding(horizontal = 16.dp), thickness = 0.5.dp, color = MaterialTheme.colorScheme.outlineVariant)
-
-                    val deficitEnabled by vm.programmedDeficitEnabled.collectAsState(initial = false)
-                    val currentDeficit by vm.deficitAmount.collectAsState(initial = 500f)
-                    var deficitText by remember(currentDeficit) { mutableStateOf(currentDeficit.toInt().toString()) }
-
-                    SettingRow(
-                        icon = Icons.Rounded.History,
-                        title = "Programmed Deficit",
-                        subtitle = "Auto-calculate Food goal based on TDEE",
-                        onClick = { vm.setProgrammedDeficitEnabled(!deficitEnabled) }
-                    ) {
-                        Switch(checked = deficitEnabled, onCheckedChange = null)
-                    }
-
-                    if (deficitEnabled) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            OutlinedTextField(
-                                value = deficitText,
-                                onValueChange = { deficitText = it },
-                                label = { Text("Deficit amount (kcal)") },
-                                modifier = Modifier.weight(1f),
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                singleLine = true,
-                            )
-                            IconButton(
-                                onClick = {
-                                    deficitText.toFloatOrNull()?.let { vm.setDeficitAmount(it) }
-                                },
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.primaryContainer)
-                            ) {
-                                Icon(Icons.Rounded.Check, contentDescription = "Save", tint = MaterialTheme.colorScheme.onPrimaryContainer)
-                            }
-                        }
-                    }
                 }
             }
             item { SectionLabel("Data") }

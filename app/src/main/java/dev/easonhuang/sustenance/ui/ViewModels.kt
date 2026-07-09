@@ -32,17 +32,15 @@ class DashboardViewModel(
             combine(
                 goalsRepo.goals,
                 settingsRepo.ketoMode,
-                settingsRepo.programmedDeficitEnabled,
-                settingsRepo.deficitAmount
-            ) { goals, isKeto, deficitEnabled, deficitAmount ->
+            ) { goals, isKeto ->
                 _refreshing.value = true
                 
                 var finalGoals = goals
-                if (deficitEnabled) {
+                val deficitAmount = goals[Metric.CALORIC_BALANCE] ?: 0f
+                if (deficitAmount > 0) {
                     val energyToday = manager.readDailySeries(Metric.TOTAL_CALORIES, 1).lastOrNull()?.value ?: 0f
                     if (energyToday > 0) {
-                        finalGoals = goals + (Metric.FOOD to (energyToday - deficitAmount).coerceAtLeast(0f)) +
-                                (Metric.CALORIC_BALANCE to deficitAmount)
+                        finalGoals = goals + (Metric.FOOD to (energyToday - deficitAmount).coerceAtLeast(0f))
                     }
                 }
                 
@@ -57,15 +55,13 @@ class DashboardViewModel(
             _refreshing.value = true
             val goals = goalsRepo.goals.first()
             val isKeto = settingsRepo.ketoMode.first()
-            val deficitEnabled = settingsRepo.programmedDeficitEnabled.first()
-            val deficitAmount = settingsRepo.deficitAmount.first()
 
             var finalGoals = goals
-            if (deficitEnabled) {
+            val deficitAmount = goals[Metric.CALORIC_BALANCE] ?: 0f
+            if (deficitAmount > 0) {
                 val energyToday = manager.readDailySeries(Metric.TOTAL_CALORIES, 1).lastOrNull()?.value ?: 0f
                 if (energyToday > 0) {
-                    finalGoals = goals + (Metric.FOOD to (energyToday - deficitAmount).coerceAtLeast(0f)) +
-                            (Metric.CALORIC_BALANCE to deficitAmount)
+                    finalGoals = goals + (Metric.FOOD to (energyToday - deficitAmount).coerceAtLeast(0f))
                 }
             }
 
@@ -116,8 +112,6 @@ class SettingsViewModel(
 ) : ViewModel() {
     val dynamicColor = repository.dynamicColor
     val ketoMode = repository.ketoMode
-    val programmedDeficitEnabled = repository.programmedDeficitEnabled
-    val deficitAmount = repository.deficitAmount
 
     fun setDynamicColor(enabled: Boolean) {
         viewModelScope.launch { repository.setDynamicColor(enabled) }
@@ -125,14 +119,6 @@ class SettingsViewModel(
 
     fun setKetoMode(enabled: Boolean) {
         viewModelScope.launch { repository.setKetoMode(enabled) }
-    }
-
-    fun setProgrammedDeficitEnabled(enabled: Boolean) {
-        viewModelScope.launch { repository.setProgrammedDeficitEnabled(enabled) }
-    }
-
-    fun setDeficitAmount(amount: Float) {
-        viewModelScope.launch { repository.setDeficitAmount(amount) }
     }
 
     companion object {

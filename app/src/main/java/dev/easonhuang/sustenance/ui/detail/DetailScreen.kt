@@ -82,14 +82,16 @@ fun DetailScreen(
     if (showGoalDialog) {
         val currentGoal = detail?.goal ?: 0f
         var text by remember { mutableStateOf(currentGoal.toString().removeSuffix(".0")) }
+        val titleText = if (metric == Metric.CALORIC_BALANCE) "Edit Caloric balance offset" else "Edit ${metric.title} Goal"
         AlertDialog(
             onDismissRequest = { showGoalDialog = false },
-            title = { Text("Edit ${metric.title} Goal") },
+            title = { Text(titleText) },
             text = {
+                val labelText = if (metric == Metric.CALORIC_BALANCE) "Offset (${metric.unit})" else "Target (${metric.unit})"
                 OutlinedTextField(
                     value = text,
                     onValueChange = { text = it },
-                    label = { Text("Target (${metric.unit})") },
+                    label = { Text(labelText) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.fillMaxWidth()
@@ -263,15 +265,17 @@ private fun HeaderCard(d: MetricDetail, onEditGoal: () -> Unit) {
                         )
                     }
                     d.goal?.let {
+                        val label = if (d.metric == Metric.CALORIC_BALANCE) "Offset" else "Goal"
                         Text(
-                            "Goal: ${d.metric.formatValue(it)} ${d.metric.unit}",
+                            "$label: ${d.metric.formatValue(it)} ${d.metric.unit}",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                         )
                     }
                 }
+                val editDesc = if (d.metric == Metric.CALORIC_BALANCE) "Edit Offset" else "Edit Goal"
                 IconButton(onClick = onEditGoal) {
-                    Icon(Icons.Rounded.Edit, contentDescription = "Edit Goal", tint = accent.copy(alpha = 0.6f))
+                    Icon(Icons.Rounded.Edit, contentDescription = editDesc, tint = accent.copy(alpha = 0.6f))
                 }
             }
         }

@@ -40,12 +40,23 @@ class SummaryViewModel(
                 val today = pts.last().value
                 val yesterday = if (pts.size >= 2) pts[pts.size - 2].value else 0f
                 
+                var goal = goals[metric] ?: GoalCatalog.defaults.getValue(metric)
+                if (metric == Metric.FOOD) {
+                    val deficitAmount = goals[Metric.CALORIC_BALANCE] ?: 0f
+                    if (deficitAmount > 0) {
+                        val energyToday = seriesByMetric[Metric.TOTAL_CALORIES]?.last()?.value ?: 0f
+                        if (energyToday > 0) {
+                            goal = (energyToday - deficitAmount).coerceAtLeast(0f)
+                        }
+                    }
+                }
+
                 WeeklyStat(
                     metric = metric,
                     perDay = pts.takeLast(7),
                     todayValue = today,
                     yesterdayValue = yesterday,
-                    goal = goals[metric] ?: GoalCatalog.defaults.getValue(metric),
+                    goal = goal,
                 )
             }
             SummaryState(loading = false, stats = stats)

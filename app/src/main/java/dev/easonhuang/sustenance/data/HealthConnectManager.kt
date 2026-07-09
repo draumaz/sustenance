@@ -153,7 +153,7 @@ class HealthConnectManager(private val context: Context) {
                     hasData = true,
                     granted = true,
                     spark = spark,
-                    goal = if (metric == Metric.CALORIC_BALANCE) null else goal,
+                    goal = goal,
                 )
             }
             MetricKind.LATEST -> {

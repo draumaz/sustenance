@@ -50,15 +50,20 @@ fun MetricCard(
     val goal = summary.goal
     val locked = !summary.granted
 
-    val progress = if (goal != null && !locked && summary.metric != Metric.TOTAL_CALORIES) {
+    val progress = if (goal != null && !locked) {
         when {
+            summary.metric == Metric.CALORIC_BALANCE -> {
+                // For deficit, higher is better (positive values).
+                // Goal is the desired offset (e.g. 500kcal deficit).
+                if (goal > 0f) (today / goal).coerceIn(0f, 1f) else 0f
+            }
             goal > 0f -> (today / goal).coerceIn(0f, 1f)
             goal < 0f -> (today / goal).coerceIn(0f, 1f)
             else -> if (today > 0f) 1f else 0f
         }
     } else 0f
 
-    val isOver = if (goal != null && !locked && summary.metric != Metric.TOTAL_CALORIES) {
+    val isOver = if (goal != null && !locked) {
         if (summary.metric == Metric.CALORIC_BALANCE) {
             today < goal
         } else {
@@ -66,7 +71,7 @@ fun MetricCard(
         }
     } else false
 
-    val showProgress = goal != null && !locked && summary.metric != Metric.TOTAL_CALORIES
+    val showProgress = goal != null && !locked
     val fillColor = if (isOver) Color(0xFFA86B6B) else accent
 
     Surface(

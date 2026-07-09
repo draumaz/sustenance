@@ -64,7 +64,6 @@ import kotlin.math.roundToInt
 fun SummaryScreen(
     manager: HealthConnectManager,
     goalsRepo: GoalsRepository,
-    settingsRepo: dev.easonhuang.sustenance.data.SettingsRepository,
     bottomInset: androidx.compose.ui.unit.Dp,
     onBack: () -> Unit = {},
 ) {
@@ -72,7 +71,8 @@ fun SummaryScreen(
     val state by vm.state.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
     var editing by remember { mutableStateOf<WeeklyStat?>(null) }
-    val programmedDeficit by settingsRepo.programmedDeficitEnabled.collectAsStateWithLifecycle(false)
+    val goals by goalsRepo.goals.collectAsStateWithLifecycle(emptyMap())
+    val programmedDeficit = (goals[Metric.CALORIC_BALANCE] ?: 0f) > 0
 
     Scaffold(
         modifier = Modifier

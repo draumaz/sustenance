@@ -16,6 +16,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import dev.easonhuang.sustenance.data.Metric
 import dev.easonhuang.sustenance.data.WeeklyStat
 
 @Composable
@@ -29,12 +30,14 @@ fun GoalEditDialog(
             if (stat.goal % 1f == 0f) stat.goal.toInt().toString() else stat.goal.toString()
         )
     }
+    val title = if (stat.metric == Metric.CALORIC_BALANCE) "Caloric balance offset" else "${stat.metric.title} goal"
+    val prompt = if (stat.metric == Metric.CALORIC_BALANCE) "Daily offset in ${stat.metric.unit}" else "Daily target in ${stat.metric.unit}"
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("${stat.metric.title} goal") },
+        title = { Text(title) },
         text = {
             Column {
-                Text("Daily target in ${stat.metric.unit}")
+                Text(prompt)
                 Spacer(Modifier.height(12.dp))
                 OutlinedTextField(
                     value = text,

@@ -11,10 +11,10 @@ sending a single byte anywhere.
 
 ## Gallery
 
-| Home Screen | Search | Definitions |
-| :---: | :---: | :---: |
-| ![Home](img/swikt-home.jpg) | ![Search](img/swikt-search.jpg) | ![List](img/swikt-list.jpg) |
-| *Home Screen* | *Search Interface* | *Word Details* |
+|             Today Screen             |          Insights View          |         Food Details          |
+|:-----------------------------------:|:-------------------------------:|:-----------------------------:|
+|  ![Home](img/sustenance-today.jpg)  | ![Search](img/sustenance-insights.jpg) | ![List](img/sustenance-food.jpg) |
+|           *Today Screen*            |         *Insights View*         |        *Food Details*         |
 
 ---
 
