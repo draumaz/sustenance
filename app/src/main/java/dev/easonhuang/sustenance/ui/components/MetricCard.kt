@@ -85,7 +85,7 @@ fun MetricCard(
                         .clip(RoundedCornerShape(topEnd = 12.dp, bottomEnd = 12.dp))
                 )
             }
-            MetricItemContent(summary, isCompact = true, hasFill = showProgress && (progress > 0.15f || isOver))
+            MetricItemContent(summary, isCompact = true, hasFill = showProgress && (progress > 0.05f || isOver))
         }
     }
 }
@@ -101,9 +101,9 @@ fun MetricItemContent(
     val locked = !summary.granted
 
     val textShadow = Shadow(
-        color = Color.Black.copy(alpha = 0.5f),
-        offset = Offset(0f, 1.5f),
-        blurRadius = 4f
+        color = Color.Black.copy(alpha = 0.75f),
+        offset = Offset(0f, 2f),
+        blurRadius = 8f
     )
 
     Row(
@@ -129,7 +129,7 @@ fun MetricItemContent(
             Text(
                 text = summary.titleOverride ?: summary.metric.title,
                 style = MaterialTheme.typography.labelSmall.copy(shadow = textShadow),
-                fontWeight = FontWeight.Bold,
+                fontWeight = FontWeight.Medium,
                 color = Color.White.copy(alpha = 0.8f),
                 maxLines = 1,
             )
@@ -137,7 +137,7 @@ fun MetricItemContent(
             var textStyle by remember(summary.value) {
                 mutableStateOf(TextStyle(
                     fontSize = if (isCompact) 13.sp else 16.sp,
-                    fontWeight = FontWeight.Black,
+                    fontWeight = FontWeight.Bold,
                     letterSpacing = (-0.5).sp,
                     color = Color.White,
                     shadow = textShadow

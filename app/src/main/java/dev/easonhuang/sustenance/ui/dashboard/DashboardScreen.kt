@@ -26,6 +26,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -91,7 +92,7 @@ fun DashboardScreen(
                 title = {
                     Column {
                         Text(greeting, style = MaterialTheme.typography.labelSmall.copy(fontSize = 15.sp), color = MaterialTheme.colorScheme.primary)
-                        Text("Sustenance", style = MaterialTheme.typography.titleLarge.copy(fontSize = 25.sp), fontWeight = FontWeight.ExtraBold)
+                        Text("Sustenance", style = MaterialTheme.typography.titleLarge.copy(fontSize = 25.sp), fontWeight = FontWeight.Bold)
                     }
                 },
                 actions = {
@@ -194,42 +195,45 @@ private fun MetricSection(
     onOpenMetric: (Metric) -> Unit,
     onManagePermissions: () -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(28.dp))
-            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-            .padding(16.dp)
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(28.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        shadowElevation = 6.dp
     ) {
-        Text(
-            text = title.uppercase(),
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.ExtraBold,
-            color = MaterialTheme.colorScheme.primary,
-            letterSpacing = 1.sp,
-            modifier = Modifier.padding(bottom = 12.dp, start = 8.dp)
-        )
-        FlowRow(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            maxItemsInEachRow = columns
+        Column(
+            modifier = Modifier.padding(16.dp)
         ) {
-            items.forEach { summary ->
-                Box(Modifier.weight(1f)) {
-                    MetricCard(
-                        summary = summary,
-                        onClick = {
-                            if (summary.granted) onOpenMetric(summary.metric) else onManagePermissions()
-                        }
-                    )
+            Text(
+                text = title.uppercase(),
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+                letterSpacing = 1.sp,
+                modifier = Modifier.padding(bottom = 12.dp, start = 8.dp)
+            )
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                maxItemsInEachRow = columns
+            ) {
+                items.forEach { summary ->
+                    Box(Modifier.weight(1f)) {
+                        MetricCard(
+                            summary = summary,
+                            onClick = {
+                                if (summary.granted) onOpenMetric(summary.metric) else onManagePermissions()
+                            }
+                        )
+                    }
                 }
-            }
-            // Fill remaining space in the last row if needed
-            val remainder = items.size % columns
-            if (remainder != 0) {
-                repeat(columns - remainder) {
-                    Spacer(Modifier.weight(1f))
+                // Fill remaining space in the last row if needed
+                val remainder = items.size % columns
+                if (remainder != 0) {
+                    repeat(columns - remainder) {
+                        Spacer(Modifier.weight(1f))
+                    }
                 }
             }
         }
