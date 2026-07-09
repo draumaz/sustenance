@@ -186,82 +186,63 @@ fun ExpressiveNavigationBar(
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Today (Home) item
+                // Today (Home) item - now transforms into detail metric
                 val todayDest = destinations.first { it.route == "today" }
                 val isTodaySelected = currentDestination?.hierarchy?.any { it.route == "today" } == true
-                
+                val isEffectivelySelected = isTodaySelected || isOnDetail
+
                 val isPredictingToToday = predictiveBackState?.isSwipeActive == true && 
-                    !isTodaySelected &&
+                    !isEffectivelySelected &&
                     navController.previousBackStackEntry?.destination?.route == "today"
 
                 val todayAlpha = if (isPredictingToToday) {
                     predictiveBackState?.progress
-                } else if (isTodaySelected && predictiveBackState?.isSwipeActive == true) {
-                    1f - (predictiveBackState?.progress ?: 0f)
+                } else if (isEffectivelySelected && predictiveBackState?.isSwipeActive == true) {
+                    if (navController.previousBackStackEntry?.destination?.route == "today") 1f
+                    else 1f - (predictiveBackState?.progress ?: 0f)
                 } else null
 
-                ExpressiveNavItem(
-                    label = todayDest.label,
-                    icon = todayDest.icon,
-                    isSelected = isTodaySelected,
-                    selectionAlphaOverride = todayAlpha,
-                    onLongHold = { isScalloped = !isScalloped },
-                    onClick = { onNavigate(todayDest) }
-                )
-
-                // The "Melting" content
                 AnimatedContent(
-                    targetState = isOnDetail,
+                    targetState = if (isOnDetail) detailMetric else null,
                     transitionSpec = {
                         (fadeIn(animationSpec = tween(250)) + scaleIn(initialScale = 0.92f))
                             .togetherWith(fadeOut(animationSpec = tween(200)) + scaleOut(targetScale = 0.92f))
                             .using(SizeTransform(clip = false))
                     },
-                    label = "pill_melt"
-                ) { onDetail ->
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        if (onDetail && detailMetric != null) {
-                            val detailAlpha = if (predictiveBackState?.isSwipeActive == true) {
-                                1f - (predictiveBackState?.progress ?: 0f)
-                            } else 1f
+                    label = "today_transform"
+                ) { targetMetric ->
+                    ExpressiveNavItem(
+                        label = targetMetric?.title ?: todayDest.label,
+                        icon = targetMetric?.icon ?: todayDest.icon,
+                        isSelected = isEffectivelySelected,
+                        selectionAlphaOverride = todayAlpha,
+                        onLongHold = { isScalloped = !isScalloped },
+                        onClick = { onNavigate(todayDest) }
+                    )
+                }
 
-                            ExpressiveNavItem(
-                                label = detailMetric.title,
-                                icon = detailMetric.icon,
-                                isSelected = true,
-                                selectionAlphaOverride = detailAlpha,
-                                onLongHold = { isScalloped = !isScalloped },
-                                onClick = { /* Already here */ }
-                            )
-                        }
+                // Summary and Settings
+                destinations.filter { it.route != "today" }.forEach { dest ->
+                    val isSelected = currentDestination?.hierarchy?.any { it.route == dest.route } == true
+                    
+                    val isPredictingToThis = predictiveBackState?.isSwipeActive == true && 
+                        !isSelected &&
+                        navController.previousBackStackEntry?.destination?.route == dest.route
 
-                        // Summary and Settings
-                        destinations.filter { it.route != "today" }.forEach { dest ->
-                            val isSelected = currentDestination?.hierarchy?.any { it.route == dest.route } == true
-                            
-                            val isPredictingToThis = predictiveBackState?.isSwipeActive == true && 
-                                !isSelected &&
-                                navController.previousBackStackEntry?.destination?.route == dest.route
+                    val alphaOverride = if (isPredictingToThis) {
+                        predictiveBackState?.progress
+                    } else if (isSelected && predictiveBackState?.isSwipeActive == true) {
+                        1f - (predictiveBackState?.progress ?: 0f)
+                    } else null
 
-                            val alphaOverride = if (isPredictingToThis) {
-                                predictiveBackState?.progress
-                            } else if (isSelected && predictiveBackState?.isSwipeActive == true) {
-                                1f - (predictiveBackState?.progress ?: 0f)
-                            } else null
-
-                            ExpressiveNavItem(
-                                label = dest.label,
-                                icon = dest.icon,
-                                isSelected = isSelected,
-                                selectionAlphaOverride = alphaOverride,
-                                onLongHold = { isScalloped = !isScalloped },
-                                onClick = { onNavigate(dest) }
-                            )
-                        }
-                    }
+                    ExpressiveNavItem(
+                        label = dest.label,
+                        icon = dest.icon,
+                        isSelected = isSelected,
+                        selectionAlphaOverride = alphaOverride,
+                        onLongHold = { isScalloped = !isScalloped },
+                        onClick = { onNavigate(dest) }
+                    )
                 }
             }
         }
