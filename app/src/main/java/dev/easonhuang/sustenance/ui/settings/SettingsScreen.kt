@@ -1,6 +1,8 @@
 package dev.easonhuang.sustenance.ui.settings
 
 import android.content.Intent
+import android.content.Context
+import android.os.Build
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -68,6 +70,8 @@ import dev.easonhuang.sustenance.data.Metric
 import dev.easonhuang.sustenance.data.SettingsRepository
 import dev.easonhuang.sustenance.ui.SettingsViewModel
 import kotlinx.coroutines.launch
+import androidx.core.net.toUri
+import androidx.health.connect.client.HealthConnectClient
 
 private const val REPO_URL = "https://github.com/draumaz/sustenance"
 
@@ -141,27 +145,26 @@ fun SettingsScreen(
                     SettingRow(
                         icon = Icons.Rounded.Whatshot,
                         title = "Keto Mode",
-                        subtitle = "Calculate Net Carbs (Carbs - Fiber)",
+                        subtitle = "Display Net Carbs (Carbs - Fiber)",
                         onClick = { vm.setKetoMode(!ketoMode) }
                     ) {
                         Switch(checked = ketoMode, onCheckedChange = null)
                     }
-                    Text(
-                        "When enabled, Carbs will be shown as Net Carbs (Carbs - Fiber).",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                    )
                 }
             }
             item { SectionLabel("Data") }
             item {
                 SettingsCard {
                     SettingRow(
-                        icon = Icons.Rounded.Lock,
-                        title = "Manage data access",
-                        subtitle = "Choose which health data Sustenance can read",
-                        onClick = onManagePermissions,
+                        icon = Icons.Rounded.HealthAndSafety,
+                        title = "Open Health Connect",
+                        subtitle = "Verify Sustenance can see your health data.",
+                        onClick = {
+                            runCatching {
+                                val intent = Intent(HealthConnectClient.ACTION_HEALTH_CONNECT_SETTINGS)
+                                context.startActivity(intent)
+                            }
+                        }
                     )
                     SettingRow(
                         icon = Icons.Rounded.Download,
@@ -175,20 +178,14 @@ fun SettingsScreen(
             item {
                 SettingsCard {
                     SettingRow(
-                        icon = Icons.Rounded.HealthAndSafety,
-                        title = "Sustenance ${BuildConfig.VERSION_NAME}",
-                        subtitle = "Private, read-only Health Connect viewer",
-                        onClick = {},
-                    )
-                    SettingRow(
                         icon = Icons.AutoMirrored.Rounded.OpenInNew,
-                        title = "Open source",
-                        subtitle = "GPL-3.0-or-later, view the code",
+                        title = "Sustenance ${BuildConfig.VERSION_NAME}",
+                        subtitle = "A beautiful Health Connect nutrition summary.",
                         onClick = {
                             runCatching {
-                                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(REPO_URL)))
+                                context.startActivity(Intent(Intent.ACTION_VIEW, REPO_URL.toUri()))
                             }
-                        },
+                        }
                     )
                 }
             }
@@ -238,7 +235,9 @@ private fun SectionLabel(text: String) {
 @Composable
 private fun SettingsCard(content: @Composable () -> Unit) {
     Card(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
         shape = MaterialTheme.shapes.extraLarge,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
     ) {
