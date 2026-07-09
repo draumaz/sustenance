@@ -54,10 +54,11 @@ private val BrandLight = lightColorScheme(
 
 private val VitalsTypography = Typography().run {
     copy(
-        displaySmall = displaySmall.copy(fontWeight = FontWeight.SemiBold),
-        headlineMedium = headlineMedium.copy(fontWeight = FontWeight.SemiBold),
-        titleLarge = titleLarge.copy(fontWeight = FontWeight.SemiBold),
-        headlineLarge = TextStyle(fontWeight = FontWeight.Bold, fontSize = 40.sp, lineHeight = 46.sp),
+        displaySmall = displaySmall.copy(fontWeight = FontWeight.Black, letterSpacing = (-1).sp),
+        headlineLarge = headlineLarge.copy(fontWeight = FontWeight.Black, letterSpacing = (-1.5).sp, fontSize = 42.sp, lineHeight = 48.sp),
+        headlineMedium = headlineMedium.copy(fontWeight = FontWeight.ExtraBold, letterSpacing = (-0.5).sp),
+        titleLarge = titleLarge.copy(fontWeight = FontWeight.Bold),
+        labelMedium = labelMedium.copy(fontWeight = FontWeight.ExtraBold, letterSpacing = 0.5.sp),
     )
 }
 

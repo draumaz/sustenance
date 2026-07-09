@@ -1,6 +1,10 @@
 package dev.easonhuang.sustenance.ui.dashboard
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -23,14 +27,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import dev.easonhuang.sustenance.data.GoalsRepository
 import dev.easonhuang.sustenance.data.HealthConnectManager
 import dev.easonhuang.sustenance.data.Metric
+import dev.easonhuang.sustenance.data.GoalsRepository
 import dev.easonhuang.sustenance.ui.DashboardViewModel
 import dev.easonhuang.sustenance.ui.components.MetricCard
+import java.time.LocalTime
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -47,6 +53,12 @@ fun DashboardScreen(
     val refreshing by vm.refreshing.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
 
+    val greeting = when (LocalTime.now().hour) {
+        in 0..11 -> "Good morning"
+        in 12..16 -> "Good afternoon"
+        else -> "Good evening"
+    }
+
     // Refresh when permissions change (e.g. Food just granted).
     androidx.compose.runtime.LaunchedEffect(granted) {
         vm.refresh()
@@ -56,7 +68,12 @@ fun DashboardScreen(
         modifier = Modifier.fillMaxSize().nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             LargeTopAppBar(
-                title = { Text("Sustenance") },
+                title = {
+                    Column {
+                        Text(greeting, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                        Text("Sustenance", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.ExtraBold)
+                    }
+                },
                 actions = {
                     IconButton(onClick = vm::refresh) {
                         if (refreshing) {
@@ -79,19 +96,24 @@ fun DashboardScreen(
             columns = GridCells.Fixed(1),
             contentPadding = PaddingValues(
                 start = 16.dp, end = 16.dp,
-                top = inner.calculateTopPadding(),
-                bottom = bottomInset + 24.dp,
+                top = inner.calculateTopPadding() + 8.dp,
+                bottom = bottomInset + 88.dp,
             ),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             items(data, key = { it.metric.key }) { summary ->
-                MetricCard(
-                    summary = summary,
-                    onClick = {
-                        if (summary.granted) onOpenMetric(summary.metric) else onManagePermissions()
-                    },
-                )
+                AnimatedVisibility(
+                    visible = true,
+                    enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
+                ) {
+                    MetricCard(
+                        summary = summary,
+                        onClick = {
+                            if (summary.granted) onOpenMetric(summary.metric) else onManagePermissions()
+                        },
+                    )
+                }
             }
         }
     }

@@ -13,26 +13,29 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.HealthAndSafety
+import androidx.compose.material.icons.rounded.Restaurant
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.background
 
 @Composable
 fun LoadingScreen() {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        CircularProgressIndicator()
+        CircularProgressIndicator(strokeWidth = 6.dp, modifier = Modifier.size(64.dp))
     }
 }
 
@@ -45,26 +48,35 @@ fun OnboardingScreen(onConnect: () -> Unit) {
         verticalArrangement = Arrangement.Center,
     ) {
         Box(
-            Modifier.size(96.dp).clip(CircleShape)
+            Modifier.size(120.dp).clip(CircleShape)
                 .background(Brush.linearGradient(listOf(accent.copy(alpha = 0.30f), accent.copy(alpha = 0.12f)))),
             contentAlignment = Alignment.Center,
         ) {
-            Icon(Icons.Rounded.Favorite, null, tint = accent, modifier = Modifier.size(48.dp))
+            Icon(Icons.Rounded.Restaurant, null, tint = accent, modifier = Modifier.size(56.dp))
         }
-        Spacer(Modifier.height(28.dp))
-        Text("Welcome to Sustenance", style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(40.dp))
+        Text("Welcome to Sustenance", 
+            style = MaterialTheme.typography.headlineLarge,
+            fontWeight = FontWeight.Black, 
+            textAlign = TextAlign.Center,
+            letterSpacing = (-1).sp
+        )
+        Spacer(Modifier.height(16.dp))
         Text(
-            "A private, open-source window into your Health Connect data. Sustenance only reads, " +
-                "nothing ever leaves your device.",
+            "A private, expressive viewer for your nutritional data. Sustenance only reads—nothing ever leaves your device.",
             style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.Medium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
-        Spacer(Modifier.height(36.dp))
-        Button(onClick = onConnect, modifier = Modifier.fillMaxWidth().height(52.dp)) {
-            Text("Connect Health Connect", style = MaterialTheme.typography.titleMedium)
+        Spacer(Modifier.height(48.dp))
+        Button(
+            onClick = onConnect, 
+            modifier = Modifier.fillMaxWidth().height(64.dp),
+            shape = MaterialTheme.shapes.extraLarge,
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+        ) {
+            Text("Connect Health Connect", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
         }
     }
 }
@@ -76,21 +88,28 @@ fun UnavailableScreen(onInstall: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Icon(Icons.Rounded.HealthAndSafety, null, tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(72.dp))
-        Spacer(Modifier.height(24.dp))
-        Text("Health Connect needed", style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
-        Spacer(Modifier.height(12.dp))
+        Icon(Icons.Rounded.HealthAndSafety, null, tint = MaterialTheme.colorScheme.error,
+            modifier = Modifier.size(80.dp))
+        Spacer(Modifier.height(32.dp))
+        Text("Health Connect needed", 
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Black, 
+            textAlign = TextAlign.Center
+        )
+        Spacer(Modifier.height(16.dp))
         Text(
-            "Sustenance reads your data through Health Connect. Please install or update it to continue.",
+            "Sustenance requires Health Connect to access your nutritional data securely. Please install it to continue.",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
-        Spacer(Modifier.height(28.dp))
-        Button(onClick = onInstall, modifier = Modifier.fillMaxWidth().height(52.dp)) {
-            Text("Get Health Connect")
+        Spacer(Modifier.height(40.dp))
+        Button(
+            onClick = onInstall, 
+            modifier = Modifier.fillMaxWidth().height(56.dp),
+            shape = MaterialTheme.shapes.large
+        ) {
+            Text("Get Health Connect", fontWeight = FontWeight.Bold)
         }
     }
 }

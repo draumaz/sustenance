@@ -1,6 +1,9 @@
 package dev.easonhuang.sustenance.ui.summary
 
 import androidx.activity.compose.PredictiveBackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,6 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.TrendingDown
@@ -40,10 +44,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.foundation.background
@@ -105,7 +111,13 @@ fun SummaryScreen(
             .nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             LargeTopAppBar(
-                title = { Text("This week") },
+                title = { 
+                    Text(
+                        "Insights", 
+                        style = MaterialTheme.typography.headlineLarge,
+                        fontWeight = FontWeight.Black
+                    ) 
+                },
                 scrollBehavior = scrollBehavior,
             )
         },
@@ -114,23 +126,30 @@ fun SummaryScreen(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(
                 top = inner.calculateTopPadding(),
-                bottom = bottomInset + 24.dp,
+                bottom = bottomInset + 100.dp, // room for nav
             ),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             item {
                 Text(
-                    "Daily averages vs your goals",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
+                    "7-DAY AVERAGES VS GOALS",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    letterSpacing = 1.sp,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
                 )
             }
             if (!state.loading && state.stats.isEmpty()) {
                 item { EmptyState() }
             }
             items(state.stats, key = { it.metric.key }) { stat ->
-                WeeklyCard(stat, onEdit = { editing = stat })
+                AnimatedVisibility(
+                    visible = true,
+                    enter = fadeIn() + slideInVertically(initialOffsetY = { it / 4 })
+                ) {
+                    WeeklyCard(stat, onEdit = { editing = stat })
+                }
             }
         }
     }
@@ -152,32 +171,41 @@ private fun WeeklyCard(stat: WeeklyStat, onEdit: () -> Unit) {
         shape = MaterialTheme.shapes.extraLarge,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
     ) {
-        Column(Modifier.padding(20.dp)) {
+        Column(Modifier.padding(24.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                GoalRing(progress = stat.progress, color = accent) {
+                GoalRing(progress = stat.progress, color = accent, diameter = 64.dp, stroke = 10.dp) {
                     Text(
                         "${(stat.progress * 100).roundToInt()}%",
                         style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.Black,
                     )
                 }
-                Spacer(Modifier.size(16.dp))
+                Spacer(Modifier.size(20.dp))
                 Column(Modifier.weight(1f)) {
-                    Text(stat.metric.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                     Text(
-                        "${stat.metric.formatValue(stat.thisWeekAvg)} / ${stat.metric.formatValue(stat.goal)} ${stat.metric.unit} avg/day",
+                        stat.metric.title, 
+                        style = MaterialTheme.typography.titleLarge, 
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = (-0.5).sp
+                    )
+                    Text(
+                        "${stat.metric.formatValue(stat.thisWeekAvg)} / ${stat.metric.formatValue(stat.goal)} ${stat.metric.unit}",
                         style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    Spacer(Modifier.height(6.dp))
+                    Spacer(Modifier.height(8.dp))
                     DeltaChip(stat)
                 }
-                IconButton(onClick = onEdit) {
-                    Icon(Icons.Rounded.Edit, contentDescription = "Edit goal", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                IconButton(
+                    onClick = onEdit,
+                    modifier = Modifier.clip(CircleShape).background(MaterialTheme.colorScheme.surfaceContainer)
+                ) {
+                    Icon(Icons.Rounded.Edit, contentDescription = "Edit goal", tint = accent, modifier = Modifier.size(20.dp))
                 }
             }
-            Spacer(Modifier.height(16.dp))
-            Box(Modifier.fillMaxWidth().height(96.dp)) {
+            Spacer(Modifier.height(24.dp))
+            Box(Modifier.fillMaxWidth().height(110.dp)) {
                 BarChart(stat.perDay, accent, Modifier.fillMaxSize())
             }
         }
@@ -188,38 +216,39 @@ private fun WeeklyCard(stat: WeeklyStat, onEdit: () -> Unit) {
 private fun DeltaChip(stat: WeeklyStat) {
     val delta = stat.deltaPercent
     val (icon, tint, label) = when {
-        delta == null -> Triple(Icons.AutoMirrored.Rounded.TrendingFlat, MaterialTheme.colorScheme.onSurfaceVariant, "New this week")
+        delta == null -> Triple(Icons.AutoMirrored.Rounded.TrendingFlat, MaterialTheme.colorScheme.onSurfaceVariant, "New")
         delta >= 1f -> Triple(Icons.AutoMirrored.Rounded.TrendingUp, stat.metric.accent, "+${delta.roundToInt()}% vs last week")
         delta <= -1f -> Triple(Icons.AutoMirrored.Rounded.TrendingDown, MaterialTheme.colorScheme.error, "${delta.roundToInt()}% vs last week")
-        else -> Triple(Icons.AutoMirrored.Rounded.TrendingFlat, MaterialTheme.colorScheme.onSurfaceVariant, "Steady vs last week")
+        else -> Triple(Icons.AutoMirrored.Rounded.TrendingFlat, MaterialTheme.colorScheme.onSurfaceVariant, "Steady")
     }
     Row(
         Modifier
             .clip(RoundedCornerShape(50))
-            .background(tint.copy(alpha = 0.14f))
-            .padding(horizontal = 10.dp, vertical = 4.dp),
+            .background(tint.copy(alpha = 0.12f))
+            .padding(horizontal = 12.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(16.dp))
-        Spacer(Modifier.size(4.dp))
-        Text(label, style = MaterialTheme.typography.labelMedium, color = tint)
+        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(14.dp))
+        Spacer(Modifier.size(6.dp))
+        Text(label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.ExtraBold, color = tint)
     }
 }
 
 @Composable
 private fun EmptyState() {
     Column(
-        Modifier.fillMaxWidth().padding(40.dp),
+        Modifier.fillMaxWidth().padding(48.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            "No goal-tracked data yet",
-            style = MaterialTheme.typography.titleMedium,
+            "Nothing here yet",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Black
         )
-        Spacer(Modifier.height(6.dp))
+        Spacer(Modifier.height(12.dp))
         Text(
-            "Grant access to nutrition data to see weekly progress.",
-            style = MaterialTheme.typography.bodyMedium,
+            "Grant access to nutrition data in Settings to see your weekly insights.",
+            style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
         )
