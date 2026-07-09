@@ -105,7 +105,7 @@ fun SummaryScreen(
                     fontWeight = FontWeight.ExtraBold,
                     letterSpacing = 1.sp,
                     color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
                 )
             }
             if (!state.loading && state.stats.isEmpty()) {
@@ -172,7 +172,7 @@ private fun WeeklyCard(stat: WeeklyStat, onEdit: () -> Unit) {
                     Icon(Icons.Rounded.Edit, contentDescription = "Edit goal", tint = accent, modifier = Modifier.size(20.dp))
                 }
             }
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(32.dp))
             Box(Modifier.fillMaxWidth().height(110.dp)) {
                 BarChart(stat.perDay, accent, Modifier.fillMaxSize())
             }

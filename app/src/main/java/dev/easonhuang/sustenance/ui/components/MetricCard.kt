@@ -32,17 +32,18 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.easonhuang.sustenance.data.Metric
 import dev.easonhuang.sustenance.data.MetricSummary
 
 @Composable
 fun MetricCard(summary: MetricSummary, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Surface(
         onClick = onClick,
-        modifier = modifier.height(84.dp).fillMaxWidth(),
-        shape = RoundedCornerShape(20.dp),
+        modifier = modifier.height(48.dp).fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surfaceContainerLow,
     ) {
-        MetricItemContent(summary)
+        MetricItemContent(summary, isCompact = true)
     }
 }
 
@@ -56,7 +57,7 @@ fun MetricItemContent(
     val locked = !summary.granted
 
     Row(
-        modifier.fillMaxSize().padding(horizontal = 12.dp),
+        modifier.fillMaxSize().padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
@@ -73,10 +74,10 @@ fun MetricItemContent(
                 modifier = Modifier.size(if (isCompact) 16.dp else 20.dp),
             )
         }
-        Spacer(Modifier.width(if (isCompact) 8.dp else 12.dp))
+        Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
             Text(
-                text = summary.metric.title,
+                text = summary.titleOverride ?: summary.metric.title,
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
@@ -103,12 +104,25 @@ fun MetricItemContent(
                 }
             )
 
-            if (!locked && summary.goal != null && summary.goal > 0f) {
+            if (!locked && summary.goal != null && 
+                summary.metric != Metric.CALORIC_BALANCE && 
+                summary.metric != Metric.TOTAL_CALORIES) {
                 val today = summary.spark.lastOrNull() ?: 0f
-                val progress = (today / summary.goal).coerceIn(0f, 1f)
-                val isOver = today > summary.goal
+                val goal = summary.goal
+                
+                val progress = when {
+                    goal > 0f -> (today / goal).coerceIn(0f, 1f)
+                    goal < 0f -> (today / goal).coerceIn(0f, 1f)
+                    else -> if (today > 0f) 1f else 0f
+                }
+                
+                val isOver = if (goal >= 0f) today > goal else today < goal
+                
+                // Only show red for "over" on metrics where exceeding is generally undesirable (macros/food)
+                val isNegativeOver = isOver
+                val barColor = if (isNegativeOver) Color(0xFFEF5350) else accent
 
-                Spacer(Modifier.height(if (isCompact) 4.dp else 6.dp))
+                Spacer(Modifier.height(2.dp))
                 Box(
                     Modifier
                         .fillMaxWidth(0.8f)
@@ -120,7 +134,7 @@ fun MetricItemContent(
                         Modifier
                             .fillMaxWidth(progress)
                             .fillMaxSize()
-                            .background(if (isOver) Color(0xFFEF5350) else accent)
+                            .background(barColor)
                     )
                 }
             }

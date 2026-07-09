@@ -23,6 +23,7 @@ import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.HealthAndSafety
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Palette
+import androidx.compose.material.icons.rounded.Whatshot
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -127,6 +128,26 @@ fun SettingsScreen(
                     ) {
                         Switch(checked = dynamicColor, onCheckedChange = null)
                     }
+                }
+            }
+            item { SectionLabel("Misc") }
+            item {
+                SettingsCard {
+                    val ketoMode by vm.ketoMode.collectAsState(initial = false)
+                    SettingRow(
+                        icon = Icons.Rounded.Whatshot,
+                        title = "Keto Mode",
+                        subtitle = "Calculate Net Carbs (Carbs - Fiber)",
+                        onClick = { vm.setKetoMode(!ketoMode) }
+                    ) {
+                        Switch(checked = ketoMode, onCheckedChange = null)
+                    }
+                    Text(
+                        "When enabled, Carbs will be shown as Net Carbs (Carbs - Fiber).",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
                 }
             }
             item { SectionLabel("Data") }

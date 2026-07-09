@@ -33,6 +33,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -101,6 +102,9 @@ fun DetailScreen(
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
             item { HeaderCard(d) }
+            if (d.todaySections.isNotEmpty()) {
+                item { FoodItemsCard(d.todaySections) }
+            }
             item { ChartCard(d) }
             if (d.stats.isNotEmpty()) item { StatsCard(d) }
             if (d.recent.isNotEmpty()) {
@@ -114,6 +118,57 @@ fun DetailScreen(
                 }
                 items(d.recent) { row -> RecordItem(row) }
                 item { Spacer(Modifier.height(100.dp)) } // Leave room for nav pill
+            }
+        }
+    }
+}
+
+@Composable
+private fun FoodItemsCard(sections: List<Pair<String, List<RecordRow>>>) {
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+        shape = MaterialTheme.shapes.extraLarge,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+    ) {
+        Column(Modifier.padding(vertical = 12.dp)) {
+            Text(
+                "Today's intake",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Black,
+                modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
+            )
+            sections.forEach { (section, items) ->
+                Column(
+                    modifier = Modifier
+                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainerLow)
+                        .padding(vertical = 8.dp)
+                ) {
+                    Text(
+                        section.uppercase(),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = MaterialTheme.colorScheme.primary,
+                        letterSpacing = 1.sp,
+                        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 4.dp)
+                    )
+                    items.forEachIndexed { i, item ->
+                        val (kcal, time) = item.secondary.split(" • ")
+                        Row(
+                            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(Modifier.weight(1f)) {
+                                Text(item.primary, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                                Text(time, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            Text(kcal, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
+                        }
+                        if (i < items.lastIndex) HorizontalDivider(Modifier.padding(horizontal = 16.dp).alpha(0.5f))
+                    }
+                }
             }
         }
     }

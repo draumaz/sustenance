@@ -54,12 +54,13 @@ import java.time.LocalTime
 fun DashboardScreen(
     manager: HealthConnectManager,
     goalsRepo: GoalsRepository,
+    settingsRepo: dev.easonhuang.sustenance.data.SettingsRepository,
     granted: Set<String>,
     bottomInset: androidx.compose.ui.unit.Dp,
     onOpenMetric: (Metric) -> Unit,
     onManagePermissions: () -> Unit,
 ) {
-    val vm: DashboardViewModel = viewModel(factory = DashboardViewModel.factory(manager, goalsRepo))
+    val vm: DashboardViewModel = viewModel(factory = DashboardViewModel.factory(manager, goalsRepo, settingsRepo))
     val summaries by vm.summaries.collectAsStateWithLifecycle()
     val refreshing by vm.refreshing.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
@@ -104,12 +105,12 @@ fun DashboardScreen(
             return@Scaffold
         }
 
-        val energyMetrics = listOf(Metric.TOTAL_CALORIES, Metric.FOOD)
-        val balanceMetric = listOf(Metric.CALORIC_BALANCE)
+        val energyMetrics = listOf(Metric.TOTAL_CALORIES, Metric.CALORIC_BALANCE)
+        val foodMetric = listOf(Metric.FOOD)
 
         val energyGroup = data.filter { it.metric in energyMetrics }
-        val balanceGroup = data.filter { it.metric in balanceMetric }
-        val macrosGroup = data.filter { it.metric !in (energyMetrics + balanceMetric) }
+        val foodGroup = data.filter { it.metric in foodMetric }
+        val macrosGroup = data.filter { it.metric !in (energyMetrics + foodMetric) }
 
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -131,11 +132,11 @@ fun DashboardScreen(
                     )
                 }
             }
-            if (balanceGroup.isNotEmpty()) {
+            if (foodGroup.isNotEmpty()) {
                 item {
                     MetricSection(
-                        title = "Balance",
-                        items = balanceGroup,
+                        title = "Food",
+                        items = foodGroup,
                         columns = 1,
                         onOpenMetric = onOpenMetric,
                         onManagePermissions = onManagePermissions

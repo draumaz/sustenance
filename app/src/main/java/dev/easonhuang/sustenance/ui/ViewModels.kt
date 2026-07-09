@@ -12,12 +12,14 @@ import dev.easonhuang.sustenance.data.MetricSummary
 import dev.easonhuang.sustenance.data.SettingsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 class DashboardViewModel(
     private val manager: HealthConnectManager,
     private val goalsRepo: GoalsRepository,
+    private val settingsRepo: SettingsRepository,
 ) : ViewModel() {
     private val _summaries = MutableStateFlow<List<MetricSummary>?>(null)
     val summaries = _summaries.asStateFlow()
@@ -31,14 +33,15 @@ class DashboardViewModel(
         viewModelScope.launch {
             _refreshing.value = true
             val goals = goalsRepo.goals.first()
-            _summaries.value = manager.readDashboard(goals)
+            val isKeto = settingsRepo.ketoMode.first()
+            _summaries.value = manager.readDashboard(goals, isKeto)
             _refreshing.value = false
         }
     }
 
     companion object {
-        fun factory(manager: HealthConnectManager, goalsRepo: GoalsRepository) = viewModelFactory {
-            initializer { DashboardViewModel(manager, goalsRepo) }
+        fun factory(manager: HealthConnectManager, goalsRepo: GoalsRepository, settingsRepo: SettingsRepository) = viewModelFactory {
+            initializer { DashboardViewModel(manager, goalsRepo, settingsRepo) }
         }
     }
 }
@@ -65,9 +68,14 @@ class SettingsViewModel(
     private val repository: SettingsRepository
 ) : ViewModel() {
     val dynamicColor = repository.dynamicColor
+    val ketoMode = repository.ketoMode
 
     fun setDynamicColor(enabled: Boolean) {
         viewModelScope.launch { repository.setDynamicColor(enabled) }
+    }
+
+    fun setKetoMode(enabled: Boolean) {
+        viewModelScope.launch { repository.setKetoMode(enabled) }
     }
 
     companion object {

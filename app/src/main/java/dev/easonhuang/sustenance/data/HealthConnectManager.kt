@@ -27,6 +27,7 @@ class HealthConnectManager(private val context: Context) {
     private val zone: ZoneId get() = ZoneId.systemDefault()
     private val dowFmt: DateTimeFormatter = DateTimeFormatter.ofPattern("EEE")
     private val dayFmt: DateTimeFormatter = DateTimeFormatter.ofPattern("MMM d")
+    private val timeFmt: DateTimeFormatter = DateTimeFormatter.ofPattern("h:mm a")
 
     val client: HealthConnectClient by lazy { HealthConnectClient.getOrCreate(context) }
 
@@ -62,9 +63,12 @@ class HealthConnectManager(private val context: Context) {
 
     // ---- Dashboard -----------------------------------------------------------------------------
 
-    suspend fun readDashboard(goals: Map<Metric, Float> = emptyMap()): List<MetricSummary> {
+    suspend fun readDashboard(
+        goals: Map<Metric, Float> = emptyMap(),
+        isKeto: Boolean = false
+    ): List<MetricSummary> {
         val granted = runCatching { grantedPermissions() }.getOrDefault(emptySet())
-        return Metric.entries.map { metric ->
+        val rawSummaries = Metric.entries.map { metric ->
             val has = granted.contains(permissionFor(metric))
             val goal = goals[metric]
             if (!has) {
@@ -74,6 +78,35 @@ class HealthConnectManager(private val context: Context) {
                     .getOrElse { MetricSummary(metric, "-", "No data", hasData = false, granted = true, goal = goal) }
             }
         }
+
+        if (!isKeto) return rawSummaries
+
+        // Keto logic: Transform Carbs into Net Carbs (Carbs - Fiber)
+        val fiberSummary = rawSummaries.find { it.metric == Metric.FIBER }
+        val carbsSummary = rawSummaries.find { it.metric == Metric.CARBS }
+
+        if (carbsSummary != null && fiberSummary != null && carbsSummary.granted && fiberSummary.granted) {
+            val fiberVal = fiberSummary.spark.lastOrNull() ?: 0f
+            val carbsVal = carbsSummary.spark.lastOrNull() ?: 0f
+            val netCarbs = (carbsVal - fiberVal).coerceAtLeast(0f)
+            val goal = goals[Metric.CARBS]
+
+            val displayValue = if (goal != null && goal > 0) {
+                val diff = netCarbs - goal
+                if (diff >= 0) "${formatValue(Metric.CARBS, diff)}${Metric.CARBS.unit} over"
+                else "${formatValue(Metric.CARBS, -diff)}${Metric.CARBS.unit} left"
+            } else "${formatValue(Metric.CARBS, netCarbs)}${Metric.CARBS.unit}"
+
+            val netCarbsSummary = carbsSummary.copy(
+                titleOverride = "Net Carbs",
+                value = displayValue,
+                spark = carbsSummary.spark.zip(fiberSummary.spark.ifEmpty { List(carbsSummary.spark.size) { 0f } }) { c, f -> (c - f).coerceAtLeast(0f) }
+            )
+
+            return rawSummaries.map { if (it.metric == Metric.CARBS) netCarbsSummary else it }
+        }
+
+        return rawSummaries
     }
 
     private suspend fun summarize(metric: Metric, goal: Float?): MetricSummary {
@@ -94,6 +127,7 @@ class HealthConnectManager(private val context: Context) {
                             else -> "0${metric.unit}"
                         }
                     }
+                    metric == Metric.TOTAL_CALORIES -> "${formatValue(metric, today)}${metric.unit}"
                     goal != null && goal > 0 -> {
                         val diff = today - goal
                         if (diff >= 0) {
@@ -170,10 +204,35 @@ class HealthConnectManager(private val context: Context) {
         val recent = points.takeLast(20).reversed().map {
             RecordRow("${formatValue(metric, it.value)} ${metric.unit}", dayMonthTime(it.time))
         }
-        MetricDetail(metric, headline, caption, points, stats, recent)
+
+        val todaySections = if (metric == Metric.FOOD) {
+            val start = LocalDate.now().atStartOfDay(zone).toInstant()
+            val end = Instant.now()
+            val records = read(NutritionRecord::class, start, end).filterIsInstance<NutritionRecord>()
+            val grouped = records.groupBy { r ->
+                val hour = r.startTime.atZone(zone).hour
+                when (hour) {
+                    in 5..11 -> "Morning"
+                    in 12..17 -> "Day"
+                    else -> "Evening"
+                }
+            }
+            listOf("Morning", "Day", "Evening").mapNotNull { section ->
+                grouped[section]?.let { recs ->
+                    section to recs.sortedByDescending { it.startTime }.map { r ->
+                        val name = r.name ?: "Unknown Food"
+                        val kcal = r.energy?.inKilocalories ?: 0.0
+                        val time = timeFmt.format(r.startTime.atZone(zone))
+                        RecordRow(name, "${"%.0f".format(kcal)} kcal • $time")
+                    }
+                }
+            }
+        } else emptyList()
+
+        MetricDetail(metric, headline, caption, points, stats, recent, todaySections)
     }.getOrElse {
         val msg = if (isGranted(metric)) "Error reading data" else "Permission not granted"
-        MetricDetail(metric, "-", msg, emptyList())
+        MetricDetail(metric, "-", msg, emptyList(), emptyList(), emptyList(), emptyList())
     }
 
     // ---- Public series for summary & export ----------------------------------------------------

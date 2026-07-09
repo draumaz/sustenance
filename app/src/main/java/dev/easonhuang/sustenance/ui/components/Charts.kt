@@ -100,7 +100,7 @@ fun BarChart(points: List<SeriesPoint>, color: Color, modifier: Modifier = Modif
                 }
             }
         }
-        Spacer(Modifier.height(12.dp))
+        Spacer(Modifier.height(16.dp))
         Row(Modifier.fillMaxWidth()) {
             points.forEach { p ->
                 Text(

@@ -278,15 +278,16 @@ private fun MainNav(
             }
         ) {
             composable(Dest.TODAY.route) {
-                DashboardScreen(
-                    manager = manager,
-                    goalsRepo = goalsRepo,
-                    granted = granted,
-                    bottomInset = bottomInset,
-                    onOpenMetric = { metric -> navController.navigate("detail/${metric.key}") },
-                    onManagePermissions = onManagePermissions,
-                )
-            }
+            DashboardScreen(
+                manager = manager,
+                goalsRepo = goalsRepo,
+                settingsRepo = settingsRepo,
+                granted = granted,
+                bottomInset = bottomInset,
+                onOpenMetric = { metric -> navController.navigate("detail/${metric.key}") },
+                onManagePermissions = onManagePermissions,
+            )
+        }
             composable(Dest.SUMMARY.route) {
                 SummaryScreen(
                     manager = manager,

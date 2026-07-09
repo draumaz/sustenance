@@ -11,6 +11,7 @@ data class MetricSummary(
     val granted: Boolean,
     val spark: List<Float> = emptyList(),
     val goal: Float? = null,
+    val titleOverride: String? = null,
 )
 
 /** A single charted data point. */
@@ -28,6 +29,7 @@ data class MetricDetail(
     val points: List<SeriesPoint>,
     val stats: List<Pair<String, String>> = emptyList(),  // label -> value rows
     val recent: List<RecordRow> = emptyList(),
+    val todaySections: List<Pair<String, List<RecordRow>>> = emptyList(), // Grouped today items
 )
 
 /** A row in the "recent records" list on a detail screen. */
