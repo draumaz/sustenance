@@ -156,7 +156,7 @@ fun ExpressiveNavigationBar(
     
     val isOnDetail = currentRoute?.startsWith("detail/") == true
     val detailMetric = if (isOnDetail) {
-        currentRoute?.substringAfter("detail/")?.let { Metric.fromKey(it) }
+        navBackStackEntry?.arguments?.getString("key")?.let { Metric.fromKey(it) }
     } else null
 
     var isScalloped by remember { mutableStateOf(false) }

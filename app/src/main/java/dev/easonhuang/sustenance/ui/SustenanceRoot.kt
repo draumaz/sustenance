@@ -248,10 +248,14 @@ private fun MainNav(
                         navController = navController,
                         destinations = topLevel,
                         onNavigate = { dest ->
-                            navController.navigate(dest.route) {
-                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                                launchSingleTop = true
-                                restoreState = true
+                            if (dest == Dest.TODAY && currentRoute?.startsWith("detail/") == true) {
+                                navController.popBackStack(Dest.TODAY.route, inclusive = false)
+                            } else {
+                                navController.navigate(dest.route) {
+                                    popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
                             }
                         }
                     )
