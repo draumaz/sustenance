@@ -1,6 +1,5 @@
 package dev.easonhuang.sustenance.ui.summary
 
-import androidx.activity.compose.PredictiveBackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
@@ -59,7 +58,6 @@ import dev.easonhuang.sustenance.data.WeeklyStat
 import dev.easonhuang.sustenance.data.formatValue
 import dev.easonhuang.sustenance.ui.components.BarChart
 import dev.easonhuang.sustenance.ui.components.GoalRing
-import dev.easonhuang.sustenance.ui.components.PredictiveBackState
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -68,7 +66,6 @@ fun SummaryScreen(
     manager: HealthConnectManager,
     goalsRepo: GoalsRepository,
     bottomInset: androidx.compose.ui.unit.Dp,
-    predictiveBackState: PredictiveBackState? = null,
     onBack: () -> Unit = {},
 ) {
     val vm: SummaryViewModel = viewModel(factory = SummaryViewModel.factory(manager, goalsRepo))
@@ -76,37 +73,8 @@ fun SummaryScreen(
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
     var editing by remember { mutableStateOf<WeeklyStat?>(null) }
 
-    predictiveBackState?.let { pbState ->
-        PredictiveBackHandler(enabled = true) { progress ->
-            pbState.isSwipeActive = true
-            try {
-                progress.collect { event ->
-                    pbState.progress = event.progress
-                }
-                pbState.isSwipeActive = false
-                pbState.progress = 0f
-                onBack()
-            } catch (ignored: Exception) {
-                pbState.isSwipeActive = false
-                pbState.progress = 0f
-            }
-        }
-    }
-
     Scaffold(
         modifier = Modifier
-            .graphicsLayer {
-                predictiveBackState?.let { pbState ->
-                    val p = pbState.progress
-                    val s = 1f - (p * 0.08f)
-                    scaleX = s
-                    scaleY = s
-                    translationX = p * 400f
-                    alpha = 1f - (p * 0.2f)
-                    clip = true
-                    shape = RoundedCornerShape((p * 28.dp.toPx()).coerceAtLeast(0f))
-                }
-            }
             .fillMaxSize()
             .nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {

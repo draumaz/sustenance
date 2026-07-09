@@ -9,6 +9,7 @@ import dev.easonhuang.sustenance.data.HealthConnectManager
 import dev.easonhuang.sustenance.data.Metric
 import dev.easonhuang.sustenance.data.MetricDetail
 import dev.easonhuang.sustenance.data.MetricSummary
+import dev.easonhuang.sustenance.data.SettingsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
@@ -56,6 +57,22 @@ class DetailViewModel(
     companion object {
         fun factory(manager: HealthConnectManager, metric: Metric) = viewModelFactory {
             initializer { DetailViewModel(manager, metric) }
+        }
+    }
+}
+
+class SettingsViewModel(
+    private val repository: SettingsRepository
+) : ViewModel() {
+    val dynamicColor = repository.dynamicColor
+
+    fun setDynamicColor(enabled: Boolean) {
+        viewModelScope.launch { repository.setDynamicColor(enabled) }
+    }
+
+    companion object {
+        fun factory(repository: SettingsRepository) = viewModelFactory {
+            initializer { SettingsViewModel(repository) }
         }
     }
 }

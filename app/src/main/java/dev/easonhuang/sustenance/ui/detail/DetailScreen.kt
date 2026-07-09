@@ -51,14 +51,12 @@ import dev.easonhuang.sustenance.data.RecordRow
 import dev.easonhuang.sustenance.ui.DetailViewModel
 import dev.easonhuang.sustenance.ui.components.BarChart
 import dev.easonhuang.sustenance.ui.components.LineChart
-import dev.easonhuang.sustenance.ui.components.PredictiveBackState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DetailScreen(
     manager: HealthConnectManager,
     metric: Metric,
-    predictiveBackState: PredictiveBackState? = null,
     onBack: () -> Unit,
 ) {
     val vm: DetailViewModel = viewModel(
@@ -67,38 +65,8 @@ fun DetailScreen(
     )
     val detail by vm.detail.collectAsStateWithLifecycle()
 
-    predictiveBackState?.let { pbState ->
-        PredictiveBackHandler(enabled = true) { progress ->
-            pbState.isSwipeActive = true
-            try {
-                progress.collect { event ->
-                    pbState.progress = event.progress
-                }
-                pbState.isSwipeActive = false
-                pbState.progress = 0f
-                onBack()
-            } catch (ignored: Exception) {
-                pbState.isSwipeActive = false
-                pbState.progress = 0f
-            }
-        }
-    }
-
     Scaffold(
-        modifier = Modifier
-            .graphicsLayer {
-                predictiveBackState?.let { pbState ->
-                    val p = pbState.progress
-                    val s = 1f - (p * 0.08f)
-                    scaleX = s
-                    scaleY = s
-                    translationX = p * 400f
-                    alpha = 1f - (p * 0.2f)
-                    clip = true
-                    shape = RoundedCornerShape((p * 28.dp.toPx()).coerceAtLeast(0f))
-                }
-            }
-            .fillMaxSize(),
+        modifier = Modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
                 title = { 

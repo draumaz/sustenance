@@ -28,13 +28,14 @@ enum class Metric(
 ) {
     TOTAL_CALORIES("total_calories", "Total energy", "kcal", MetricKind.DAILY_TOTAL, Color(0xFFEF5350), Icons.Rounded.Bolt),
     FOOD("food", "Food", "kcal", MetricKind.DAILY_TOTAL, Color(0xFFFF9800), Icons.Rounded.Restaurant),
-    FIBER("fiber", "Fiber", "g", MetricKind.DAILY_TOTAL, Color(0xFF8D6E63), Icons.Rounded.Restaurant),
-    CARBS("carbs", "Carbohydrates", "g", MetricKind.DAILY_TOTAL, Color(0xFFFFB74D), Icons.Rounded.Restaurant),
+    CALORIC_BALANCE("caloric_balance", "Caloric balance", "kcal", MetricKind.DAILY_TOTAL, Color(0xFF4CAF50), Icons.Rounded.Bolt),
     PROTEIN("protein", "Protein", "g", MetricKind.DAILY_TOTAL, Color(0xFFFF8A65), Icons.Rounded.Restaurant),
-    FAT("fat", "Total fat", "g", MetricKind.DAILY_TOTAL, Color(0xFF4DD0E1), Icons.Rounded.Restaurant),
+    CARBS("carbs", "Carbs", "g", MetricKind.DAILY_TOTAL, Color(0xFFFFB74D), Icons.Rounded.Restaurant),
+    FAT("fat", "Fat", "g", MetricKind.DAILY_TOTAL, Color(0xFF4DD0E1), Icons.Rounded.Restaurant),
     SATURATED_FAT("saturated_fat", "Saturated fat", "g", MetricKind.DAILY_TOTAL, Color(0xFF4FC3F7), Icons.Rounded.Restaurant),
     SODIUM("sodium", "Sodium", "mg", MetricKind.DAILY_TOTAL, Color(0xFF9575CD), Icons.Rounded.Restaurant),
-    SUGAR("sugar", "Sugar", "g", MetricKind.DAILY_TOTAL, Color(0xFFF06292), Icons.Rounded.Restaurant);
+    SUGAR("sugar", "Sugar", "g", MetricKind.DAILY_TOTAL, Color(0xFFF06292), Icons.Rounded.Restaurant),
+    FIBER("fiber", "Fiber", "g", MetricKind.DAILY_TOTAL, Color(0xFF8D6E63), Icons.Rounded.Restaurant);
 
     companion object {
         fun fromKey(key: String): Metric? = entries.firstOrNull { it.key == key }

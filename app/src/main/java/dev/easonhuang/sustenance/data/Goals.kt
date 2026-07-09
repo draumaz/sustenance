@@ -17,13 +17,14 @@ object GoalCatalog {
     val defaults: Map<Metric, Float> = linkedMapOf(
         Metric.TOTAL_CALORIES to 2000f,
         Metric.FOOD to 2000f,
+        Metric.CALORIC_BALANCE to 0f,
         Metric.PROTEIN to 50f,
         Metric.CARBS to 275f,
-        Metric.FIBER to 28f,
         Metric.FAT to 78f,
         Metric.SATURATED_FAT to 20f,
-        Metric.SUGAR to 50f,
         Metric.SODIUM to 2300f,
+        Metric.SUGAR to 50f,
+        Metric.FIBER to 28f,
     )
     val metrics: List<Metric> get() = defaults.keys.toList()
 }

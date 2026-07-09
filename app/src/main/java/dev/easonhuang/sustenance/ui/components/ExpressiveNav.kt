@@ -147,7 +147,7 @@ class ScallopedPillShape(private val isScalloped: Boolean) : Shape {
 fun ExpressiveNavigationBar(
     navController: NavHostController,
     destinations: List<dev.easonhuang.sustenance.ui.Dest>,
-    predictiveBackState: PredictiveBackState,
+    predictiveBackState: PredictiveBackState? = null,
     onNavigate: (dev.easonhuang.sustenance.ui.Dest) -> Unit
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -190,14 +190,14 @@ fun ExpressiveNavigationBar(
                 val todayDest = destinations.first { it.route == "today" }
                 val isTodaySelected = currentDestination?.hierarchy?.any { it.route == "today" } == true
                 
-                val isPredictingToToday = predictiveBackState.isSwipeActive && 
+                val isPredictingToToday = predictiveBackState?.isSwipeActive == true && 
                     !isTodaySelected &&
                     navController.previousBackStackEntry?.destination?.route == "today"
 
                 val todayAlpha = if (isPredictingToToday) {
-                    predictiveBackState.progress
-                } else if (isTodaySelected && predictiveBackState.isSwipeActive) {
-                    1f - predictiveBackState.progress
+                    predictiveBackState?.progress
+                } else if (isTodaySelected && predictiveBackState?.isSwipeActive == true) {
+                    1f - (predictiveBackState?.progress ?: 0f)
                 } else null
 
                 ExpressiveNavItem(
@@ -224,8 +224,8 @@ fun ExpressiveNavigationBar(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         if (onDetail && detailMetric != null) {
-                            val detailAlpha = if (predictiveBackState.isSwipeActive) {
-                                1f - predictiveBackState.progress
+                            val detailAlpha = if (predictiveBackState?.isSwipeActive == true) {
+                                1f - (predictiveBackState?.progress ?: 0f)
                             } else 1f
 
                             ExpressiveNavItem(
@@ -242,14 +242,14 @@ fun ExpressiveNavigationBar(
                         destinations.filter { it.route != "today" }.forEach { dest ->
                             val isSelected = currentDestination?.hierarchy?.any { it.route == dest.route } == true
                             
-                            val isPredictingToThis = predictiveBackState.isSwipeActive && 
+                            val isPredictingToThis = predictiveBackState?.isSwipeActive == true && 
                                 !isSelected &&
                                 navController.previousBackStackEntry?.destination?.route == dest.route
 
                             val alphaOverride = if (isPredictingToThis) {
-                                predictiveBackState.progress
-                            } else if (isSelected && predictiveBackState.isSwipeActive) {
-                                1f - predictiveBackState.progress
+                                predictiveBackState?.progress
+                            } else if (isSelected && predictiveBackState?.isSwipeActive == true) {
+                                1f - (predictiveBackState?.progress ?: 0f)
                             } else null
 
                             ExpressiveNavItem(

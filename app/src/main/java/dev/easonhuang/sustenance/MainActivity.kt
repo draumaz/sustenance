@@ -8,6 +8,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -28,7 +29,8 @@ class MainActivity : ComponentActivity() {
         deepLinkMetric = intent?.getStringExtra(EXTRA_METRIC)
         val app = application as SustenanceApp
         setContent {
-            SustenanceTheme {
+            val dynamicColor by app.settings.dynamicColor.collectAsState(initial = true)
+            SustenanceTheme(dynamicColor = dynamicColor) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background,
@@ -36,6 +38,7 @@ class MainActivity : ComponentActivity() {
                     SustenanceRoot(
                         manager = app.healthConnect,
                         goalsRepo = app.goals,
+                        settingsRepo = app.settings,
                         exporter = app.exporter,
                         deepLinkMetric = deepLinkMetric,
                         onDeepLinkConsumed = { deepLinkMetric = null },

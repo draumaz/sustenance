@@ -50,8 +50,15 @@ class HealthConnectManager(private val context: Context) {
     fun permissionFor(metric: Metric): String =
         HealthPermission.getReadPermission(recordClass(metric))
 
-    suspend fun isGranted(metric: Metric): Boolean =
-        permissionFor(metric) in runCatching { grantedPermissions() }.getOrDefault(emptySet())
+    suspend fun isGranted(metric: Metric): Boolean {
+        val granted = runCatching { grantedPermissions() }.getOrDefault(emptySet())
+        return if (metric == Metric.CALORIC_BALANCE) {
+            HealthPermission.getReadPermission(TotalCaloriesBurnedRecord::class) in granted &&
+                    HealthPermission.getReadPermission(NutritionRecord::class) in granted
+        } else {
+            permissionFor(metric) in granted
+        }
+    }
 
     // ---- Dashboard -----------------------------------------------------------------------------
 
@@ -79,10 +86,37 @@ class HealthConnectManager(private val context: Context) {
             MetricKind.DAILY_TOTAL -> {
                 val today = points.last().value
                 val avg = spark.average().toFloat()
+                val displayValue = when {
+                    metric == Metric.CALORIC_BALANCE -> {
+                        when {
+                            today < 0 -> "${formatValue(metric, -today)}${metric.unit} surplus"
+                            today > 0 -> "${formatValue(metric, today)}${metric.unit} deficit"
+                            else -> "0${metric.unit}"
+                        }
+                    }
+                    goal != null && goal > 0 -> {
+                        val diff = today - goal
+                        if (diff >= 0) {
+                            "${formatValue(metric, diff)}${metric.unit} over"
+                        } else {
+                            "${formatValue(metric, -diff)}${metric.unit} left"
+                        }
+                    }
+                    else -> "${formatValue(metric, today)}${metric.unit}"
+                }
+
+                val displayCaption = if (metric == Metric.CALORIC_BALANCE) {
+                    val absAvg = if (avg < 0) -avg else avg
+                    val label = if (avg < 0) "surplus" else "deficit"
+                    "7-day avg ${formatValue(metric, absAvg)}${metric.unit} $label"
+                } else {
+                    "7-day avg ${formatValue(metric, avg)}${metric.unit}"
+                }
+
                 MetricSummary(
                     metric = metric,
-                    value = formatValue(metric, today),
-                    caption = "7-day avg ${formatValue(metric, avg)} ${metric.unit}",
+                    value = displayValue,
+                    caption = displayCaption,
                     hasData = true,
                     granted = true,
                     spark = spark,
@@ -93,7 +127,7 @@ class HealthConnectManager(private val context: Context) {
                 val last = points.last()
                 MetricSummary(
                     metric = metric,
-                    value = formatValue(metric, last.value),
+                    value = "${formatValue(metric, last.value)}${metric.unit}",
                     caption = "as of ${dayFmt.format(last.time.atZone(zone))}",
                     hasData = true,
                     granted = true,
@@ -155,9 +189,26 @@ class HealthConnectManager(private val context: Context) {
 
     private suspend fun series(metric: Metric, days: Int): List<SeriesPoint> =
         when (metric.kind) {
-            MetricKind.DAILY_TOTAL -> dailyTotalSeries(metric, days)
+            MetricKind.DAILY_TOTAL -> when (metric) {
+                Metric.CALORIC_BALANCE -> caloricBalanceSeries(days)
+                else -> dailyTotalSeries(metric, days)
+            }
             MetricKind.LATEST -> latestSeries(metric, days)
         }
+
+    private suspend fun caloricBalanceSeries(days: Int): List<SeriesPoint> {
+        val energy = dailyTotalSeries(Metric.TOTAL_CALORIES, days)
+        val food = dailyTotalSeries(Metric.FOOD, days)
+        if (energy.isEmpty() && food.isEmpty()) return emptyList()
+
+        return (0 until days).map { i ->
+            val date = LocalDate.now().minusDays((days - 1 - i).toLong())
+            val label = dowFmt.format(date)
+            val eVal = energy.getOrNull(i)?.value ?: 0f
+            val fVal = food.getOrNull(i)?.value ?: 0f
+            SeriesPoint(date.atStartOfDay(zone).toInstant(), eVal - fVal, label)
+        }.let { pts -> if (pts.all { it.value == 0f }) emptyList() else pts }
+    }
 
     private suspend fun dailyTotalSeries(metric: Metric, days: Int): List<SeriesPoint> {
         val agg = aggregateMetricFor(metric) ?: return emptyList()
@@ -221,6 +272,7 @@ class HealthConnectManager(private val context: Context) {
 
     private fun recordClass(metric: Metric): KClass<out Record> = when (metric) {
         Metric.TOTAL_CALORIES -> TotalCaloriesBurnedRecord::class
+        Metric.CALORIC_BALANCE -> TotalCaloriesBurnedRecord::class // Derived, but need a class for permissions set
         Metric.FOOD,
         Metric.FIBER,
         Metric.CARBS,
@@ -260,7 +312,7 @@ class HealthConnectManager(private val context: Context) {
 
     private fun formatValue(metric: Metric, v: Float): String = when (metric) {
         Metric.SODIUM -> "%,d".format(v.toLong())
-        Metric.FOOD, Metric.FIBER, Metric.CARBS, Metric.PROTEIN, Metric.FAT, Metric.SATURATED_FAT, Metric.SUGAR -> "%.1f".format(v)
+        Metric.FOOD, Metric.FIBER, Metric.CARBS, Metric.PROTEIN, Metric.FAT, Metric.SATURATED_FAT, Metric.SUGAR, Metric.CALORIC_BALANCE -> "%.0f".format(v)
         else -> "%.0f".format(v)
     }
 

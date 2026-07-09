@@ -2,7 +2,6 @@ package dev.easonhuang.sustenance.ui.settings
 
 import android.content.Intent
 import android.net.Uri
-import androidx.activity.compose.PredictiveBackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -18,12 +17,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.OpenInNew
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.HealthAndSafety
 import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -34,11 +33,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -47,19 +48,20 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.easonhuang.sustenance.BuildConfig
 import dev.easonhuang.sustenance.data.ExportFormat
 import dev.easonhuang.sustenance.data.ExportManager
 import dev.easonhuang.sustenance.data.HealthConnectManager
 import dev.easonhuang.sustenance.data.Metric
-import dev.easonhuang.sustenance.ui.components.PredictiveBackState
+import dev.easonhuang.sustenance.data.SettingsRepository
+import dev.easonhuang.sustenance.ui.SettingsViewModel
 import kotlinx.coroutines.launch
 
 private const val REPO_URL = "https://github.com/draumaz/sustenance"
@@ -69,33 +71,19 @@ private const val REPO_URL = "https://github.com/draumaz/sustenance"
 fun SettingsScreen(
     manager: HealthConnectManager,
     exporter: ExportManager,
+    settingsRepo: SettingsRepository,
     bottomInset: Dp,
     onManagePermissions: () -> Unit,
-    predictiveBackState: PredictiveBackState? = null,
     onBack: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val vm: SettingsViewModel = viewModel(factory = SettingsViewModel.factory(settingsRepo))
+    val dynamicColor by vm.dynamicColor.collectAsState(initial = true)
+
     val snackbar = remember { SnackbarHostState() }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
     var showFormatDialog by remember { mutableStateOf(false) }
-
-    predictiveBackState?.let { pbState ->
-        PredictiveBackHandler(enabled = true) { progress ->
-            pbState.isSwipeActive = true
-            try {
-                progress.collect { event ->
-                    pbState.progress = event.progress
-                }
-                pbState.isSwipeActive = false
-                pbState.progress = 0f
-                onBack()
-            } catch (ignored: Exception) {
-                pbState.isSwipeActive = false
-                pbState.progress = 0f
-            }
-        }
-    }
 
     suspend fun runExport(uri: Uri, format: ExportFormat) {
         val granted = runCatching { manager.grantedPermissions() }.getOrDefault(emptySet())
@@ -118,18 +106,6 @@ fun SettingsScreen(
 
     Scaffold(
         modifier = Modifier
-            .graphicsLayer {
-                predictiveBackState?.let { pbState ->
-                    val p = pbState.progress
-                    val s = 1f - (p * 0.08f)
-                    scaleX = s
-                    scaleY = s
-                    translationX = p * 400f
-                    alpha = 1f - (p * 0.2f)
-                    clip = true
-                    shape = RoundedCornerShape((p * 28.dp.toPx()).coerceAtLeast(0f))
-                }
-            }
             .fillMaxSize()
             .nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = { LargeTopAppBar(title = { Text("Settings") }, scrollBehavior = scrollBehavior) },
@@ -140,6 +116,19 @@ fun SettingsScreen(
             contentPadding = PaddingValues(top = inner.calculateTopPadding(), bottom = bottomInset + 24.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
+            item { SectionLabel("Appearance") }
+            item {
+                SettingsCard {
+                    SettingRow(
+                        icon = Icons.Rounded.Palette,
+                        title = "Dynamic color",
+                        subtitle = "Use colors from your system wallpaper (Android 12+)",
+                        onClick = { vm.setDynamicColor(!dynamicColor) }
+                    ) {
+                        Switch(checked = dynamicColor, onCheckedChange = null)
+                    }
+                }
+            }
             item { SectionLabel("Data") }
             item {
                 SettingsCard {
@@ -233,9 +222,18 @@ private fun SettingsCard(content: @Composable () -> Unit) {
 }
 
 @Composable
-private fun SettingRow(icon: ImageVector, title: String, subtitle: String, onClick: () -> Unit) {
+private fun SettingRow(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit,
+    content: (@Composable () -> Unit)? = null
+) {
     Row(
-        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 14.dp),
+        Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
@@ -251,6 +249,10 @@ private fun SettingRow(icon: ImageVector, title: String, subtitle: String, onCli
         Column(Modifier.weight(1f)) {
             Text(title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
             Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        if (content != null) {
+            Spacer(Modifier.size(16.dp))
+            content()
         }
     }
 }

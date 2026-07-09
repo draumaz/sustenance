@@ -1,16 +1,23 @@
 package dev.easonhuang.sustenance.ui.dashboard
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.slideInVertically
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material3.CircularProgressIndicator
@@ -25,15 +32,19 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.easonhuang.sustenance.data.HealthConnectManager
 import dev.easonhuang.sustenance.data.Metric
 import dev.easonhuang.sustenance.data.GoalsRepository
+import dev.easonhuang.sustenance.data.MetricSummary
 import dev.easonhuang.sustenance.ui.DashboardViewModel
 import dev.easonhuang.sustenance.ui.components.MetricCard
 import java.time.LocalTime
@@ -92,27 +103,105 @@ fun DashboardScreen(
             // initial load handled by spinner in app bar; keep grid space empty
             return@Scaffold
         }
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(1),
+
+        val energyMetrics = listOf(Metric.TOTAL_CALORIES, Metric.FOOD)
+        val balanceMetric = listOf(Metric.CALORIC_BALANCE)
+
+        val energyGroup = data.filter { it.metric in energyMetrics }
+        val balanceGroup = data.filter { it.metric in balanceMetric }
+        val macrosGroup = data.filter { it.metric !in (energyMetrics + balanceMetric) }
+
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(
                 start = 16.dp, end = 16.dp,
                 top = inner.calculateTopPadding() + 8.dp,
                 bottom = bottomInset + 88.dp,
             ),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            items(data, key = { it.metric.key }) { summary ->
-                AnimatedVisibility(
-                    visible = true,
-                    enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
-                ) {
+            if (energyGroup.isNotEmpty()) {
+                item {
+                    MetricSection(
+                        title = "Energy",
+                        items = energyGroup,
+                        columns = 2,
+                        onOpenMetric = onOpenMetric,
+                        onManagePermissions = onManagePermissions
+                    )
+                }
+            }
+            if (balanceGroup.isNotEmpty()) {
+                item {
+                    MetricSection(
+                        title = "Balance",
+                        items = balanceGroup,
+                        columns = 1,
+                        onOpenMetric = onOpenMetric,
+                        onManagePermissions = onManagePermissions
+                    )
+                }
+            }
+            if (macrosGroup.isNotEmpty()) {
+                item {
+                    MetricSection(
+                        title = "Macros",
+                        items = macrosGroup,
+                        columns = 2,
+                        onOpenMetric = onOpenMetric,
+                        onManagePermissions = onManagePermissions
+                    )
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun MetricSection(
+    title: String,
+    items: List<MetricSummary>,
+    columns: Int,
+    onOpenMetric: (Metric) -> Unit,
+    onManagePermissions: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(28.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            .padding(16.dp)
+    ) {
+        Text(
+            text = title.uppercase(),
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.ExtraBold,
+            color = MaterialTheme.colorScheme.primary,
+            letterSpacing = 1.sp,
+            modifier = Modifier.padding(bottom = 12.dp, start = 8.dp)
+        )
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            maxItemsInEachRow = columns
+        ) {
+            items.forEach { summary ->
+                Box(Modifier.weight(1f)) {
                     MetricCard(
                         summary = summary,
                         onClick = {
                             if (summary.granted) onOpenMetric(summary.metric) else onManagePermissions()
-                        },
+                        }
                     )
+                }
+            }
+            // Fill remaining space in the last row if needed
+            val remainder = items.size % columns
+            if (remainder != 0) {
+                repeat(columns - remainder) {
+                    Spacer(Modifier.weight(1f))
                 }
             }
         }

@@ -38,6 +38,11 @@ import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 import androidx.health.connect.client.PermissionController
 import androidx.lifecycle.compose.LifecycleResumeEffect
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.core.tween
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -47,8 +52,8 @@ import dev.easonhuang.sustenance.data.ExportManager
 import dev.easonhuang.sustenance.data.GoalsRepository
 import dev.easonhuang.sustenance.data.HealthConnectManager
 import dev.easonhuang.sustenance.data.Metric
+import dev.easonhuang.sustenance.data.SettingsRepository
 import dev.easonhuang.sustenance.ui.components.ExpressiveNavigationBar
-import dev.easonhuang.sustenance.ui.components.PredictiveBackState
 import dev.easonhuang.sustenance.ui.dashboard.DashboardScreen
 import dev.easonhuang.sustenance.ui.detail.DetailScreen
 import dev.easonhuang.sustenance.ui.onboarding.LoadingScreen
@@ -72,6 +77,7 @@ enum class Dest(val route: String, val label: String, val icon: ImageVector) {
 fun SustenanceRoot(
     manager: HealthConnectManager,
     goalsRepo: GoalsRepository,
+    settingsRepo: SettingsRepository,
     exporter: ExportManager,
     deepLinkMetric: String? = null,
     onDeepLinkConsumed: () -> Unit = {},
@@ -95,8 +101,6 @@ fun SustenanceRoot(
     var inSetup by remember { mutableStateOf(false) }
     var requestedExtras by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
-    
-    val predictiveBackState = remember { PredictiveBackState() }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         PermissionController.createRequestPermissionResultContract()
@@ -168,12 +172,11 @@ fun SustenanceRoot(
         !hasData -> OnboardingScreen(onConnect = ::startSetup)
         else -> {
             MainNav(
-                manager, goalsRepo, exporter,
+                manager, goalsRepo, settingsRepo, exporter,
                 granted = granted ?: emptySet(),
                 onManagePermissions = ::manageAccess,
                 deepLinkMetric = deepLinkMetric,
                 onDeepLinkConsumed = onDeepLinkConsumed,
-                predictiveBackState = predictiveBackState,
             )
         }
     }
@@ -183,12 +186,12 @@ fun SustenanceRoot(
 private fun MainNav(
     manager: HealthConnectManager,
     goalsRepo: GoalsRepository,
+    settingsRepo: SettingsRepository,
     exporter: ExportManager,
     granted: Set<String>,
     onManagePermissions: () -> Unit,
     deepLinkMetric: String? = null,
     onDeepLinkConsumed: () -> Unit = {},
-    predictiveBackState: PredictiveBackState,
 ) {
     val navController = rememberNavController()
     val backStack by navController.currentBackStackEntryAsState()
@@ -244,7 +247,6 @@ private fun MainNav(
                     ExpressiveNavigationBar(
                         navController = navController,
                         destinations = topLevel,
-                        predictiveBackState = predictiveBackState,
                         onNavigate = { dest ->
                             navController.navigate(dest.route) {
                                 popUpTo(navController.graph.findStartDestination().id) { saveState = true }
@@ -262,6 +264,18 @@ private fun MainNav(
             navController = navController,
             startDestination = Dest.TODAY.route,
             modifier = Modifier.fillMaxSize(),
+            enterTransition = {
+                fadeIn(animationSpec = tween(300)) + scaleIn(initialScale = 0.92f, animationSpec = tween(300))
+            },
+            exitTransition = {
+                fadeOut(animationSpec = tween(300)) + scaleOut(targetScale = 0.92f, animationSpec = tween(300))
+            },
+            popEnterTransition = {
+                fadeIn(animationSpec = tween(300)) + scaleIn(initialScale = 0.92f, animationSpec = tween(300))
+            },
+            popExitTransition = {
+                fadeOut(animationSpec = tween(300)) + scaleOut(targetScale = 0.92f, animationSpec = tween(300))
+            }
         ) {
             composable(Dest.TODAY.route) {
                 DashboardScreen(
@@ -278,7 +292,6 @@ private fun MainNav(
                     manager = manager,
                     goalsRepo = goalsRepo,
                     bottomInset = bottomInset,
-                    predictiveBackState = predictiveBackState,
                     onBack = { navController.popBackStack() }
                 )
             }
@@ -286,9 +299,9 @@ private fun MainNav(
                 SettingsScreen(
                     manager = manager,
                     exporter = exporter,
+                    settingsRepo = settingsRepo,
                     bottomInset = bottomInset,
                     onManagePermissions = onManagePermissions,
-                    predictiveBackState = predictiveBackState,
                     onBack = { navController.popBackStack() }
                 )
             }
@@ -300,7 +313,6 @@ private fun MainNav(
                     DetailScreen(
                         manager = manager,
                         metric = metric,
-                        predictiveBackState = predictiveBackState,
                         onBack = { navController.popBackStack() },
                     )
                 }
