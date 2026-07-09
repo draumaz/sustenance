@@ -93,8 +93,9 @@ class HealthConnectManager(private val context: Context) {
 
             val displayValue = if (goal != null && goal > 0) {
                 val diff = netCarbs - goal
-                if (diff >= 0) "${formatValue(Metric.CARBS, diff)}${Metric.CARBS.unit} over"
-                else "${formatValue(Metric.CARBS, -diff)}${Metric.CARBS.unit} left"
+                val absDiff = if (diff < 0) -diff else diff
+                val label = if (diff >= 0) "over" else "left"
+                "${formatValue(Metric.CARBS, netCarbs)}${Metric.CARBS.unit} (${formatValue(Metric.CARBS, absDiff)} $label)"
             } else "${formatValue(Metric.CARBS, netCarbs)}${Metric.CARBS.unit}"
 
             val netCarbsSummary = carbsSummary.copy(
@@ -130,11 +131,9 @@ class HealthConnectManager(private val context: Context) {
                     metric == Metric.TOTAL_CALORIES -> "${formatValue(metric, today)}${metric.unit}"
                     goal != null && goal > 0 -> {
                         val diff = today - goal
-                        if (diff >= 0) {
-                            "${formatValue(metric, diff)}${metric.unit} over"
-                        } else {
-                            "${formatValue(metric, -diff)}${metric.unit} left"
-                        }
+                        val absDiff = if (diff < 0) -diff else diff
+                        val label = if (diff >= 0) "over" else "left"
+                        "${formatValue(metric, today)}${metric.unit} (${formatValue(metric, absDiff)} $label)"
                     }
                     else -> "${formatValue(metric, today)}${metric.unit}"
                 }
