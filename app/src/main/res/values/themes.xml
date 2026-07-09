@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Compose drives all UI; this base theme just removes the action bar. -->
-    <style name="Theme.Heartwood" parent="android:Theme.DeviceDefault.NoActionBar">
+    <style name="Theme.Sustenance" parent="android:Theme.DeviceDefault.NoActionBar">
         <item name="android:windowBackground">@color/splash_bg</item>
     </style>
 
-    <style name="Theme.Heartwood.Splash" parent="Theme.SplashScreen">
+    <style name="Theme.Sustenance.Splash" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">@color/splash_bg</item>
         <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
-        <item name="postSplashScreenTheme">@style/Theme.Heartwood</item>
+        <item name="postSplashScreenTheme">@style/Theme.Sustenance</item>
     </style>
 </resources>

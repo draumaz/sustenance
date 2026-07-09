@@ -16,14 +16,14 @@ val keystoreProps = Properties().apply {
 fun signingValue(prop: String, env: String): String? =
     keystoreProps.getProperty(prop) ?: System.getenv(env)
 
-val hasSigning = signingValue("storeFile", "HEARTWOOD_STORE_FILE") != null
+val hasSigning = signingValue("storeFile", "SUSTENANCE_STORE_FILE") != null
 
 android {
-    namespace = "dev.easonhuang.heartwood"
+    namespace = "dev.easonhuang.sustenance"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "dev.easonhuang.heartwood"
+        applicationId = "dev.easonhuang.sustenance"
         minSdk = 30
         targetSdk = 36
         versionCode = 1
@@ -34,10 +34,10 @@ android {
     signingConfigs {
         if (hasSigning) {
             create("release") {
-                storeFile = file(signingValue("storeFile", "HEARTWOOD_STORE_FILE")!!)
-                storePassword = signingValue("storePassword", "HEARTWOOD_STORE_PASSWORD")
-                keyAlias = signingValue("keyAlias", "HEARTWOOD_KEY_ALIAS")
-                keyPassword = signingValue("keyPassword", "HEARTWOOD_KEY_PASSWORD")
+                storeFile = file(signingValue("storeFile", "SUSTENANCE_STORE_FILE")!!)
+                storePassword = signingValue("storePassword", "SUSTENANCE_STORE_PASSWORD")
+                keyAlias = signingValue("keyAlias", "SUSTENANCE_KEY_ALIAS")
+                keyPassword = signingValue("keyPassword", "SUSTENANCE_KEY_PASSWORD")
             }
         }
     }

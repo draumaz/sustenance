@@ -1,28 +1,28 @@
-# Heartwood recipe for the fdroiddata repo. Copy to
-# metadata/dev.easonhuang.heartwood.yml in a fork of fdroiddata and open a merge request.
+# Sustenance recipe for the fdroiddata repo. Copy to
+# metadata/dev.easonhuang.sustenance.yml in a fork of fdroiddata and open a merge request.
 
 Categories:
   - Health & Fitness
 License: GPL-3.0-or-later
 AuthorName: GuyOnWifi
 AuthorWebSite: https://github.com/GuyOnWifi
-SourceCode: https://github.com/GuyOnWifi/heartwood
-IssueTracker: https://github.com/GuyOnWifi/heartwood/issues
+SourceCode: https://github.com/GuyOnWifi/sustenance
+IssueTracker: https://github.com/GuyOnWifi/sustenance/issues
 
 RepoType: git
-Repo: https://github.com/GuyOnWifi/heartwood.git
+Repo: https://github.com/GuyOnWifi/sustenance.git
 
 # Reproducible builds: F-Droid builds from source, downloads your signed APK from this URL for
 # the same version, and if they match byte-for-byte it ships YOUR signed APK. The release
-# workflow uploads heartwood-v<versionName>.apk to the GitHub Release for tag v<versionName>,
+# workflow uploads sustenance-v<versionName>.apk to the GitHub Release for tag v<versionName>,
 # so %v (versionName) fills both slots.
-Binaries: https://github.com/GuyOnWifi/heartwood/releases/download/v%v/heartwood-v%v.apk
+Binaries: https://github.com/GuyOnWifi/sustenance/releases/download/v%v/sustenance-v%v.apk
 
 # SHA-256 of YOUR real signing certificate, lowercase hex, no colons. Pin it so F-Droid only
 # trusts APKs from the Binaries URL that are signed by your key. Get it from a signed APK:
-#   apksigner verify --print-certs heartwood-v1.0.0.apk | grep -i SHA-256
+#   apksigner verify --print-certs sustenance-v1.0.0.apk | grep -i SHA-256
 # or from the keystore:
-#   keytool -list -v -keystore heartwood-release.jks -alias <alias> | grep SHA256
+#   keytool -list -v -keystore sustenance-release.jks -alias <alias> | grep SHA256
 # then strip the colons and lowercase it.
 AllowedAPKSigningKeys:
   - bb25e066722c1bafe1960fa11f17e8ebd3d648a5feca012a1266e5e4c17ff519

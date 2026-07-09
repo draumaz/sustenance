@@ -1,6 +1,6 @@
 # Reproducible builds
 
-Heartwood aims for **bit-for-bit reproducible** release APKs so that F-Droid (and anyone
+Sustenance aims for **bit-for-bit reproducible** release APKs so that F-Droid (and anyone
 else) can independently verify that a published binary was built from this source.
 
 ## What's already done in this repo

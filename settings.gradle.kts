@@ -20,5 +20,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Heartwood"
+rootProject.name = "Sustenance"
 include(":app")

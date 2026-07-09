@@ -1,0 +1,278 @@
+package dev.easonhuang.sustenance.data
+
+import android.content.Context
+import androidx.health.connect.client.HealthConnectClient
+import androidx.health.connect.client.permission.HealthPermission
+import androidx.health.connect.client.records.NutritionRecord
+import androidx.health.connect.client.records.Record
+import androidx.health.connect.client.records.TotalCaloriesBurnedRecord
+import androidx.health.connect.client.request.AggregateGroupByPeriodRequest
+import androidx.health.connect.client.request.ReadRecordsRequest
+import androidx.health.connect.client.time.TimeRangeFilter
+import java.time.Instant
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.Period
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import kotlin.reflect.KClass
+
+/**
+ * Thin, read-only wrapper around Health Connect. Knows how to turn each [Metric] into a dashboard
+ * summary or a full detail series. All public reads swallow per-metric errors so one missing data
+ * type never blanks the whole dashboard.
+ */
+class HealthConnectManager(private val context: Context) {
+
+    private val zone: ZoneId get() = ZoneId.systemDefault()
+    private val dowFmt: DateTimeFormatter = DateTimeFormatter.ofPattern("EEE")
+    private val dayFmt: DateTimeFormatter = DateTimeFormatter.ofPattern("MMM d")
+
+    val client: HealthConnectClient by lazy { HealthConnectClient.getOrCreate(context) }
+
+    /** Per-metric data-type read permissions (used for the dashboard's per-tile lock state). */
+    val metricPermissions: Set<String> =
+        Metric.entries.map { HealthPermission.getReadPermission(recordClass(it)) }.toSet()
+
+    /** Extra access requested only after data permissions are held (HC requires a separate step). */
+    val extraPermissions: Set<String> = setOf(PERMISSION_READ_IN_BACKGROUND, PERMISSION_READ_HISTORY)
+
+    /** Everything we request: the data types plus background + history access. */
+    val permissions: Set<String> = metricPermissions + extraPermissions
+
+    fun availability(): Int = HealthConnectClient.getSdkStatus(context)
+
+    val isAvailable: Boolean get() = availability() == HealthConnectClient.SDK_AVAILABLE
+
+    suspend fun grantedPermissions(): Set<String> =
+        client.permissionController.getGrantedPermissions()
+
+    fun permissionFor(metric: Metric): String =
+        HealthPermission.getReadPermission(recordClass(metric))
+
+    suspend fun isGranted(metric: Metric): Boolean =
+        permissionFor(metric) in runCatching { grantedPermissions() }.getOrDefault(emptySet())
+
+    // ---- Dashboard -----------------------------------------------------------------------------
+
+    suspend fun readDashboard(goals: Map<Metric, Float> = emptyMap()): List<MetricSummary> {
+        val granted = runCatching { grantedPermissions() }.getOrDefault(emptySet())
+        return Metric.entries.map { metric ->
+            val has = granted.contains(permissionFor(metric))
+            val goal = goals[metric]
+            if (!has) {
+                MetricSummary(metric, "-", null, hasData = false, granted = false, goal = goal)
+            } else {
+                runCatching { summarize(metric, goal) }
+                    .getOrElse { MetricSummary(metric, "-", "No data", hasData = false, granted = true, goal = goal) }
+            }
+        }
+    }
+
+    private suspend fun summarize(metric: Metric, goal: Float?): MetricSummary {
+        val points = series(metric, days = 7)
+        if (points.isEmpty()) {
+            return MetricSummary(metric, "-", "No data", hasData = false, granted = true, goal = goal)
+        }
+        val spark = points.map { it.value }
+        return when (metric.kind) {
+            MetricKind.DAILY_TOTAL -> {
+                val today = points.last().value
+                val avg = spark.average().toFloat()
+                MetricSummary(
+                    metric = metric,
+                    value = formatValue(metric, today),
+                    caption = "7-day avg ${formatValue(metric, avg)} ${metric.unit}",
+                    hasData = true,
+                    granted = true,
+                    spark = spark,
+                    goal = goal,
+                )
+            }
+            MetricKind.LATEST -> {
+                val last = points.last()
+                MetricSummary(
+                    metric = metric,
+                    value = formatValue(metric, last.value),
+                    caption = "as of ${dayFmt.format(last.time.atZone(zone))}",
+                    hasData = true,
+                    granted = true,
+                    spark = spark,
+                    goal = goal,
+                )
+            }
+        }
+    }
+
+    // ---- Detail --------------------------------------------------------------------------------
+
+    suspend fun readDetail(metric: Metric): MetricDetail = runCatching {
+        val days = if (metric.kind == MetricKind.DAILY_TOTAL) 14 else 90
+        val points = series(metric, days)
+        if (points.isEmpty()) {
+            return MetricDetail(metric, "-", "No data recorded", emptyList())
+        }
+        val values = points.map { it.value }
+        val headline: String
+        val caption: String
+        val stats: List<Pair<String, String>>
+        if (metric.kind == MetricKind.DAILY_TOTAL) {
+            headline = formatValue(metric, points.last().value)
+            caption = "Today, ${metric.unit}"
+            stats = listOf(
+                "Daily avg" to "${formatValue(metric, values.average().toFloat())} ${metric.unit}",
+                "Best day" to "${formatValue(metric, values.max())} ${metric.unit}",
+                "14-day total" to "${formatValue(metric, values.sum())} ${metric.unit}",
+            )
+        } else {
+            headline = "${formatValue(metric, points.last().value)} ${metric.unit}"
+            caption = "Latest, ${dayFmt.format(points.last().time.atZone(zone))}"
+            stats = listOf(
+                "Average" to "${formatValue(metric, values.average().toFloat())} ${metric.unit}",
+                "Min" to "${formatValue(metric, values.min())} ${metric.unit}",
+                "Max" to "${formatValue(metric, values.max())} ${metric.unit}",
+            )
+        }
+        val recent = points.takeLast(20).reversed().map {
+            RecordRow("${formatValue(metric, it.value)} ${metric.unit}", dayMonthTime(it.time))
+        }
+        MetricDetail(metric, headline, caption, points, stats, recent)
+    }.getOrElse {
+        val msg = if (isGranted(metric)) "Error reading data" else "Permission not granted"
+        MetricDetail(metric, "-", msg, emptyList())
+    }
+
+    // ---- Public series for summary & export ----------------------------------------------------
+
+    /** Daily totals over [days] for a [MetricKind.DAILY_TOTAL] metric; empty otherwise. */
+    suspend fun readDailySeries(metric: Metric, days: Int): List<SeriesPoint> =
+        if (metric.kind == MetricKind.DAILY_TOTAL) series(metric, days) else emptyList()
+
+    /** Flat list of points for export, with finer granularity for sampled metrics. */
+    suspend fun exportRows(metric: Metric, days: Int): List<SeriesPoint> = series(metric, days)
+
+    // ---- Series builders -----------------------------------------------------------------------
+
+    private suspend fun series(metric: Metric, days: Int): List<SeriesPoint> =
+        when (metric.kind) {
+            MetricKind.DAILY_TOTAL -> dailyTotalSeries(metric, days)
+            MetricKind.LATEST -> latestSeries(metric, days)
+        }
+
+    private suspend fun dailyTotalSeries(metric: Metric, days: Int): List<SeriesPoint> {
+        val agg = aggregateMetricFor(metric) ?: return emptyList()
+        val start = LocalDate.now().minusDays((days - 1).toLong()).atStartOfDay()
+        val end = LocalDateTime.now()
+        val buckets = client.aggregateGroupByPeriod(
+            AggregateGroupByPeriodRequest(
+                metrics = setOf(agg),
+                timeRangeFilter = TimeRangeFilter.between(start, end),
+                timeRangeSlicer = Period.ofDays(1),
+            )
+        )
+        val byDate = buckets.associate { it.startTime.toLocalDate() to extract(it.result, metric) }
+        if (byDate.values.all { it == 0f } && byDate.isEmpty()) return emptyList()
+        return (0 until days).map { i ->
+            val date = LocalDate.now().minusDays((days - 1 - i).toLong())
+            val instant = date.atStartOfDay(zone).toInstant()
+            SeriesPoint(instant, byDate[date] ?: 0f, dowFmt.format(date))
+        }.let { pts -> if (pts.all { it.value == 0f }) emptyList() else pts }
+    }
+
+    private suspend fun latestSeries(metric: Metric, days: Int): List<SeriesPoint> {
+        val recs = read(recordClass(metric), daysAgoStart(days), Instant.now())
+        return recs.mapNotNull { r ->
+            val t = recordTime(r) ?: return@mapNotNull null
+            val v = latestValue(metric, r) ?: return@mapNotNull null
+            SeriesPoint(t, v, dayFmt.format(t.atZone(zone)))
+        }.sortedBy { it.time }
+    }
+
+    // ---- Low-level reads -----------------------------------------------------------------------
+
+    private suspend fun read(type: KClass<out Record>, start: Instant, end: Instant): List<Record> =
+        client.readRecords(
+            ReadRecordsRequest(recordType = type, timeRangeFilter = TimeRangeFilter.between(start, end))
+        ).records
+
+    private fun daysAgoStart(n: Int): Instant =
+        LocalDate.now().minusDays(n.toLong()).atStartOfDay(zone).toInstant()
+
+    private fun recordTime(r: Record): Instant? = when (r) {
+        is NutritionRecord -> r.startTime
+        is TotalCaloriesBurnedRecord -> r.startTime
+        else -> null
+    }
+
+    private fun latestValue(metric: Metric, r: Record): Float? = when (metric) {
+        Metric.TOTAL_CALORIES -> (r as? TotalCaloriesBurnedRecord)?.energy?.inKilocalories?.toFloat()
+        Metric.FOOD -> (r as? NutritionRecord)?.energy?.inKilocalories?.toFloat()
+        Metric.FIBER -> (r as? NutritionRecord)?.dietaryFiber?.inGrams?.toFloat()
+        Metric.CARBS -> (r as? NutritionRecord)?.totalCarbohydrate?.inGrams?.toFloat()
+        Metric.PROTEIN -> (r as? NutritionRecord)?.protein?.inGrams?.toFloat()
+        Metric.FAT -> (r as? NutritionRecord)?.totalFat?.inGrams?.toFloat()
+        Metric.SATURATED_FAT -> (r as? NutritionRecord)?.saturatedFat?.inGrams?.toFloat()
+        Metric.SODIUM -> (r as? NutritionRecord)?.sodium?.inMilligrams?.toFloat()
+        Metric.SUGAR -> (r as? NutritionRecord)?.sugar?.inGrams?.toFloat()
+        else -> null
+    }
+
+    // ---- Catalog glue --------------------------------------------------------------------------
+
+    private fun recordClass(metric: Metric): KClass<out Record> = when (metric) {
+        Metric.TOTAL_CALORIES -> TotalCaloriesBurnedRecord::class
+        Metric.FOOD,
+        Metric.FIBER,
+        Metric.CARBS,
+        Metric.PROTEIN,
+        Metric.FAT,
+        Metric.SATURATED_FAT,
+        Metric.SODIUM,
+        Metric.SUGAR -> NutritionRecord::class
+    }
+
+    private fun aggregateMetricFor(metric: Metric) = when (metric) {
+        Metric.TOTAL_CALORIES -> TotalCaloriesBurnedRecord.ENERGY_TOTAL
+        Metric.FOOD -> NutritionRecord.ENERGY_TOTAL
+        Metric.FIBER -> NutritionRecord.DIETARY_FIBER_TOTAL
+        Metric.CARBS -> NutritionRecord.TOTAL_CARBOHYDRATE_TOTAL
+        Metric.PROTEIN -> NutritionRecord.PROTEIN_TOTAL
+        Metric.FAT -> NutritionRecord.TOTAL_FAT_TOTAL
+        Metric.SATURATED_FAT -> NutritionRecord.SATURATED_FAT_TOTAL
+        Metric.SODIUM -> NutritionRecord.SODIUM_TOTAL
+        Metric.SUGAR -> NutritionRecord.SUGAR_TOTAL
+        else -> null
+    }
+
+    private fun extract(result: androidx.health.connect.client.aggregate.AggregationResult, metric: Metric): Float =
+        when (metric) {
+            Metric.TOTAL_CALORIES -> (result[TotalCaloriesBurnedRecord.ENERGY_TOTAL]?.inKilocalories ?: 0.0).toFloat()
+            Metric.FOOD -> (result[NutritionRecord.ENERGY_TOTAL]?.inKilocalories ?: 0.0).toFloat()
+            Metric.FIBER -> (result[NutritionRecord.DIETARY_FIBER_TOTAL]?.inGrams ?: 0.0).toFloat()
+            Metric.CARBS -> (result[NutritionRecord.TOTAL_CARBOHYDRATE_TOTAL]?.inGrams ?: 0.0).toFloat()
+            Metric.PROTEIN -> (result[NutritionRecord.PROTEIN_TOTAL]?.inGrams ?: 0.0).toFloat()
+            Metric.FAT -> (result[NutritionRecord.TOTAL_FAT_TOTAL]?.inGrams ?: 0.0).toFloat()
+            Metric.SATURATED_FAT -> (result[NutritionRecord.SATURATED_FAT_TOTAL]?.inGrams ?: 0.0).toFloat()
+            Metric.SODIUM -> (result[NutritionRecord.SODIUM_TOTAL]?.inMilligrams ?: 0.0).toFloat()
+            Metric.SUGAR -> (result[NutritionRecord.SUGAR_TOTAL]?.inGrams ?: 0.0).toFloat()
+            else -> 0f
+        }
+
+    private fun formatValue(metric: Metric, v: Float): String = when (metric) {
+        Metric.SODIUM -> "%,d".format(v.toLong())
+        Metric.FOOD, Metric.FIBER, Metric.CARBS, Metric.PROTEIN, Metric.FAT, Metric.SATURATED_FAT, Metric.SUGAR -> "%.1f".format(v)
+        else -> "%.0f".format(v)
+    }
+
+    private fun dayMonthTime(t: Instant): String {
+        val z = t.atZone(zone)
+        return "${dayFmt.format(z)}, ${DateTimeFormatter.ofPattern("h:mm a").format(z)}"
+    }
+
+    companion object {
+        // Reading from a background context (widgets, WorkManager) is blocked by Health Connect
+        // without this. Older-than-30-days reads need the history permission.
+        const val PERMISSION_READ_IN_BACKGROUND = "android.permission.health.READ_HEALTH_DATA_IN_BACKGROUND"
+        const val PERMISSION_READ_HISTORY = "android.permission.health.READ_HEALTH_DATA_HISTORY"
+    }
+}

@@ -10,7 +10,7 @@
     android:maxResizeHeight="640dp"
     android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen"
-    android:configure="dev.easonhuang.heartwood.widget.MetricWidgetConfigActivity"
+    android:configure="dev.easonhuang.sustenance.widget.MetricWidgetConfigActivity"
     android:description="@string/metric_widget_description"
     android:updatePeriodMillis="0"
     android:initialLayout="@layout/glance_default_loading_layout"

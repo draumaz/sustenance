@@ -1,5 +1,5 @@
 {
-  description = "Heartwood: An open-source Material themed Health Connect dashboard";
+  description = "Sustenance: An open-source Material themed Health Connect dashboard";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
@@ -52,7 +52,7 @@
           GRADLE_OPTS = "-Dorg.gradle.project.android.aapt2FromMavenOverride=${aapt2}";
 
           shellHook = ''
-            echo "heartwood · jdk17 + android sdk 36 · ./gradlew :app:assembleRelease"
+            echo "sustenance · jdk17 + android sdk 36 · ./gradlew :app:assembleRelease"
           '';
         };
 
@@ -60,7 +60,7 @@
         # relaxed sandbox; for a fully sealed build, vendor deps via gradle2nix and feed them in
         # (app/gradle.lockfile pins the versions).
         packages.default = pkgs.stdenv.mkDerivation {
-          pname = "heartwood";
+          pname = "sustenance";
           version = "1.0.0";
           src = ./.;
           __noChroot = true;
