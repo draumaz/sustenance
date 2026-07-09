@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -27,7 +28,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -42,13 +45,48 @@ fun MetricCard(
     modifier: Modifier = Modifier,
     containerColor: Color = MaterialTheme.colorScheme.surfaceContainerLow
 ) {
+    val accent = summary.metric.accent
+    val today = summary.spark.lastOrNull() ?: 0f
+    val goal = summary.goal
+    val locked = !summary.granted
+
+    val progress = if (goal != null && !locked && summary.metric != Metric.TOTAL_CALORIES) {
+        when {
+            goal > 0f -> (today / goal).coerceIn(0f, 1f)
+            goal < 0f -> (today / goal).coerceIn(0f, 1f)
+            else -> if (today > 0f) 1f else 0f
+        }
+    } else 0f
+
+    val isOver = if (goal != null && !locked && summary.metric != Metric.TOTAL_CALORIES) {
+        if (summary.metric == Metric.CALORIC_BALANCE) {
+            today < goal
+        } else {
+            if (goal >= 0f) today > goal else today < goal
+        }
+    } else false
+
+    val showProgress = goal != null && !locked && summary.metric != Metric.TOTAL_CALORIES
+    val fillColor = if (isOver) Color(0xFFA86B6B) else accent
+
     Surface(
         onClick = onClick,
         modifier = modifier.height(48.dp).fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         color = containerColor,
     ) {
-        MetricItemContent(summary, isCompact = true)
+        Box(Modifier.fillMaxSize().clip(RoundedCornerShape(16.dp))) {
+            if (showProgress && progress > 0.01f) {
+                Box(
+                    Modifier
+                        .fillMaxWidth(if (isOver) 1f else progress)
+                        .fillMaxHeight()
+                        .background(fillColor)
+                        .clip(RoundedCornerShape(topEnd = 12.dp, bottomEnd = 12.dp))
+                )
+            }
+            MetricItemContent(summary, isCompact = true, hasFill = showProgress && (progress > 0.15f || isOver))
+        }
     }
 }
 
@@ -56,10 +94,17 @@ fun MetricCard(
 fun MetricItemContent(
     summary: MetricSummary,
     modifier: Modifier = Modifier,
-    isCompact: Boolean = false
+    isCompact: Boolean = false,
+    hasFill: Boolean = false
 ) {
     val accent = summary.metric.accent
     val locked = !summary.granted
+
+    val textShadow = Shadow(
+        color = Color.Black.copy(alpha = 0.5f),
+        offset = Offset(0f, 1.5f),
+        blurRadius = 4f
+    )
 
     Row(
         modifier.fillMaxSize().padding(horizontal = 16.dp),
@@ -69,31 +114,34 @@ fun MetricItemContent(
             Modifier
                 .size(if (isCompact) 32.dp else 40.dp)
                 .clip(CircleShape)
-                .background(accent.copy(alpha = 0.15f)),
+                .background(if (hasFill) Color.Black.copy(alpha = 0.25f) else accent.copy(alpha = 0.2f)),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = if (locked) Icons.Rounded.Lock else summary.metric.icon,
                 contentDescription = null,
-                tint = accent,
-                modifier = Modifier.size(if (isCompact) 16.dp else 20.dp),
+                tint = if (hasFill) Color.White else accent,
+                modifier = Modifier.size(if (isCompact) 18.dp else 22.dp),
             )
         }
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
+            val onSurface = MaterialTheme.colorScheme.onSurface
             Text(
                 text = summary.titleOverride ?: summary.metric.title,
-                style = MaterialTheme.typography.labelSmall,
+                style = MaterialTheme.typography.labelSmall.copy(shadow = textShadow),
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                color = if (hasFill) Color.White.copy(alpha = 0.9f) else onSurface.copy(alpha = 0.8f),
                 maxLines = 1,
             )
 
-            var textStyle by remember(summary.value) {
+            var textStyle by remember(summary.value, hasFill, onSurface) {
                 mutableStateOf(TextStyle(
                     fontSize = if (isCompact) 14.sp else 17.sp,
                     fontWeight = FontWeight.Black,
-                    letterSpacing = (-0.5).sp
+                    letterSpacing = (-0.5).sp,
+                    color = if (hasFill) Color.White else onSurface,
+                    shadow = textShadow
                 ))
             }
 
@@ -108,44 +156,6 @@ fun MetricItemContent(
                     }
                 }
             )
-
-            if (!locked && summary.goal != null && 
-                summary.metric != Metric.TOTAL_CALORIES) {
-                val today = summary.spark.lastOrNull() ?: 0f
-                val goal = summary.goal
-                
-                val progress = when {
-                    goal > 0f -> (today / goal).coerceIn(0f, 1f)
-                    goal < 0f -> (today / goal).coerceIn(0f, 1f)
-                    else -> if (today > 0f) 1f else 0f
-                }
-                
-                val isOver = if (summary.metric == Metric.CALORIC_BALANCE) {
-                    today < goal
-                } else {
-                    if (goal >= 0f) today > goal else today < goal
-                }
-                
-                // Only show red for "over" on metrics where exceeding is generally undesirable (macros/food)
-                val isNegativeOver = isOver
-                val barColor = if (isNegativeOver) Color(0xFFEF5350) else accent
-
-                Spacer(Modifier.height(2.dp))
-                Box(
-                    Modifier
-                        .fillMaxWidth(0.8f)
-                        .height(if (isCompact) 3.dp else 4.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
-                ) {
-                    Box(
-                        Modifier
-                            .fillMaxWidth(progress)
-                            .fillMaxSize()
-                            .background(barColor)
-                    )
-                }
-            }
         }
     }
 }

@@ -220,7 +220,6 @@ private fun MetricSection(
                 Box(Modifier.weight(1f)) {
                     MetricCard(
                         summary = summary,
-                        containerColor = if (summary.metric == Metric.FOOD) Color.Transparent else MaterialTheme.colorScheme.surfaceContainerLow,
                         onClick = {
                             if (summary.granted) onOpenMetric(summary.metric) else onManagePermissions()
                         }
