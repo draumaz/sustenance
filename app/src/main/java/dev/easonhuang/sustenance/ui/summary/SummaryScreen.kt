@@ -54,6 +54,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.foundation.background
 import dev.easonhuang.sustenance.data.GoalsRepository
 import dev.easonhuang.sustenance.data.HealthConnectManager
+import dev.easonhuang.sustenance.data.Metric
 import dev.easonhuang.sustenance.data.WeeklyStat
 import dev.easonhuang.sustenance.data.formatValue
 import dev.easonhuang.sustenance.ui.components.BarChart
@@ -65,6 +66,7 @@ import kotlin.math.roundToInt
 fun SummaryScreen(
     manager: HealthConnectManager,
     goalsRepo: GoalsRepository,
+    settingsRepo: dev.easonhuang.sustenance.data.SettingsRepository,
     bottomInset: androidx.compose.ui.unit.Dp,
     onBack: () -> Unit = {},
 ) {
@@ -72,6 +74,7 @@ fun SummaryScreen(
     val state by vm.state.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
     var editing by remember { mutableStateOf<WeeklyStat?>(null) }
+    val programmedDeficit by settingsRepo.programmedDeficitEnabled.collectAsStateWithLifecycle(false)
 
     Scaffold(
         modifier = Modifier
@@ -116,7 +119,11 @@ fun SummaryScreen(
                     visible = true,
                     enter = fadeIn() + slideInVertically(initialOffsetY = { it / 4 })
                 ) {
-                    WeeklyCard(stat, onEdit = { editing = stat })
+                    WeeklyCard(
+                        stat = stat,
+                        onEdit = { editing = stat },
+                        editEnabled = !(stat.metric == Metric.FOOD && programmedDeficit)
+                    )
                 }
             }
         }
@@ -132,7 +139,7 @@ fun SummaryScreen(
 }
 
 @Composable
-private fun WeeklyCard(stat: WeeklyStat, onEdit: () -> Unit) {
+private fun WeeklyCard(stat: WeeklyStat, onEdit: () -> Unit, editEnabled: Boolean = true) {
     val accent = stat.metric.accent
     Card(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
@@ -151,8 +158,8 @@ private fun WeeklyCard(stat: WeeklyStat, onEdit: () -> Unit) {
                 Spacer(Modifier.size(20.dp))
                 Column(Modifier.weight(1f)) {
                     Text(
-                        stat.metric.title, 
-                        style = MaterialTheme.typography.titleLarge, 
+                        stat.metric.title,
+                        style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Black,
                         letterSpacing = (-0.5).sp
                     )
@@ -165,11 +172,13 @@ private fun WeeklyCard(stat: WeeklyStat, onEdit: () -> Unit) {
                     Spacer(Modifier.height(8.dp))
                     DeltaChip(stat)
                 }
-                IconButton(
-                    onClick = onEdit,
-                    modifier = Modifier.clip(CircleShape).background(MaterialTheme.colorScheme.surfaceContainer)
-                ) {
-                    Icon(Icons.Rounded.Edit, contentDescription = "Edit goal", tint = accent, modifier = Modifier.size(20.dp))
+                if (editEnabled) {
+                    IconButton(
+                        onClick = onEdit,
+                        modifier = Modifier.clip(CircleShape).background(MaterialTheme.colorScheme.surfaceContainer)
+                    ) {
+                        Icon(Icons.Rounded.Edit, contentDescription = "Edit goal", tint = accent, modifier = Modifier.size(20.dp))
+                    }
                 }
             }
             Spacer(Modifier.height(32.dp))

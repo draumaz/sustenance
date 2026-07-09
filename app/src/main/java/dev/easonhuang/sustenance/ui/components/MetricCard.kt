@@ -110,7 +110,6 @@ fun MetricItemContent(
             )
 
             if (!locked && summary.goal != null && 
-                summary.metric != Metric.CALORIC_BALANCE && 
                 summary.metric != Metric.TOTAL_CALORIES) {
                 val today = summary.spark.lastOrNull() ?: 0f
                 val goal = summary.goal
@@ -121,7 +120,11 @@ fun MetricItemContent(
                     else -> if (today > 0f) 1f else 0f
                 }
                 
-                val isOver = if (goal >= 0f) today > goal else today < goal
+                val isOver = if (summary.metric == Metric.CALORIC_BALANCE) {
+                    today < goal
+                } else {
+                    if (goal >= 0f) today > goal else today < goal
+                }
                 
                 // Only show red for "over" on metrics where exceeding is generally undesirable (macros/food)
                 val isNegativeOver = isOver

@@ -296,6 +296,7 @@ private fun MainNav(
                 SummaryScreen(
                     manager = manager,
                     goalsRepo = goalsRepo,
+                    settingsRepo = settingsRepo,
                     bottomInset = bottomInset,
                     onBack = { navController.popBackStack() }
                 )

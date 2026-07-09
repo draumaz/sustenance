@@ -95,8 +95,8 @@ class HealthConnectManager(private val context: Context) {
                 val diff = netCarbs - goal
                 val absDiff = if (diff < 0) -diff else diff
                 val label = if (diff >= 0) "over" else "left"
-                "${formatValue(Metric.CARBS, netCarbs)}${Metric.CARBS.unit} (${formatValue(Metric.CARBS, absDiff)} $label)"
-            } else "${formatValue(Metric.CARBS, netCarbs)}${Metric.CARBS.unit}"
+                "${Metric.CARBS.formatValue(netCarbs)}${Metric.CARBS.unit} (${Metric.CARBS.formatValue(absDiff)} $label)"
+            } else "${Metric.CARBS.formatValue(netCarbs)}${Metric.CARBS.unit}"
 
             val netCarbsSummary = carbsSummary.copy(
                 titleOverride = "Net Carbs",
@@ -123,27 +123,27 @@ class HealthConnectManager(private val context: Context) {
                 val displayValue = when {
                     metric == Metric.CALORIC_BALANCE -> {
                         when {
-                            today < 0 -> "${formatValue(metric, -today)}${metric.unit} surplus"
-                            today > 0 -> "${formatValue(metric, today)}${metric.unit} deficit"
+                            today < 0 -> "${metric.formatValue(-today)}${metric.unit} surplus"
+                            today > 0 -> "${metric.formatValue(today)}${metric.unit} deficit"
                             else -> "0${metric.unit}"
                         }
                     }
-                    metric == Metric.TOTAL_CALORIES -> "${formatValue(metric, today)}${metric.unit}"
-                    goal != null && goal > 0 -> {
+                    metric == Metric.TOTAL_CALORIES -> "${metric.formatValue(today)}${metric.unit}"
+                    goal != null -> {
                         val diff = today - goal
                         val absDiff = if (diff < 0) -diff else diff
                         val label = if (diff >= 0) "over" else "left"
-                        "${formatValue(metric, today)}${metric.unit} (${formatValue(metric, absDiff)} $label)"
+                        "${metric.formatValue(today)}${metric.unit} (${metric.formatValue(absDiff)} $label)"
                     }
-                    else -> "${formatValue(metric, today)}${metric.unit}"
+                    else -> "${metric.formatValue(today)}${metric.unit}"
                 }
 
                 val displayCaption = if (metric == Metric.CALORIC_BALANCE) {
                     val absAvg = if (avg < 0) -avg else avg
                     val label = if (avg < 0) "surplus" else "deficit"
-                    "7-day avg ${formatValue(metric, absAvg)}${metric.unit} $label"
+                    "7-day avg ${metric.formatValue(absAvg)}${metric.unit} $label"
                 } else {
-                    "7-day avg ${formatValue(metric, avg)}${metric.unit}"
+                    "7-day avg ${metric.formatValue(avg)}${metric.unit}"
                 }
 
                 MetricSummary(
@@ -153,14 +153,14 @@ class HealthConnectManager(private val context: Context) {
                     hasData = true,
                     granted = true,
                     spark = spark,
-                    goal = goal,
+                    goal = if (metric == Metric.CALORIC_BALANCE) null else goal,
                 )
             }
             MetricKind.LATEST -> {
                 val last = points.last()
                 MetricSummary(
                     metric = metric,
-                    value = "${formatValue(metric, last.value)}${metric.unit}",
+                    value = "${metric.formatValue(last.value)}${metric.unit}",
                     caption = "as of ${dayFmt.format(last.time.atZone(zone))}",
                     hasData = true,
                     granted = true,
@@ -184,24 +184,24 @@ class HealthConnectManager(private val context: Context) {
         val caption: String
         val stats: List<Pair<String, String>>
         if (metric.kind == MetricKind.DAILY_TOTAL) {
-            headline = formatValue(metric, points.last().value)
+            headline = metric.formatValue(points.last().value)
             caption = "Today, ${metric.unit}"
             stats = listOf(
-                "Daily avg" to "${formatValue(metric, values.average().toFloat())} ${metric.unit}",
-                "Best day" to "${formatValue(metric, values.max())} ${metric.unit}",
-                "14-day total" to "${formatValue(metric, values.sum())} ${metric.unit}",
+                "Daily avg" to "${metric.formatValue(values.average().toFloat())} ${metric.unit}",
+                "Best day" to "${metric.formatValue(values.max())} ${metric.unit}",
+                "14-day total" to "${metric.formatValue(values.sum())} ${metric.unit}",
             )
         } else {
-            headline = "${formatValue(metric, points.last().value)} ${metric.unit}"
+            headline = "${metric.formatValue(points.last().value)} ${metric.unit}"
             caption = "Latest, ${dayFmt.format(points.last().time.atZone(zone))}"
             stats = listOf(
-                "Average" to "${formatValue(metric, values.average().toFloat())} ${metric.unit}",
-                "Min" to "${formatValue(metric, values.min())} ${metric.unit}",
-                "Max" to "${formatValue(metric, values.max())} ${metric.unit}",
+                "Average" to "${metric.formatValue(values.average().toFloat())} ${metric.unit}",
+                "Min" to "${metric.formatValue(values.min())} ${metric.unit}",
+                "Max" to "${metric.formatValue(values.max())} ${metric.unit}",
             )
         }
         val recent = points.takeLast(20).reversed().map {
-            RecordRow("${formatValue(metric, it.value)} ${metric.unit}", dayMonthTime(it.time))
+            RecordRow("${metric.formatValue(it.value)} ${metric.unit}", dayMonthTime(it.time))
         }
 
         val todaySections = if (metric == Metric.FOOD) {
@@ -280,12 +280,13 @@ class HealthConnectManager(private val context: Context) {
             )
         )
         val byDate = buckets.associate { it.startTime.toLocalDate() to extract(it.result, metric) }
-        if (byDate.values.all { it == 0f } && byDate.isEmpty()) return emptyList()
         return (0 until days).map { i ->
             val date = LocalDate.now().minusDays((days - 1 - i).toLong())
             val instant = date.atStartOfDay(zone).toInstant()
             SeriesPoint(instant, byDate[date] ?: 0f, dowFmt.format(date))
-        }.let { pts -> if (pts.all { it.value == 0f }) emptyList() else pts }
+        }.let { pts ->
+            if (pts.all { it.value == 0f } && buckets.isEmpty()) emptyList() else pts
+        }
     }
 
     private suspend fun latestSeries(metric: Metric, days: Int): List<SeriesPoint> {
@@ -367,12 +368,6 @@ class HealthConnectManager(private val context: Context) {
             Metric.SUGAR -> (result[NutritionRecord.SUGAR_TOTAL]?.inGrams ?: 0.0).toFloat()
             else -> 0f
         }
-
-    private fun formatValue(metric: Metric, v: Float): String = when (metric) {
-        Metric.SODIUM -> "%,d".format(v.toLong())
-        Metric.FOOD, Metric.FIBER, Metric.CARBS, Metric.PROTEIN, Metric.FAT, Metric.SATURATED_FAT, Metric.SUGAR, Metric.CALORIC_BALANCE -> "%.0f".format(v)
-        else -> "%.0f".format(v)
-    }
 
     private fun dayMonthTime(t: Instant): String {
         val z = t.atZone(zone)
