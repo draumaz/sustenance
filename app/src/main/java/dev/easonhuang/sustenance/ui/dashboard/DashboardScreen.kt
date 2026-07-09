@@ -31,10 +31,14 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -90,7 +94,7 @@ fun DashboardScreen(
                 actions = {
                     IconButton(onClick = vm::refresh) {
                         if (refreshing) {
-                            CircularProgressIndicator(Modifier.padding(4.dp), strokeWidth = 2.dp)
+                            CircularProgressIndicator(Modifier.size(24.dp).padding(4.dp), strokeWidth = 2.dp)
                         } else {
                             Icon(Icons.Rounded.Refresh, contentDescription = "Refresh")
                         }
@@ -100,59 +104,78 @@ fun DashboardScreen(
             )
         },
     ) { inner ->
-        val data = summaries
-        if (data == null) {
-            // initial load handled by spinner in app bar; keep grid space empty
-            return@Scaffold
-        }
-
-        val energyMetrics = listOf(Metric.TOTAL_CALORIES, Metric.CALORIC_BALANCE)
-        val foodMetric = listOf(Metric.FOOD)
-
-        val energyGroup = data.filter { it.metric in energyMetrics }
-        val foodGroup = data.filter { it.metric in foodMetric }
-        val macrosGroup = data.filter { it.metric !in (energyMetrics + foodMetric) }
-
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(
-                start = 16.dp, end = 16.dp,
-                top = inner.calculateTopPadding() + 8.dp,
-                bottom = bottomInset + 88.dp,
-            ),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+        PullToRefreshBox(
+            isRefreshing = refreshing,
+            onRefresh = vm::refresh,
+            modifier = Modifier.padding(inner)
         ) {
-            if (energyGroup.isNotEmpty()) {
-                item {
-                    MetricSection(
-                        title = "Energy",
-                        items = energyGroup,
-                        columns = 2,
-                        onOpenMetric = onOpenMetric,
-                        onManagePermissions = onManagePermissions
-                    )
-                }
-            }
-            if (foodGroup.isNotEmpty()) {
-                item {
-                    MetricSection(
-                        title = "Food",
-                        items = foodGroup,
-                        columns = 1,
-                        onOpenMetric = onOpenMetric,
-                        onManagePermissions = onManagePermissions
-                    )
-                }
-            }
-            if (macrosGroup.isNotEmpty()) {
-                item {
-                    MetricSection(
-                        title = "Macros",
-                        items = macrosGroup,
-                        columns = 2,
-                        onOpenMetric = onOpenMetric,
-                        onManagePermissions = onManagePermissions
-                    )
+            val data = summaries
+            if (data == null) {
+                // initial load handled by spinner in app bar; keep grid space empty
+                Box(Modifier.fillMaxSize())
+            } else {
+                val energyMetrics = listOf(Metric.TOTAL_CALORIES, Metric.CALORIC_BALANCE)
+                val foodMetric = listOf(Metric.FOOD)
+                val microMetrics = listOf(Metric.SUGAR, Metric.SATURATED_FAT, Metric.SODIUM)
+
+                val energyGroup = data.filter { it.metric in energyMetrics }
+                val foodGroup = data.filter { it.metric in foodMetric }
+                val microsGroup = microMetrics.mapNotNull { m -> data.find { it.metric == m } }
+                val macrosGroup = data.filter { it.metric !in (energyMetrics + foodMetric + microMetrics) }
+
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(
+                        start = 16.dp, end = 16.dp,
+                        top = 8.dp,
+                        bottom = bottomInset + 88.dp,
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    if (energyGroup.isNotEmpty()) {
+                        item {
+                            MetricSection(
+                                title = "Energy",
+                                items = energyGroup,
+                                columns = 2,
+                                onOpenMetric = onOpenMetric,
+                                onManagePermissions = onManagePermissions
+                            )
+                        }
+                    }
+                    if (foodGroup.isNotEmpty()) {
+                        item {
+                            MetricSection(
+                                title = "Food",
+                                items = foodGroup,
+                                columns = 1,
+                                onOpenMetric = onOpenMetric,
+                                onManagePermissions = onManagePermissions
+                            )
+                        }
+                    }
+                    if (macrosGroup.isNotEmpty()) {
+                        item {
+                            MetricSection(
+                                title = "Macros",
+                                items = macrosGroup,
+                                columns = 2,
+                                onOpenMetric = onOpenMetric,
+                                onManagePermissions = onManagePermissions
+                            )
+                        }
+                    }
+                    if (microsGroup.isNotEmpty()) {
+                        item {
+                            MetricSection(
+                                title = "Micros",
+                                items = microsGroup,
+                                columns = 2,
+                                onOpenMetric = onOpenMetric,
+                                onManagePermissions = onManagePermissions
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -193,6 +216,7 @@ private fun MetricSection(
                 Box(Modifier.weight(1f)) {
                     MetricCard(
                         summary = summary,
+                        containerColor = if (summary.metric == Metric.FOOD) Color.Transparent else MaterialTheme.colorScheme.surfaceContainerLow,
                         onClick = {
                             if (summary.granted) onOpenMetric(summary.metric) else onManagePermissions()
                         }

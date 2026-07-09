@@ -36,12 +36,17 @@ import dev.easonhuang.sustenance.data.Metric
 import dev.easonhuang.sustenance.data.MetricSummary
 
 @Composable
-fun MetricCard(summary: MetricSummary, onClick: () -> Unit, modifier: Modifier = Modifier) {
+fun MetricCard(
+    summary: MetricSummary,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    containerColor: Color = MaterialTheme.colorScheme.surfaceContainerLow
+) {
     Surface(
         onClick = onClick,
         modifier = modifier.height(48.dp).fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        color = containerColor,
     ) {
         MetricItemContent(summary, isCompact = true)
     }
