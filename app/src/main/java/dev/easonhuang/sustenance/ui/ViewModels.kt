@@ -83,18 +83,30 @@ class DashboardViewModel(
 
 class DetailViewModel(
     private val manager: HealthConnectManager,
+    private val goalsRepo: GoalsRepository,
     private val metric: Metric,
 ) : ViewModel() {
     private val _detail = MutableStateFlow<MetricDetail?>(null)
     val detail = _detail.asStateFlow()
 
     init {
-        viewModelScope.launch { _detail.value = manager.readDetail(metric) }
+        viewModelScope.launch {
+            goalsRepo.goals.collect { goals ->
+                val goal = goals[metric]
+                _detail.value = manager.readDetail(metric, goal)
+            }
+        }
+    }
+
+    fun setGoal(value: Float) {
+        viewModelScope.launch {
+            goalsRepo.setGoal(metric, value)
+        }
     }
 
     companion object {
-        fun factory(manager: HealthConnectManager, metric: Metric) = viewModelFactory {
-            initializer { DetailViewModel(manager, metric) }
+        fun factory(manager: HealthConnectManager, goalsRepo: GoalsRepository, metric: Metric) = viewModelFactory {
+            initializer { DetailViewModel(manager, goalsRepo, metric) }
         }
     }
 }

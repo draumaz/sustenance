@@ -166,7 +166,7 @@ fun ExpressiveNavigationBar(
         modifier = Modifier
             .fillMaxWidth()
             .navigationBarsPadding()
-            .padding(bottom = 16.dp),
+            .padding(bottom = 8.dp),
         contentAlignment = Alignment.Center
     ) {
         Surface(

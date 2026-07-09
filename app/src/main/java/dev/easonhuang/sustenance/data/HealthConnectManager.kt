@@ -173,11 +173,11 @@ class HealthConnectManager(private val context: Context) {
 
     // ---- Detail --------------------------------------------------------------------------------
 
-    suspend fun readDetail(metric: Metric): MetricDetail = runCatching {
+    suspend fun readDetail(metric: Metric, goal: Float? = null): MetricDetail = runCatching {
         val days = if (metric.kind == MetricKind.DAILY_TOTAL) 14 else 90
         val points = series(metric, days)
         if (points.isEmpty()) {
-            return MetricDetail(metric, "-", "No data recorded", emptyList())
+            return MetricDetail(metric, "-", "No data recorded", emptyList(), goal = goal)
         }
         val values = points.map { it.value }
         val headline: String
@@ -228,10 +228,10 @@ class HealthConnectManager(private val context: Context) {
             }
         } else emptyList()
 
-        MetricDetail(metric, headline, caption, points, stats, recent, todaySections)
+        MetricDetail(metric, headline, caption, points, stats, recent, todaySections, goal = goal)
     }.getOrElse {
         val msg = if (isGranted(metric)) "Error reading data" else "Permission not granted"
-        MetricDetail(metric, "-", msg, emptyList(), emptyList(), emptyList(), emptyList())
+        MetricDetail(metric, "-", msg, emptyList(), emptyList(), emptyList(), emptyList(), goal = goal)
     }
 
     // ---- Public series for summary & export ----------------------------------------------------

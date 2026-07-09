@@ -107,12 +107,12 @@ fun MetricItemContent(
     )
 
     Row(
-        modifier.fillMaxSize().padding(horizontal = 16.dp),
+        modifier.fillMaxSize().padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(
             Modifier
-                .size(if (isCompact) 32.dp else 40.dp)
+                .size(if (isCompact) 28.dp else 36.dp)
                 .clip(CircleShape)
                 .background(if (hasFill) Color.Black.copy(alpha = 0.25f) else accent.copy(alpha = 0.2f)),
             contentAlignment = Alignment.Center,
@@ -121,26 +121,25 @@ fun MetricItemContent(
                 imageVector = if (locked) Icons.Rounded.Lock else summary.metric.icon,
                 contentDescription = null,
                 tint = if (hasFill) Color.White else accent,
-                modifier = Modifier.size(if (isCompact) 18.dp else 22.dp),
+                modifier = Modifier.size(if (isCompact) 16.dp else 20.dp),
             )
         }
-        Spacer(Modifier.width(12.dp))
+        Spacer(Modifier.width(8.dp))
         Column(Modifier.weight(1f)) {
-            val onSurface = MaterialTheme.colorScheme.onSurface
             Text(
                 text = summary.titleOverride ?: summary.metric.title,
                 style = MaterialTheme.typography.labelSmall.copy(shadow = textShadow),
                 fontWeight = FontWeight.Bold,
-                color = if (hasFill) Color.White.copy(alpha = 0.9f) else onSurface.copy(alpha = 0.8f),
+                color = Color.White.copy(alpha = 0.8f),
                 maxLines = 1,
             )
 
-            var textStyle by remember(summary.value, hasFill, onSurface) {
+            var textStyle by remember(summary.value) {
                 mutableStateOf(TextStyle(
-                    fontSize = if (isCompact) 14.sp else 17.sp,
+                    fontSize = if (isCompact) 13.sp else 16.sp,
                     fontWeight = FontWeight.Black,
                     letterSpacing = (-0.5).sp,
-                    color = if (hasFill) Color.White else onSurface,
+                    color = Color.White,
                     shadow = textShadow
                 ))
             }

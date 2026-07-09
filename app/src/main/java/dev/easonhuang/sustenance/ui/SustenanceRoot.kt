@@ -318,6 +318,7 @@ private fun MainNav(
                 } else {
                     DetailScreen(
                         manager = manager,
+                        goalsRepo = goalsRepo,
                         metric = metric,
                         onBack = { navController.popBackStack() },
                     )

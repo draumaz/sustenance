@@ -44,11 +44,22 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.foundation.background
+import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.TextButton
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.text.input.KeyboardType
+import dev.easonhuang.sustenance.data.GoalsRepository
 import dev.easonhuang.sustenance.data.HealthConnectManager
 import dev.easonhuang.sustenance.data.Metric
 import dev.easonhuang.sustenance.data.MetricDetail
 import dev.easonhuang.sustenance.data.MetricKind
 import dev.easonhuang.sustenance.data.RecordRow
+import dev.easonhuang.sustenance.data.formatValue
 import dev.easonhuang.sustenance.ui.DetailViewModel
 import dev.easonhuang.sustenance.ui.components.BarChart
 import dev.easonhuang.sustenance.ui.components.LineChart
@@ -57,14 +68,48 @@ import dev.easonhuang.sustenance.ui.components.LineChart
 @Composable
 fun DetailScreen(
     manager: HealthConnectManager,
+    goalsRepo: GoalsRepository,
     metric: Metric,
     onBack: () -> Unit,
 ) {
     val vm: DetailViewModel = viewModel(
         key = metric.key,
-        factory = DetailViewModel.factory(manager, metric),
+        factory = DetailViewModel.factory(manager, goalsRepo, metric),
     )
     val detail by vm.detail.collectAsStateWithLifecycle()
+    var showGoalDialog by remember { mutableStateOf(false) }
+
+    if (showGoalDialog) {
+        val currentGoal = detail?.goal ?: 0f
+        var text by remember { mutableStateOf(currentGoal.toString().removeSuffix(".0")) }
+        AlertDialog(
+            onDismissRequest = { showGoalDialog = false },
+            title = { Text("Edit ${metric.title} Goal") },
+            text = {
+                OutlinedTextField(
+                    value = text,
+                    onValueChange = { text = it },
+                    label = { Text("Target (${metric.unit})") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    text.toFloatOrNull()?.let { vm.setGoal(it) }
+                    showGoalDialog = false
+                }) {
+                    Text("Save")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showGoalDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -101,7 +146,7 @@ fun DetailScreen(
             contentPadding = PaddingValuesFrom(inner),
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
-            item { HeaderCard(d) }
+            item { HeaderCard(d, onEditGoal = { showGoalDialog = true }) }
             if (d.todaySections.isNotEmpty()) {
                 item { FoodItemsCard(d.todaySections) }
             }
@@ -175,7 +220,7 @@ private fun FoodItemsCard(sections: List<Pair<String, List<RecordRow>>>) {
 }
 
 @Composable
-private fun HeaderCard(d: MetricDetail) {
+private fun HeaderCard(d: MetricDetail, onEditGoal: () -> Unit) {
     val accent = d.metric.accent
     Card(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
@@ -201,7 +246,7 @@ private fun HeaderCard(d: MetricDetail) {
                     Icon(d.metric.icon, null, tint = accent, modifier = Modifier.size(32.dp))
                 }
                 Spacer(Modifier.size(20.dp))
-                Column {
+                Column(Modifier.weight(1f)) {
                     Text(
                         d.headline, 
                         style = MaterialTheme.typography.headlineLarge, 
@@ -217,6 +262,16 @@ private fun HeaderCard(d: MetricDetail) {
                             letterSpacing = 1.sp
                         )
                     }
+                    d.goal?.let {
+                        Text(
+                            "Goal: ${d.metric.formatValue(it)} ${d.metric.unit}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        )
+                    }
+                }
+                IconButton(onClick = onEditGoal) {
+                    Icon(Icons.Rounded.Edit, contentDescription = "Edit Goal", tint = accent.copy(alpha = 0.6f))
                 }
             }
         }

@@ -89,10 +89,9 @@ fun DashboardScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Sustenance", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold)
-                        Spacer(Modifier.width(8.dp))
-                        Text(greeting, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                    Column {
+                        Text(greeting, style = MaterialTheme.typography.labelSmall.copy(fontSize = 15.sp), color = MaterialTheme.colorScheme.primary)
+                        Text("Sustenance", style = MaterialTheme.typography.titleLarge.copy(fontSize = 25.sp), fontWeight = FontWeight.ExtraBold)
                     }
                 },
                 actions = {
@@ -131,7 +130,7 @@ fun DashboardScreen(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(
                         start = 16.dp, end = 16.dp,
-                        top = 8.dp,
+                        top = 16.dp,
                         bottom = bottomInset + 88.dp,
                     ),
                     verticalArrangement = Arrangement.spacedBy(16.dp),
