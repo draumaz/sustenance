@@ -138,7 +138,7 @@ fun SettingsScreen(
                     }
                 }
             }
-            item { SectionLabel("Misc") }
+            item { SectionLabel("Diet") }
             item {
                 SettingsCard {
                     val ketoMode by vm.ketoMode.collectAsState(initial = false)
@@ -165,12 +165,6 @@ fun SettingsScreen(
                                 context.startActivity(intent)
                             }
                         }
-                    )
-                    SettingRow(
-                        icon = Icons.Rounded.Download,
-                        title = "Export data",
-                        subtitle = "Save your accessible data to a file (CSV or JSON)",
-                        onClick = { showFormatDialog = true },
                     )
                 }
             }
