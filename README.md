@@ -7,6 +7,18 @@ sending a single byte anywhere.
 
 > No accounts. No network permission. No trackers. Just your food data, on your device.
 
+---
+
+## Gallery
+
+| Home Screen | Search | Definitions |
+| :---: | :---: | :---: |
+| ![Home](img/swikt-home.jpg) | ![Search](img/swikt-search.jpg) | ![List](img/swikt-list.jpg) |
+| *Home Screen* | *Search Interface* | *Word Details* |
+
+---
+
+
 ## Features
 
 - **Today**, Material You cards for calories, macronutrients (Protein, Carbs, Fat),
@@ -25,36 +37,14 @@ sending a single byte anywhere.
 - DataStore for goals
 - `minSdk 30`, `targetSdk 36`
 
-## Build
-
-```sh
-git clone https://github.com/draumaz/sustenance
-cd sustenance
-./gradlew :app:assembleDebug
-# APK: app/build/outputs/apk/debug/app-debug.apk
-```
-
-Requires JDK 17 and the Android SDK (`platforms;android-36`, `build-tools;36.0.0`). The
-Gradle wrapper pins everything else.
-
-### Signing a release (optional)
-
-Create `keystore.properties` (gitignored) or set the matching `SUSTENANCE_*` env vars:
-
-```properties
-storeFile=/path/to/release.jks
-storePassword=…
-keyAlias=…
-keyPassword=…
-```
-
-Without it, `assembleRelease` produces an unsigned APK.
-
 ## Privacy
 
 Sustenance requests only Health Connect **read** permissions for Nutrition and Energy, holds
 no network permission, and never transmits data. You control which data types it can read from
 Health Connect at any time.
+
+## Credits
+Special thanks to **GuyOnWifi** for the original [/heartwood](https://github.com/GuyOnWifi/heartwood) base code which this project is built upon.
 
 ## License
 
