@@ -174,7 +174,7 @@ fun DashboardScreen(
                             MetricSection(
                                 title = "Micros",
                                 items = microsGroup,
-                                columns = 2,
+                                columns = 1,
                                 onOpenMetric = onOpenMetric,
                                 onManagePermissions = onManagePermissions
                             )
