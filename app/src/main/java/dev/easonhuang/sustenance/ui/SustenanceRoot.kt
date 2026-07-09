@@ -8,20 +8,34 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Insights
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Today
+import androidx.compose.animation.core.animateIntAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.offset
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 import androidx.health.connect.client.PermissionController
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -182,6 +196,21 @@ private fun MainNav(
     val topLevel = remember { Dest.entries.toList() }
     val showBar = currentRoute in topLevel.map { it.route } || currentRoute?.startsWith("detail/") == true
 
+    val bottomBarHeight = 120.dp
+    val bottomBarHeightPx = with(LocalDensity.current) { bottomBarHeight.roundToPx().toFloat() }
+    val bottomBarOffsetHeightPx = remember { mutableFloatStateOf(0f) }
+
+    val nestedScrollConnection = remember {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                val delta = available.y
+                val newOffset = bottomBarOffsetHeightPx.floatValue + delta
+                bottomBarOffsetHeightPx.floatValue = newOffset.coerceIn(-bottomBarHeightPx, 0f)
+                return Offset.Zero
+            }
+        }
+    }
+
     // Open a metric's detail directly when launched from its widget.
     LaunchedEffect(deepLinkMetric) {
         val metric = deepLinkMetric?.let { Metric.fromKey(it) }
@@ -197,21 +226,34 @@ private fun MainNav(
     }
 
     Scaffold(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            .nestedScroll(nestedScrollConnection),
         bottomBar = {
             if (showBar) {
-                ExpressiveNavigationBar(
-                    navController = navController,
-                    destinations = topLevel,
-                    predictiveBackState = predictiveBackState,
-                    onNavigate = { dest ->
-                        navController.navigate(dest.route) {
-                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    }
+                val animatedOffset by animateIntAsState(
+                    targetValue = bottomBarOffsetHeightPx.floatValue.roundToInt(),
+                    animationSpec = spring(stiffness = androidx.compose.animation.core.Spring.StiffnessMedium),
+                    label = "bottom_bar_offset"
                 )
+
+                Box(
+                    modifier = Modifier
+                        .offset { IntOffset(x = 0, y = -animatedOffset) }
+                ) {
+                    ExpressiveNavigationBar(
+                        navController = navController,
+                        destinations = topLevel,
+                        predictiveBackState = predictiveBackState,
+                        onNavigate = { dest ->
+                            navController.navigate(dest.route) {
+                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        }
+                    )
+                }
             }
         },
     ) { inner ->

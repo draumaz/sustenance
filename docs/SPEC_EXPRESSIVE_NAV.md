@@ -42,12 +42,24 @@ An individual interactive pill.
 *   **Internal Layout**: Use `animateContentSize` on the item container to smoothly expand/contract when the label appears.
 *   **Haptics**: Perform `TextHandleMove` on click and `LongPress` on a 2-second hold.
 
-## 4. Integration Contract
+## 4. Interaction Patterns
+
+### Predictive Back Sync
+Navigation highlighting transitions between tabs in real-time as the user swipes, synchronized via `PredictiveBackState`.
+
+### Scroll-to-Hide
+The navigation bar hides when scrolling down and reveals when scrolling up.
+*   **Implementation**: Use `NestedScrollConnection` to update a `bottomBarOffsetHeightPx` state based on `onPreScroll` deltas.
+*   **Animation**: Drive the visual offset with `animateIntAsState` using a medium spring for a fluid, physical feel.
+
+## 5. Integration Contract
 
 ### Root Navigation
 1.  Initialize one `PredictiveBackState` at the root.
-2.  Pass it to `ExpressiveNavigationBar`.
-3.  Pass it to every screen destination.
+2.  Initialize `bottomBarOffsetHeightPx` and a `NestedScrollConnection` to track scroll deltas.
+3.  Apply `nestedScroll` to the main container.
+4.  Wrap `ExpressiveNavigationBar` in a `Box` with an `offset` driven by the animated scroll offset.
+5.  Pass `PredictiveBackState` to `ExpressiveNavigationBar` and every screen destination.
 
 ### Screen Implementation
 Every screen must synchronize its visual state with the gesture:
