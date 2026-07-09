@@ -34,16 +34,8 @@ cd sustenance
 # APK: app/build/outputs/apk/debug/app-debug.apk
 ```
 
-Or with Nix (pins the whole toolchain):
-
-```sh
-nix develop
-./gradlew :app:assembleRelease
-```
-
 Requires JDK 17 and the Android SDK (`platforms;android-36`, `build-tools;36.0.0`). The
-Gradle wrapper pins everything else. See [docs/REPRODUCIBLE.md](docs/REPRODUCIBLE.md) for the
-full reproducible-build toolchain and Nix notes.
+Gradle wrapper pins everything else.
 
 ### Signing a release (optional)
 
@@ -56,19 +48,7 @@ keyAlias=…
 keyPassword=…
 ```
 
-Without it, `assembleRelease` produces an unsigned APK, which is fine for F-Droid, since it
-signs its own builds.
-
-## CI
-
-- **CI** (`.github/workflows/ci.yml`), builds + lints the debug APK on every push/PR.
-- **Release** (`.github/workflows/release.yml`), on a `v*` tag, builds the release APK
-  (signed if secrets are present) and attaches it to a GitHub Release.
-
-## F-Droid
-
-Descriptions and changelogs live under `fastlane/metadata/android/en-US/`. A recipe template
-for the `fdroiddata` repo is in [docs/fdroid-metadata-template.yml](docs/fdroid-metadata-template.yml).
+Without it, `assembleRelease` produces an unsigned APK.
 
 ## Privacy
 
