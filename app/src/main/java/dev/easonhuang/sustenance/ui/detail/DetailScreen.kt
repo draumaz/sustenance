@@ -126,12 +126,12 @@ fun DetailScreen(
         modifier = Modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = { 
+                title = {
                     Text(
-                        metric.title, 
+                        metric.title,
                         style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.ExtraBold 
-                    ) 
+                        fontWeight = FontWeight.ExtraBold
+                    )
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {

@@ -86,7 +86,7 @@ fun DashboardScreen(
     }
 
     Scaffold(
-        modifier = Modifier.fillMaxSize().nestedScroll(scrollBehavior.nestedScrollConnection),
+        modifier = Modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
                 title = {
@@ -128,7 +128,7 @@ fun DashboardScreen(
                 val macrosGroup = data.filter { it.metric !in (energyMetrics + foodMetric + microMetrics) }
 
                 LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier.fillMaxSize().nestedScroll(scrollBehavior.nestedScrollConnection),
                     contentPadding = PaddingValues(
                         start = 16.dp, end = 16.dp,
                         top = 16.dp,
