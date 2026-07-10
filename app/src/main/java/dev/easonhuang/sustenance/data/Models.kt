@@ -38,4 +38,5 @@ data class MetricDetail(
 data class RecordRow(
     val primary: String,
     val secondary: String,
+    val tertiary: String? = null,
 )

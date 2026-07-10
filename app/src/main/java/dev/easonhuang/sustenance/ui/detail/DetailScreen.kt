@@ -225,6 +225,14 @@ private fun FoodItemsCard(sections: List<Pair<String, List<RecordRow>>>) {
                             Column(Modifier.weight(1f)) {
                                 Text(item.primary, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
                                 Text(time, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                item.tertiary?.let {
+                                    Text(
+                                        it,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                        modifier = Modifier.padding(top = 2.dp)
+                                    )
+                                }
                             }
                             Text(kcal, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
                         }

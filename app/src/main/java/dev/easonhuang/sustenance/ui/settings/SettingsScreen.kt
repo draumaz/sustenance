@@ -188,7 +188,7 @@ fun SettingsScreen(
                     SettingRow(
                         icon = Icons.AutoMirrored.Rounded.OpenInNew,
                         title = "Sustenance ${BuildConfig.VERSION_NAME}",
-                        subtitle = "Your beautiful and offline nutrition summary, powered by Health Connect.",
+                        subtitle = "Your beautiful, offline nutrition summary, powered by Health Connect.",
                         onClick = {
                             runCatching {
                                 context.startActivity(Intent(Intent.ACTION_VIEW, REPO_URL.toUri()))
