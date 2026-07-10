@@ -3,12 +3,13 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- Pulse waveform inside the adaptive safe zone -->
-    <path
-        android:strokeColor="#FFFFFF"
-        android:strokeWidth="5.5"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round"
-        android:fillColor="#00000000"
-        android:pathData="M28,54 L42,54 L48,38 L58,72 L66,54 L80,54" />
+    <group
+        android:translateX="34"
+        android:translateY="34"
+        android:scaleX="1.66"
+        android:scaleY="1.66">
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M11,9H9V2H7V9H5V2H3V9c0,2.12 1.66,3.84 3.75,3.97V22h2.5v-9.03C11.34,12.84 13,11.12 13,9V2h-2V9z M16,6v8h3v8h2.5V2c-3.03,0 -5.5,2.47 -5.5,4z" />
+    </group>
 </vector>

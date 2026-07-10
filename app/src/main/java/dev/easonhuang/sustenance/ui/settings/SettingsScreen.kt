@@ -160,7 +160,7 @@ fun SettingsScreen(
                 SettingsCard {
                     SettingRow(
                         icon = Icons.Rounded.HealthAndSafety,
-                        title = "Open Health Connect",
+                        title = "Launch Health Connect",
                         subtitle = "Verify Sustenance can see your health data.",
                         onClick = {
                             runCatching {
