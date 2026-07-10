@@ -58,7 +58,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withLink
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -174,7 +177,7 @@ fun SettingsScreen(
                     SettingRow(
                         icon = Icons.AutoMirrored.Rounded.OpenInNew,
                         title = "Sustenance ${BuildConfig.VERSION_NAME}",
-                        subtitle = "A beautiful Health Connect nutrition summary.",
+                        subtitle = "Your beautiful and offline nutrition summary, powered by Health Connect.",
                         onClick = {
                             runCatching {
                                 context.startActivity(Intent(Intent.ACTION_VIEW, REPO_URL.toUri()))
@@ -185,7 +188,13 @@ fun SettingsScreen(
             }
             item {
                 Text(
-                    "Sustenance never sends your data anywhere. Everything stays on this device.",
+                    text = buildAnnotatedString {
+                        append("Sustenance is based on ")
+                        withLink(LinkAnnotation.Url("https://github.com/GuyOnWifi/heartwood")) {
+                            append("Heartwood")
+                        }
+                        append(", a Health Connect viewer by Eason Huang.\n\nThe majority of new code was written with the help of gemini-3-flash-preview.")
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp),
