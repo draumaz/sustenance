@@ -186,8 +186,36 @@ fun ExpressiveNavigationBar(
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Today (Home) item - now transforms into detail metric
+                val renderItem = @Composable { dest: dev.easonhuang.sustenance.ui.Dest ->
+                    val isSelected = currentDestination?.hierarchy?.any { it.route == dest.route } == true
+
+                    val isPredictingToThis = predictiveBackState?.isSwipeActive == true &&
+                        !isSelected &&
+                        navController.previousBackStackEntry?.destination?.route == dest.route
+
+                    val alphaOverride = if (isPredictingToThis) {
+                        predictiveBackState?.progress
+                    } else if (isSelected && predictiveBackState?.isSwipeActive == true) {
+                        1f - (predictiveBackState?.progress ?: 0f)
+                    } else null
+
+                    ExpressiveNavItem(
+                        label = dest.label,
+                        icon = dest.icon,
+                        isSelected = isSelected,
+                        selectionAlphaOverride = alphaOverride,
+                        onLongHold = { isScalloped = !isScalloped },
+                        onClick = { onNavigate(dest) }
+                    )
+                }
+
+                val others = destinations.filter { it.route != "today" }
                 val todayDest = destinations.first { it.route == "today" }
+
+                // Summary (first item usually)
+                others.take(1).forEach { renderItem(it) }
+
+                // Today (Home) item - now transforms into detail metric
                 val isTodaySelected = currentDestination?.hierarchy?.any { it.route == "today" } == true
                 val isEffectivelySelected = isTodaySelected || isOnDetail
 
@@ -221,29 +249,8 @@ fun ExpressiveNavigationBar(
                     )
                 }
 
-                // Summary and Settings
-                destinations.filter { it.route != "today" }.forEach { dest ->
-                    val isSelected = currentDestination?.hierarchy?.any { it.route == dest.route } == true
-                    
-                    val isPredictingToThis = predictiveBackState?.isSwipeActive == true && 
-                        !isSelected &&
-                        navController.previousBackStackEntry?.destination?.route == dest.route
-
-                    val alphaOverride = if (isPredictingToThis) {
-                        predictiveBackState?.progress
-                    } else if (isSelected && predictiveBackState?.isSwipeActive == true) {
-                        1f - (predictiveBackState?.progress ?: 0f)
-                    } else null
-
-                    ExpressiveNavItem(
-                        label = dest.label,
-                        icon = dest.icon,
-                        isSelected = isSelected,
-                        selectionAlphaOverride = alphaOverride,
-                        onLongHold = { isScalloped = !isScalloped },
-                        onClick = { onNavigate(dest) }
-                    )
-                }
+                // Settings and others
+                others.drop(1).forEach { renderItem(it) }
             }
         }
     }
