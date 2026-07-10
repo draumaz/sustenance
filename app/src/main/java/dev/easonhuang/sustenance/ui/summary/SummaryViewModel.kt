@@ -12,8 +12,10 @@ import dev.easonhuang.sustenance.data.SeriesPoint
 import dev.easonhuang.sustenance.data.WeeklyStat
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 data class SummaryState(
@@ -28,6 +30,9 @@ class SummaryViewModel(
 
     // Raw daily series per metric (null until first load completes).
     private val series = MutableStateFlow<Map<Metric, List<SeriesPoint>>?>(null)
+
+    private val _refreshing = MutableStateFlow(false)
+    val refreshing = _refreshing.asStateFlow()
 
     val state = combine(series, goalsRepo.goals) { seriesByMetric, goals ->
         if (seriesByMetric == null) {
@@ -63,14 +68,17 @@ class SummaryViewModel(
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SummaryState())
 
-    init { refresh() }
+    init { refresh(showIndicator = false) }
 
-    fun refresh() {
+    fun refresh(showIndicator: Boolean = true) {
         viewModelScope.launch {
+            if (showIndicator) _refreshing.value = true
             val granted = runCatching { manager.grantedPermissions() }.getOrDefault(emptySet())
             series.value = GoalCatalog.metrics
                 .filter { manager.permissionFor(it) in granted }
                 .associateWith { runCatching { manager.readDailySeries(it, 14) }.getOrDefault(emptyList()) }
+            if (showIndicator) delay(500)
+            _refreshing.value = false
         }
     }
 

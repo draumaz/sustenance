@@ -4,6 +4,7 @@ import androidx.activity.compose.PredictiveBackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -29,6 +30,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -42,6 +44,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.foundation.background
 import androidx.compose.material.icons.rounded.Edit
@@ -77,7 +80,13 @@ fun DetailScreen(
         factory = DetailViewModel.factory(manager, goalsRepo, metric),
     )
     val detail by vm.detail.collectAsStateWithLifecycle()
+    val refreshing by vm.refreshing.collectAsStateWithLifecycle()
     var showGoalDialog by remember { mutableStateOf(false) }
+
+    LifecycleResumeEffect(metric.key) {
+        vm.refresh(showIndicator = false)
+        onPauseOrDispose { }
+    }
 
     if (showGoalDialog) {
         val currentGoal = detail?.goal ?: 0f
@@ -143,28 +152,34 @@ fun DetailScreen(
             }
             return@Scaffold
         }
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValuesFrom(inner),
-            verticalArrangement = Arrangement.spacedBy(20.dp),
+        PullToRefreshBox(
+            isRefreshing = refreshing,
+            onRefresh = vm::refresh,
+            modifier = Modifier.padding(inner)
         ) {
-            item { HeaderCard(d, onEditGoal = { showGoalDialog = true }) }
-            if (d.todaySections.isNotEmpty()) {
-                item { FoodItemsCard(d.todaySections) }
-            }
-            item { ChartCard(d) }
-            if (d.stats.isNotEmpty()) item { StatsCard(d) }
-            if (d.recent.isNotEmpty()) {
-                item {
-                    Text(
-                        "Recent records",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Black,
-                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
-                    )
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(top = 16.dp, bottom = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(20.dp),
+            ) {
+                item { HeaderCard(d, onEditGoal = { showGoalDialog = true }) }
+                if (d.todaySections.isNotEmpty()) {
+                    item { FoodItemsCard(d.todaySections) }
                 }
-                items(d.recent) { row -> RecordItem(row) }
-                item { Spacer(Modifier.height(100.dp)) } // Leave room for nav pill
+                item { ChartCard(d) }
+                if (d.stats.isNotEmpty()) item { StatsCard(d) }
+                if (d.recent.isNotEmpty()) {
+                    item {
+                        Text(
+                            "Recent records",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Black,
+                            modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+                        )
+                    }
+                    items(d.recent) { row -> RecordItem(row) }
+                    item { Spacer(Modifier.height(100.dp)) } // Leave room for nav pill
+                }
             }
         }
     }
@@ -249,11 +264,16 @@ private fun HeaderCard(d: MetricDetail, onEditGoal: () -> Unit) {
                 }
                 Spacer(Modifier.size(20.dp))
                 Column(Modifier.weight(1f)) {
+                    val style = if (d.headline.contains("/")) {
+                        MaterialTheme.typography.headlineSmall
+                    } else {
+                        MaterialTheme.typography.headlineLarge
+                    }
                     Text(
-                        d.headline, 
-                        style = MaterialTheme.typography.headlineLarge, 
+                        d.headline,
+                        style = style,
                         fontWeight = FontWeight.Black,
-                        letterSpacing = (-1).sp
+                        letterSpacing = if (d.headline.contains("/")) 0.sp else (-1).sp
                     )
                     d.caption?.let {
                         Text(
@@ -265,17 +285,21 @@ private fun HeaderCard(d: MetricDetail, onEditGoal: () -> Unit) {
                         )
                     }
                     d.goal?.let {
-                        val label = if (d.metric == Metric.CALORIC_BALANCE) "Offset" else "Goal"
-                        Text(
-                            "$label: ${d.metric.formatValue(it)} ${d.metric.unit}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                        )
+                        if (d.isGoalEditable) {
+                            val label = if (d.metric == Metric.CALORIC_BALANCE) "Offset" else "Goal"
+                            Text(
+                                "$label: ${d.metric.formatValue(it)} ${d.metric.unit}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                            )
+                        }
                     }
                 }
-                val editDesc = if (d.metric == Metric.CALORIC_BALANCE) "Edit Offset" else "Edit Goal"
-                IconButton(onClick = onEditGoal) {
-                    Icon(Icons.Rounded.Edit, contentDescription = editDesc, tint = accent.copy(alpha = 0.6f))
+                if (d.isGoalEditable) {
+                    val editDesc = if (d.metric == Metric.CALORIC_BALANCE) "Edit Offset" else "Edit Goal"
+                    IconButton(onClick = onEditGoal) {
+                        Icon(Icons.Rounded.Edit, contentDescription = editDesc, tint = accent.copy(alpha = 0.6f))
+                    }
                 }
             }
         }
@@ -338,11 +362,3 @@ private fun RecordItem(row: RecordRow) {
         }
     }
 }
-
-/** Top inset padding + horizontal/bottom breathing room for the detail list. */
-@Composable
-private fun PaddingValuesFrom(inner: androidx.compose.foundation.layout.PaddingValues) =
-    androidx.compose.foundation.layout.PaddingValues(
-        top = inner.calculateTopPadding() + 16.dp,
-        bottom = inner.calculateBottomPadding() + 16.dp,
-    )

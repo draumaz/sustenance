@@ -173,65 +173,78 @@ class HealthConnectManager(private val context: Context) {
 
     // ---- Detail --------------------------------------------------------------------------------
 
-    suspend fun readDetail(metric: Metric, goal: Float? = null): MetricDetail = runCatching {
-        val days = if (metric.kind == MetricKind.DAILY_TOTAL) 14 else 90
-        val points = series(metric, days)
-        if (points.isEmpty()) {
-            return MetricDetail(metric, "-", "No data recorded", emptyList(), goal = goal)
-        }
-        val values = points.map { it.value }
-        val headline: String
-        val caption: String
-        val stats: List<Pair<String, String>>
-        if (metric.kind == MetricKind.DAILY_TOTAL) {
-            headline = metric.formatValue(points.last().value)
-            caption = "Today, ${metric.unit}"
-            stats = listOf(
-                "Daily avg" to "${metric.formatValue(values.average().toFloat())} ${metric.unit}",
-                "Best day" to "${metric.formatValue(values.max())} ${metric.unit}",
-                "14-day total" to "${metric.formatValue(values.sum())} ${metric.unit}",
-            )
-        } else {
-            headline = "${metric.formatValue(points.last().value)} ${metric.unit}"
-            caption = "Latest, ${dayFmt.format(points.last().time.atZone(zone))}"
-            stats = listOf(
-                "Average" to "${metric.formatValue(values.average().toFloat())} ${metric.unit}",
-                "Min" to "${metric.formatValue(values.min())} ${metric.unit}",
-                "Max" to "${metric.formatValue(values.max())} ${metric.unit}",
-            )
-        }
-        val recent = points.takeLast(20).reversed().map {
-            RecordRow("${metric.formatValue(it.value)} ${metric.unit}", dayMonthTime(it.time))
-        }
+    suspend fun readDetail(
+        metric: Metric,
+        goal: Float? = null,
+        isCaloricBalanceActive: Boolean = false
+    ): MetricDetail {
+        val isGoalEditable = !(metric == Metric.FOOD && isCaloricBalanceActive)
+        return runCatching {
+            val days = if (metric.kind == MetricKind.DAILY_TOTAL) 14 else 90
+            val points = series(metric, days)
 
-        val todaySections = if (metric == Metric.FOOD) {
-            val start = LocalDate.now().atStartOfDay(zone).toInstant()
-            val end = Instant.now()
-            val records = read(NutritionRecord::class, start, end).filterIsInstance<NutritionRecord>()
-            val grouped = records.groupBy { r ->
-                val hour = r.startTime.atZone(zone).hour
-                when (hour) {
-                    in 5..11 -> "Morning"
-                    in 12..17 -> "Day"
-                    else -> "Night"
-                }
+            if (points.isEmpty()) {
+                return MetricDetail(metric, "-", "No data recorded", emptyList(), goal = goal, isGoalEditable = isGoalEditable)
             }
-            listOf("Morning", "Day", "Night").mapNotNull { section ->
-                grouped[section]?.let { recs ->
-                    section to recs.sortedBy { it.startTime }.map { r ->
-                        val name = r.name ?: "Unknown Food"
-                        val kcal = r.energy?.inKilocalories ?: 0.0
-                        val time = timeFmt.format(r.startTime.atZone(zone))
-                        RecordRow(name, "${"%.0f".format(kcal)} kcal • $time")
+            val values = points.map { it.value }
+            val headline: String
+            val caption: String?
+            val stats: List<Pair<String, String>>
+            if (metric.kind == MetricKind.DAILY_TOTAL) {
+                if (metric == Metric.FOOD && isCaloricBalanceActive && goal != null) {
+                    headline = "${metric.formatValue(points.last().value)}/${metric.formatValue(goal)} ${metric.unit}"
+                    caption = null
+                } else {
+                    headline = metric.formatValue(points.last().value)
+                    caption = "Today, ${metric.unit}"
+                }
+                stats = listOf(
+                    "Daily avg" to "${metric.formatValue(values.average().toFloat())} ${metric.unit}",
+                    "Best day" to "${metric.formatValue(values.max())} ${metric.unit}",
+                    "14-day total" to "${metric.formatValue(values.sum())} ${metric.unit}",
+                )
+            } else {
+                headline = "${metric.formatValue(points.last().value)} ${metric.unit}"
+                caption = "Latest, ${dayFmt.format(points.last().time.atZone(zone))}"
+                stats = listOf(
+                    "Average" to "${metric.formatValue(values.average().toFloat())} ${metric.unit}",
+                    "Min" to "${metric.formatValue(values.min())} ${metric.unit}",
+                    "Max" to "${metric.formatValue(values.max())} ${metric.unit}",
+                )
+            }
+            val recent = points.takeLast(20).reversed().map {
+                RecordRow("${metric.formatValue(it.value)} ${metric.unit}", dayMonthTime(it.time))
+            }
+
+            val todaySections = if (metric == Metric.FOOD) {
+                val start = LocalDate.now().atStartOfDay(zone).toInstant()
+                val end = Instant.now()
+                val records = read(NutritionRecord::class, start, end).filterIsInstance<NutritionRecord>()
+                val grouped = records.groupBy { r ->
+                    val hour = r.startTime.atZone(zone).hour
+                    when (hour) {
+                        in 5..11 -> "Morning"
+                        in 12..17 -> "Day"
+                        else -> "Night"
                     }
                 }
-            }
-        } else emptyList()
+                listOf("Morning", "Day", "Night").mapNotNull { section ->
+                    grouped[section]?.let { recs ->
+                        section to recs.sortedBy { it.startTime }.map { r ->
+                            val name = r.name ?: "Unknown Food"
+                            val kcal = r.energy?.inKilocalories ?: 0.0
+                            val time = timeFmt.format(r.startTime.atZone(zone))
+                            RecordRow(name, "${"%.0f".format(kcal)} kcal • $time")
+                        }
+                    }
+                }
+            } else emptyList()
 
-        MetricDetail(metric, headline, caption, points, stats, recent, todaySections, goal = goal)
-    }.getOrElse {
-        val msg = if (isGranted(metric)) "Error reading data" else "Permission not granted"
-        MetricDetail(metric, "-", msg, emptyList(), emptyList(), emptyList(), emptyList(), goal = goal)
+            MetricDetail(metric, headline, caption, points, stats, recent, todaySections, goal = goal, isGoalEditable = isGoalEditable)
+        }.getOrElse {
+            val msg = if (isGranted(metric)) "Error reading data" else "Permission not granted"
+            MetricDetail(metric, "-", msg, emptyList(), emptyList(), emptyList(), emptyList(), goal = goal, isGoalEditable = isGoalEditable)
+        }
     }
 
     // ---- Public series for summary & export ----------------------------------------------------

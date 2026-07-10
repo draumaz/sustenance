@@ -31,6 +31,7 @@ data class MetricDetail(
     val recent: List<RecordRow> = emptyList(),
     val todaySections: List<Pair<String, List<RecordRow>>> = emptyList(), // Grouped today items
     val goal: Float? = null,
+    val isGoalEditable: Boolean = true,
 )
 
 /** A row in the "recent records" list on a detail screen. */

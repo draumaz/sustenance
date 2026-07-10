@@ -78,10 +78,10 @@ fun DashboardScreen(
 
     // Refresh when permissions change (e.g. Food just granted) or when returning to the app.
     androidx.compose.runtime.LaunchedEffect(granted) {
-        vm.refresh()
+        vm.refresh(showIndicator = false)
     }
     androidx.lifecycle.compose.LifecycleResumeEffect(Unit) {
-        vm.refresh()
+        vm.refresh(showIndicator = false)
         onPauseOrDispose { }
     }
 

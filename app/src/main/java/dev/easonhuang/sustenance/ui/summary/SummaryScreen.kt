@@ -33,6 +33,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -49,6 +50,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.foundation.background
 import dev.easonhuang.sustenance.data.GoalsRepository
@@ -69,10 +71,16 @@ fun SummaryScreen(
 ) {
     val vm: SummaryViewModel = viewModel(factory = SummaryViewModel.factory(manager, goalsRepo))
     val state by vm.state.collectAsStateWithLifecycle()
+    val refreshing by vm.refreshing.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
     var editing by remember { mutableStateOf<WeeklyStat?>(null) }
     val goals by goalsRepo.goals.collectAsStateWithLifecycle(emptyMap())
     val programmedDeficit = (goals[Metric.CALORIC_BALANCE] ?: 0f) > 0
+
+    LifecycleResumeEffect(Unit) {
+        vm.refresh(showIndicator = false)
+        onPauseOrDispose { }
+    }
 
     Scaffold(
         modifier = Modifier
@@ -91,37 +99,42 @@ fun SummaryScreen(
             )
         },
     ) { inner ->
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(
-                top = inner.calculateTopPadding(),
-                bottom = bottomInset + 100.dp, // room for nav
-            ),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+        PullToRefreshBox(
+            isRefreshing = refreshing,
+            onRefresh = vm::refresh,
+            modifier = Modifier.padding(inner)
         ) {
-            item {
-                Text(
-                    "TODAY'S PROGRESS",
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.ExtraBold,
-                    letterSpacing = 1.sp,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
-                )
-            }
-            if (!state.loading && state.stats.isEmpty()) {
-                item { EmptyState() }
-            }
-            items(state.stats, key = { it.metric.key }) { stat ->
-                AnimatedVisibility(
-                    visible = true,
-                    enter = fadeIn() + slideInVertically(initialOffsetY = { it / 4 })
-                ) {
-                    InsightCard(
-                        stat = stat,
-                        onEdit = { editing = stat },
-                        editEnabled = !(stat.metric == Metric.FOOD && programmedDeficit)
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(
+                    bottom = bottomInset + 100.dp, // room for nav
+                ),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                item {
+                    Text(
+                        "TODAY'S PROGRESS",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.ExtraBold,
+                        letterSpacing = 1.sp,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(horizontal = 24.dp, vertical = 16.dp),
                     )
+                }
+                if (!state.loading && state.stats.isEmpty()) {
+                    item { EmptyState() }
+                }
+                items(state.stats, key = { it.metric.key }) { stat ->
+                    AnimatedVisibility(
+                        visible = true,
+                        enter = fadeIn() + slideInVertically(initialOffsetY = { it / 4 })
+                    ) {
+                        InsightCard(
+                            stat = stat,
+                            onEdit = { editing = stat },
+                            editEnabled = !(stat.metric == Metric.FOOD && programmedDeficit)
+                        )
+                    }
                 }
             }
         }

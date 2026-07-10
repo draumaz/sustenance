@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class DashboardViewModel(
@@ -32,33 +33,21 @@ class DashboardViewModel(
             combine(
                 goalsRepo.goals,
                 settingsRepo.ketoMode,
-            ) { goals, isKeto ->
-                _refreshing.value = true
-                
-                var finalGoals = goals
-                val deficitAmount = goals[Metric.CALORIC_BALANCE] ?: 0f
-                if (deficitAmount > 0) {
-                    val energyToday = manager.readDailySeries(Metric.TOTAL_CALORIES, 1).lastOrNull()?.value ?: 0f
-                    if (energyToday > 0) {
-                        finalGoals = goals + (Metric.FOOD to (energyToday - deficitAmount).coerceAtLeast(0f))
-                    }
-                }
-                
-                _summaries.value = manager.readDashboard(finalGoals, isKeto)
-                _refreshing.value = false
+            ) { _, _ ->
+                refresh(showIndicator = false)
             }.collect {}
         }
     }
 
-    fun refresh() {
+    fun refresh(showIndicator: Boolean = true) {
         viewModelScope.launch {
-            _refreshing.value = true
+            if (showIndicator) _refreshing.value = true
             val goals = goalsRepo.goals.first()
             val isKeto = settingsRepo.ketoMode.first()
 
             var finalGoals = goals
             val deficitAmount = goals[Metric.CALORIC_BALANCE] ?: 0f
-            if (deficitAmount > 0) {
+            if (deficitAmount != 0f) {
                 val energyToday = manager.readDailySeries(Metric.TOTAL_CALORIES, 1).lastOrNull()?.value ?: 0f
                 if (energyToday > 0) {
                     finalGoals = goals + (Metric.FOOD to (energyToday - deficitAmount).coerceAtLeast(0f))
@@ -85,12 +74,34 @@ class DetailViewModel(
     private val _detail = MutableStateFlow<MetricDetail?>(null)
     val detail = _detail.asStateFlow()
 
+    private val _refreshing = MutableStateFlow(false)
+    val refreshing = _refreshing.asStateFlow()
+
     init {
         viewModelScope.launch {
-            goalsRepo.goals.collect { goals ->
-                val goal = goals[metric]
-                _detail.value = manager.readDetail(metric, goal)
+            goalsRepo.goals.collect { _ ->
+                refresh(showIndicator = false)
             }
+        }
+    }
+
+    fun refresh(showIndicator: Boolean = true) {
+        viewModelScope.launch {
+            if (showIndicator) _refreshing.value = true
+            val goals = goalsRepo.goals.first()
+            val caloricBalanceGoal = goals[Metric.CALORIC_BALANCE] ?: 0f
+
+            var finalGoal = goals[metric]
+            if (metric == Metric.FOOD && caloricBalanceGoal != 0f) {
+                val energyToday = manager.readDailySeries(Metric.TOTAL_CALORIES, 1).lastOrNull()?.value ?: 0f
+                if (energyToday > 0) {
+                    finalGoal = (energyToday - caloricBalanceGoal).coerceAtLeast(0f)
+                }
+            }
+
+            _detail.value = manager.readDetail(metric, finalGoal, caloricBalanceGoal != 0f)
+            if (showIndicator) delay(500)
+            _refreshing.value = false
         }
     }
 
