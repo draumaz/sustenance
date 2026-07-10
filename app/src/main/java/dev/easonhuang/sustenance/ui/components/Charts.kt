@@ -86,7 +86,7 @@ fun BarChart(points: List<SeriesPoint>, color: Color, modifier: Modifier = Modif
                     color = color.copy(alpha = 0.1f),
                     topLeft = Offset(left, 0f),
                     size = Size(barW, size.height),
-                    cornerRadius = radius
+                    cornerRadius = radius,
                 )
                 
                 // Bar

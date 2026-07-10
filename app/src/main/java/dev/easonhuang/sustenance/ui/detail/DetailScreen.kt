@@ -314,11 +314,7 @@ private fun ChartCard(d: MetricDetail) {
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
     ) {
         Box(Modifier.fillMaxWidth().height(260.dp).padding(24.dp)) {
-            if (d.metric.kind == MetricKind.DAILY_TOTAL) {
-                BarChart(d.points, d.metric.accent, Modifier.fillMaxSize())
-            } else {
-                LineChart(d.points, d.metric.accent, Modifier.fillMaxSize())
-            }
+            LineChart(d.points, d.metric.accent, Modifier.fillMaxSize())
         }
     }
 }
