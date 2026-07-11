@@ -52,23 +52,18 @@ fun MetricCard(
     val locked = !summary.granted
 
     val progress = if (goal != null && !locked) {
-        when {
-            summary.metric == Metric.CALORIC_BALANCE -> {
-                // For deficit, higher is better (positive values).
-                // Goal is the desired offset (e.g. 500kcal deficit).
-                if (goal > 0f) (today / goal).coerceIn(0f, 1f) else 0f
-            }
-            goal > 0f -> (today / goal).coerceIn(0f, 1f)
-            goal < 0f -> (today / goal).coerceIn(0f, 1f)
-            else -> if (today > 0f) 1f else 0f
-        }
+        if (goal > 0f) (today / goal).coerceIn(0f, 1f) else 0f
     } else 0f
 
     val showProgress = goal != null && !locked
-    val fillColor = if (showProgress) {
-        lerp(Color(0xFFEF5350), Color(0xFF66BB6A), progress)
-    } else {
-        accent
+    val isOver = showProgress && today > (goal ?: Float.MAX_VALUE)
+    val isTotalEnergy = summary.metric == Metric.TOTAL_CALORIES
+
+    val fillColor = when {
+        isTotalEnergy -> lerp(Color(0xFF568259), Color(0xFF709E73), progress)
+        isOver -> Color(0xFFAB6161)
+        showProgress -> lerp(Color(0xFFEF5350), Color(0xFF66BB6A), progress)
+        else -> accent
     }
 
     Surface(
@@ -78,10 +73,10 @@ fun MetricCard(
         color = containerColor,
     ) {
         Box(Modifier.fillMaxSize().clip(RoundedCornerShape(16.dp))) {
-            if (showProgress && progress > 0.01f) {
+            if (showProgress && (progress > 0.01f || isOver)) {
                 Box(
                     Modifier
-                        .fillMaxWidth(progress)
+                        .fillMaxWidth(if (isOver) 1f else progress)
                         .fillMaxHeight()
                         .background(fillColor)
                         .clip(RoundedCornerShape(topEnd = 12.dp, bottomEnd = 12.dp))
@@ -90,7 +85,7 @@ fun MetricCard(
             MetricItemContent(
                 summary = summary, 
                 isCompact = true, 
-                hasFill = showProgress && progress > 0.05f
+                hasFill = showProgress && (progress > 0.05f || isOver)
             )
         }
     }

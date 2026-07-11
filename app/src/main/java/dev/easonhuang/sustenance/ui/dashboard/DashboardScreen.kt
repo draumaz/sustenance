@@ -189,7 +189,7 @@ fun DashboardScreen(
     }
 
     val pullDistance = remember { Animatable(0f) }
-    val pullThreshold = 50f
+    val pullThreshold = 70f
     val scope = rememberCoroutineScope()
 
     val nestedScrollConnection = remember {
