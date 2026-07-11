@@ -45,6 +45,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -152,7 +153,17 @@ fun SummaryScreen(
 
 @Composable
 private fun InsightCard(stat: WeeklyStat, onEdit: () -> Unit, editEnabled: Boolean = true) {
-    val accent = stat.metric.accent
+    val isTotalEnergy = stat.metric == Metric.TOTAL_CALORIES
+    val isOver = stat.goal > 0 && stat.todayValue > stat.goal && !isTotalEnergy
+    val progress = stat.progress
+    
+    val accent = when {
+        isTotalEnergy -> lerp(Color(0xFF568259), Color(0xFF709E73), progress)
+        isOver -> Color(0xFFAB6161)
+        progress >= 1f -> Color(0xFF709E73)
+        else -> stat.metric.accent
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
         shape = MaterialTheme.shapes.extraLarge,

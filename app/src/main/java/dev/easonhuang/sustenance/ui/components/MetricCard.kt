@@ -62,7 +62,7 @@ fun MetricCard(
     val fillColor = when {
         isTotalEnergy -> lerp(Color(0xFF568259), Color(0xFF709E73), progress)
         isOver -> Color(0xFFAB6161)
-        showProgress -> lerp(Color(0xFFEF5350), Color(0xFF66BB6A), progress)
+        showProgress -> lerp(Color(0xFFEF5350), Color(0xFF709E73), progress)
         else -> accent
     }
 

@@ -206,6 +206,7 @@ private fun MainNav(
 
     val pbState = remember { PredictiveBackState() }
     var todayClickCount by remember { mutableIntStateOf(0) }
+    var dashboardDateOffset by remember { mutableIntStateOf(0) }
 
     val bottomBarHeight = 120.dp
     val bottomBarHeightPx = with(LocalDensity.current) { bottomBarHeight.roundToPx().toFloat() }
@@ -256,6 +257,7 @@ private fun MainNav(
                         navController = navController,
                         destinations = topLevel,
                         predictiveBackState = pbState,
+                        dateOffset = dashboardDateOffset,
                         onNavigate = { dest ->
                             if (dest == Dest.TODAY) {
                                 if (currentRoute == Dest.TODAY.route) {
@@ -311,7 +313,10 @@ private fun MainNav(
                     todayClickCount = todayClickCount,
                     onOpenMetric = { metric, offset -> navController.navigate("detail/${metric.key}?offset=$offset") },
                     onManagePermissions = onManagePermissions,
-                    onDateChanged = { bottomBarOffsetHeightPx.floatValue = 0f }
+                    onDateChanged = { offset ->
+                        dashboardDateOffset = offset
+                        bottomBarOffsetHeightPx.floatValue = 0f
+                    }
                 )
             }
             composable(Dest.SUMMARY.route) {

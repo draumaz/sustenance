@@ -40,6 +40,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -277,7 +278,18 @@ private fun FoodItemsCard(sections: List<Pair<String, List<RecordRow>>>) {
 
 @Composable
 private fun HeaderCard(d: MetricDetail, onEditGoal: () -> Unit) {
-    val accent = d.metric.accent
+    val todayValue = d.points.lastOrNull()?.value ?: 0f
+    val goal = d.goal ?: 0f
+    val progress = if (goal > 0) (todayValue / goal).coerceIn(0f, 1f) else 0f
+    val isTotalEnergy = d.metric == Metric.TOTAL_CALORIES
+    val isOver = goal > 0 && todayValue > goal && !isTotalEnergy
+    
+    val accent = when {
+        isTotalEnergy -> lerp(Color(0xFF568259), Color(0xFF709E73), progress)
+        isOver -> Color(0xFFAB6161)
+        progress >= 1f -> Color(0xFF709E73)
+        else -> d.metric.accent
+    }
     Card(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
         shape = MaterialTheme.shapes.extraLarge,

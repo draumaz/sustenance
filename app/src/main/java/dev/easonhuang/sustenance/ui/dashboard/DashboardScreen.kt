@@ -59,6 +59,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.DpSize
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.easonhuang.sustenance.data.HealthConnectManager
@@ -147,7 +148,7 @@ fun DashboardScreen(
     todayClickCount: Int = 0,
     onOpenMetric: (Metric, Int) -> Unit,
     onManagePermissions: () -> Unit,
-    onDateChanged: () -> Unit = {},
+    onDateChanged: (Int) -> Unit = {},
 ) {
     val vm: DashboardViewModel = viewModel(factory = DashboardViewModel.factory(manager, goalsRepo, settingsRepo))
     val summariesMap by vm.summariesMap.collectAsStateWithLifecycle()
@@ -156,11 +157,12 @@ fun DashboardScreen(
     val topAppBarState = rememberTopAppBarState()
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(topAppBarState)
     val haptic = LocalHapticFeedback.current
+    val pullToRefreshState = rememberPullToRefreshState()
 
     LaunchedEffect(dateOffset) {
         topAppBarState.heightOffset = 0f
         topAppBarState.contentOffset = 0f
-        onDateChanged()
+        onDateChanged(dateOffset)
     }
 
     LaunchedEffect(todayClickCount) {
@@ -189,7 +191,7 @@ fun DashboardScreen(
     }
 
     val pullDistance = remember { Animatable(0f) }
-    val pullThreshold = 70f
+    val pullThreshold = 60f
     val scope = rememberCoroutineScope()
 
     val nestedScrollConnection = remember {
@@ -251,6 +253,27 @@ fun DashboardScreen(
         PullToRefreshBox(
             isRefreshing = refreshing,
             onRefresh = vm::refresh,
+            state = pullToRefreshState,
+            indicator = {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = inner.calculateTopPadding() + 12.dp)
+                        .graphicsLayer {
+                            val pullProgress = pullToRefreshState.distanceFraction.coerceIn(0f, 1f)
+                            // Start higher and slide down into view
+                            translationY = (pullProgress * 40.dp.toPx()) - 35.dp.toPx()
+                            alpha = pullProgress
+                            scaleX = 0.5f + (pullProgress * 0.5f)
+                            scaleY = 0.5f + (pullProgress * 0.5f)
+                        }
+                ) {
+                    ScallopedLoadingAnimation(
+                        size = DpSize(50.dp, 50.dp),
+                        bumpsCount = 12f
+                    )
+                }
+            },
             modifier = Modifier.fillMaxSize()
         ) {
             Box(Modifier.fillMaxSize()) {

@@ -66,6 +66,9 @@ import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import dev.easonhuang.sustenance.data.Metric
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.PI
@@ -148,6 +151,7 @@ fun ExpressiveNavigationBar(
     navController: NavHostController,
     destinations: List<dev.easonhuang.sustenance.ui.Dest>,
     predictiveBackState: PredictiveBackState,
+    dateOffset: Int = 0,
     onNavigate: (dev.easonhuang.sustenance.ui.Dest) -> Unit
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -219,15 +223,21 @@ fun ExpressiveNavigationBar(
                 val isTodaySelected = currentDestination?.hierarchy?.any { it.route == "today" } == true
                 val isEffectivelySelected = isTodaySelected || isOnDetail
 
+                val currentOffset = if (isOnDetail) {
+                    navBackStackEntry?.arguments?.getInt("offset") ?: 0
+                } else {
+                    dateOffset
+                }
+
                 AnimatedContent(
-                    targetState = if (isOnDetail) detailMetric else null,
+                    targetState = (if (isOnDetail) detailMetric else null) to currentOffset,
                     transitionSpec = {
                         (fadeIn(animationSpec = tween(250)) + scaleIn(initialScale = 0.92f))
                             .togetherWith(fadeOut(animationSpec = tween(200)) + scaleOut(targetScale = 0.92f))
                             .using(SizeTransform(clip = false))
                     },
                     label = "today_transform"
-                ) { targetMetric ->
+                ) { (targetMetric, offset) ->
                     var selectionAlphaOverride: Float? = null
                     if (predictiveBackState.isSwipeActive) {
                         val previousRoute = navController.previousBackStackEntry?.destination?.route
@@ -238,8 +248,16 @@ fun ExpressiveNavigationBar(
                         }
                     }
 
+                    val label = when {
+                        targetMetric != null -> targetMetric.title
+                        offset == 0 -> todayDest.label
+                        offset == 1 -> "Yesterday"
+                        else -> LocalDate.now().minusDays(offset.toLong())
+                            .format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
+                    }
+
                     ExpressiveNavItem(
-                        label = targetMetric?.title ?: todayDest.label,
+                        label = label,
                         icon = targetMetric?.icon ?: todayDest.icon,
                         isSelected = isEffectivelySelected,
                         selectionAlphaOverride = selectionAlphaOverride,

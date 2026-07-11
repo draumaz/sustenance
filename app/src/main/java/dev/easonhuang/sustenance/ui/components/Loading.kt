@@ -81,7 +81,11 @@ class MorphingScallopedShape(
 }
 
 @Composable
-fun ScallopedLoadingAnimation(modifier: Modifier = Modifier) {
+fun ScallopedLoadingAnimation(
+    modifier: Modifier = Modifier,
+    size: androidx.compose.ui.unit.DpSize = androidx.compose.ui.unit.DpSize(100.dp, 100.dp),
+    bumpsCount: Float = 12f
+) {
     val infiniteTransition = rememberInfiniteTransition(label = "loading")
     
     val phase by infiniteTransition.animateFloat(
@@ -114,21 +118,23 @@ fun ScallopedLoadingAnimation(modifier: Modifier = Modifier) {
         label = "scale"
     )
 
+    val innerSize = androidx.compose.ui.unit.DpSize(size.width * 0.4f, size.height * 0.4f)
+
     Box(
         modifier = modifier
-            .size(140.dp, 84.dp)
+            .size(size)
             .graphicsLayer {
                 scaleX = scale
                 scaleY = scale
             }
-            .clip(MorphingScallopedShape(phase, bumpFactor))
+            .clip(MorphingScallopedShape(phase, bumpFactor, bumpsCount))
             .background(MaterialTheme.colorScheme.primaryContainer),
         contentAlignment = Alignment.Center
     ) {
         Box(
             modifier = Modifier
-                .size(56.dp, 34.dp)
-                .clip(MorphingScallopedShape(-phase, bumpFactor * 0.5f, 8f))
+                .size(innerSize)
+                .clip(MorphingScallopedShape(-phase, bumpFactor * 0.5f, bumpsCount * 0.6f))
                 .background(MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.2f))
         )
     }
