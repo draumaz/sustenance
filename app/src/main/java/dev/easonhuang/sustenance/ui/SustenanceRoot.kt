@@ -1,7 +1,6 @@
 package dev.easonhuang.sustenance.ui
 
 import android.content.Intent
-import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
@@ -12,13 +11,12 @@ import androidx.compose.animation.core.animateIntAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.offset
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -34,9 +32,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 import androidx.health.connect.client.PermissionController
+import androidx.activity.compose.PredictiveBackHandler
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -44,16 +45,19 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.core.tween
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import dev.easonhuang.sustenance.data.ExportManager
 import dev.easonhuang.sustenance.data.GoalsRepository
 import dev.easonhuang.sustenance.data.HealthConnectManager
 import dev.easonhuang.sustenance.data.Metric
 import dev.easonhuang.sustenance.data.SettingsRepository
 import dev.easonhuang.sustenance.ui.components.ExpressiveNavigationBar
+import dev.easonhuang.sustenance.ui.components.PredictiveBackState
 import dev.easonhuang.sustenance.ui.dashboard.DashboardScreen
 import dev.easonhuang.sustenance.ui.detail.DetailScreen
 import dev.easonhuang.sustenance.ui.onboarding.LoadingScreen
@@ -61,6 +65,7 @@ import dev.easonhuang.sustenance.ui.onboarding.OnboardingScreen
 import dev.easonhuang.sustenance.ui.onboarding.UnavailableScreen
 import dev.easonhuang.sustenance.ui.settings.SettingsScreen
 import dev.easonhuang.sustenance.ui.summary.SummaryScreen
+import dev.easonhuang.sustenance.ui.summary.SummaryViewModel
 import dev.easonhuang.sustenance.widget.WidgetUpdateWorker
 
 private const val HEALTH_CONNECT_PACKAGE = "com.google.android.apps.healthdata"
@@ -88,7 +93,7 @@ fun SustenanceRoot(
         UnavailableScreen(onInstall = {
             runCatching {
                 context.startActivity(
-                    Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=$HEALTH_CONNECT_PACKAGE"))
+                    Intent(Intent.ACTION_VIEW, "market://details?id=$HEALTH_CONNECT_PACKAGE".toUri())
                         .setPackage("com.android.vending")
                 )
             }
@@ -199,6 +204,9 @@ private fun MainNav(
     val topLevel = remember { Dest.entries.toList() }
     val showBar = currentRoute in topLevel.map { it.route } || currentRoute?.startsWith("detail/") == true
 
+    val pbState = remember { PredictiveBackState() }
+    var todayClickCount by remember { mutableIntStateOf(0) }
+
     val bottomBarHeight = 120.dp
     val bottomBarHeightPx = with(LocalDensity.current) { bottomBarHeight.roundToPx().toFloat() }
     val bottomBarOffsetHeightPx = remember { mutableFloatStateOf(0f) }
@@ -247,9 +255,21 @@ private fun MainNav(
                     ExpressiveNavigationBar(
                         navController = navController,
                         destinations = topLevel,
+                        predictiveBackState = pbState,
                         onNavigate = { dest ->
-                            if (dest == Dest.TODAY && currentRoute?.startsWith("detail/") == true) {
-                                navController.popBackStack(Dest.TODAY.route, inclusive = false)
+                            if (dest == Dest.TODAY) {
+                                if (currentRoute == Dest.TODAY.route) {
+                                    todayClickCount++
+                                    bottomBarOffsetHeightPx.floatValue = 0f
+                                } else if (currentRoute?.startsWith("detail/") == true) {
+                                    navController.popBackStack(Dest.TODAY.route, inclusive = false)
+                                } else {
+                                    navController.navigate(dest.route) {
+                                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
+                                }
                             } else {
                                 navController.navigate(dest.route) {
                                     popUpTo(navController.graph.findStartDestination().id) { saveState = true }
@@ -282,16 +302,18 @@ private fun MainNav(
             }
         ) {
             composable(Dest.TODAY.route) {
-            DashboardScreen(
-                manager = manager,
-                goalsRepo = goalsRepo,
-                settingsRepo = settingsRepo,
-                granted = granted,
-                bottomInset = bottomInset,
-                onOpenMetric = { metric -> navController.navigate("detail/${metric.key}") },
-                onManagePermissions = onManagePermissions,
-            )
-        }
+                DashboardScreen(
+                    manager = manager,
+                    goalsRepo = goalsRepo,
+                    settingsRepo = settingsRepo,
+                    granted = granted,
+                    bottomInset = bottomInset,
+                    todayClickCount = todayClickCount,
+                    onOpenMetric = { metric, offset -> navController.navigate("detail/${metric.key}?offset=$offset") },
+                    onManagePermissions = onManagePermissions,
+                    onDateChanged = { bottomBarOffsetHeightPx.floatValue = 0f }
+                )
+            }
             composable(Dest.SUMMARY.route) {
                 SummaryScreen(
                     manager = manager,
@@ -310,8 +332,15 @@ private fun MainNav(
                     onBack = { navController.popBackStack() }
                 )
             }
-            composable("detail/{key}") { entry ->
+            composable(
+                route = "detail/{key}?offset={offset}",
+                arguments = listOf(
+                    navArgument("key") { type = NavType.StringType },
+                    navArgument("offset") { type = NavType.IntType; defaultValue = 0 }
+                )
+            ) { entry ->
                 val metric = entry.arguments?.getString("key")?.let { Metric.fromKey(it) }
+                val offset = entry.arguments?.getInt("offset") ?: 0
                 if (metric == null) {
                     navController.popBackStack()
                 } else {
@@ -319,6 +348,8 @@ private fun MainNav(
                         manager = manager,
                         goalsRepo = goalsRepo,
                         metric = metric,
+                        dateOffset = offset,
+                        pbState = pbState,
                         onBack = { navController.popBackStack() },
                     )
                 }

@@ -11,9 +11,11 @@ import dev.easonhuang.sustenance.data.MetricDetail
 import dev.easonhuang.sustenance.data.MetricSummary
 import dev.easonhuang.sustenance.data.SettingsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -22,39 +24,76 @@ class DashboardViewModel(
     private val goalsRepo: GoalsRepository,
     private val settingsRepo: SettingsRepository,
 ) : ViewModel() {
-    private val _summaries = MutableStateFlow<List<MetricSummary>?>(null)
-    val summaries = _summaries.asStateFlow()
+    private val _summariesMap = MutableStateFlow<Map<Int, List<MetricSummary>>>(emptyMap())
+    val summariesMap = _summariesMap.asStateFlow()
+    
+    private val _dateOffset = MutableStateFlow(0)
+    val dateOffset = _dateOffset.asStateFlow()
+
+    val summaries = combine(_summariesMap, _dateOffset) { map, offset ->
+        map[offset]
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
 
     private val _refreshing = MutableStateFlow(false)
     val refreshing = _refreshing.asStateFlow()
 
     init {
         viewModelScope.launch {
-            combine(
-                goalsRepo.goals,
-                settingsRepo.ketoMode,
-            ) { _, _ ->
+            combine(goalsRepo.goals, settingsRepo.ketoMode) { _, _ -> }.collect {
+                _summariesMap.value = emptyMap()
                 refresh(showIndicator = false)
-            }.collect {}
+            }
         }
+        viewModelScope.launch {
+            _dateOffset.collect { offset ->
+                if (!_summariesMap.value.containsKey(offset)) {
+                    refresh(showIndicator = false)
+                }
+            }
+        }
+    }
+
+    fun moveBack() {
+        _dateOffset.value++
+    }
+
+    fun moveForward() {
+        if (_dateOffset.value > 0) {
+            _dateOffset.value--
+        }
+    }
+
+    fun resetOffset() {
+        _dateOffset.value = 0
+    }
+
+    fun preload(offset: Int) {
+        if (_summariesMap.value.containsKey(offset) || offset < 0) return
+        viewModelScope.launch {
+            fetchForOffset(offset)
+        }
+    }
+
+    private suspend fun fetchForOffset(offset: Int) {
+        val goals = goalsRepo.goals.first()
+        val isKeto = settingsRepo.ketoMode.first()
+        
+        var finalGoals = goals
+        val deficitAmount = goals[Metric.CALORIC_BALANCE] ?: 0f
+        if (deficitAmount != 0f) {
+            val energyOnDay = manager.readDailySeries(Metric.TOTAL_CALORIES, 1, offset).lastOrNull()?.value ?: 0f
+            if (energyOnDay > 0) {
+                finalGoals = goals + (Metric.FOOD to (energyOnDay - deficitAmount).coerceAtLeast(0f))
+            }
+        }
+        val data = manager.readDashboard(finalGoals, isKeto, offset)
+        _summariesMap.value = _summariesMap.value + (offset to data)
     }
 
     fun refresh(showIndicator: Boolean = true) {
         viewModelScope.launch {
             if (showIndicator) _refreshing.value = true
-            val goals = goalsRepo.goals.first()
-            val isKeto = settingsRepo.ketoMode.first()
-
-            var finalGoals = goals
-            val deficitAmount = goals[Metric.CALORIC_BALANCE] ?: 0f
-            if (deficitAmount != 0f) {
-                val energyToday = manager.readDailySeries(Metric.TOTAL_CALORIES, 1).lastOrNull()?.value ?: 0f
-                if (energyToday > 0) {
-                    finalGoals = goals + (Metric.FOOD to (energyToday - deficitAmount).coerceAtLeast(0f))
-                }
-            }
-
-            _summaries.value = manager.readDashboard(finalGoals, isKeto)
+            fetchForOffset(_dateOffset.value)
             _refreshing.value = false
         }
     }
@@ -70,6 +109,7 @@ class DetailViewModel(
     private val manager: HealthConnectManager,
     private val goalsRepo: GoalsRepository,
     private val metric: Metric,
+    private val dateOffset: Int = 0,
 ) : ViewModel() {
     private val _detail = MutableStateFlow<MetricDetail?>(null)
     val detail = _detail.asStateFlow()
@@ -93,13 +133,13 @@ class DetailViewModel(
 
             var finalGoal = goals[metric]
             if (metric == Metric.FOOD && caloricBalanceGoal != 0f) {
-                val energyToday = manager.readDailySeries(Metric.TOTAL_CALORIES, 1).lastOrNull()?.value ?: 0f
-                if (energyToday > 0) {
-                    finalGoal = (energyToday - caloricBalanceGoal).coerceAtLeast(0f)
+                val energyOnDay = manager.readDailySeries(Metric.TOTAL_CALORIES, 1, dateOffset).lastOrNull()?.value ?: 0f
+                if (energyOnDay > 0) {
+                    finalGoal = (energyOnDay - caloricBalanceGoal).coerceAtLeast(0f)
                 }
             }
 
-            _detail.value = manager.readDetail(metric, finalGoal, caloricBalanceGoal != 0f)
+            _detail.value = manager.readDetail(metric, finalGoal, caloricBalanceGoal != 0f, dateOffset)
             if (showIndicator) delay(500)
             _refreshing.value = false
         }
@@ -112,8 +152,8 @@ class DetailViewModel(
     }
 
     companion object {
-        fun factory(manager: HealthConnectManager, goalsRepo: GoalsRepository, metric: Metric) = viewModelFactory {
-            initializer { DetailViewModel(manager, goalsRepo, metric) }
+        fun factory(manager: HealthConnectManager, goalsRepo: GoalsRepository, metric: Metric, dateOffset: Int = 0) = viewModelFactory {
+            initializer { DetailViewModel(manager, goalsRepo, metric, dateOffset) }
         }
     }
 }

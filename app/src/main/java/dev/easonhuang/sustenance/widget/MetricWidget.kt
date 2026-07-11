@@ -37,6 +37,7 @@ import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
+import kotlinx.coroutines.flow.first
 import dev.easonhuang.sustenance.SustenanceApp
 import dev.easonhuang.sustenance.MainActivity
 import dev.easonhuang.sustenance.data.Metric
@@ -68,13 +69,30 @@ class MetricWidget : GlanceAppWidget() {
     companion object {
         /** Reads the configured metric for [id], fetches its data, and writes it into Glance state. */
         suspend fun refreshData(context: Context, id: GlanceId) {
+            val app = context.applicationContext as SustenanceApp
             val metricKey = getAppWidgetState(context, PreferencesGlanceStateDefinition, id)[METRIC_KEY]
             val metric = Metric.fromKey(metricKey ?: "") ?: return
-            val manager = (context.applicationContext as SustenanceApp).healthConnect
+            val manager = app.healthConnect
+            val goalsRepo = app.goals
+            
+            val goals = goalsRepo.goals.first()
             val granted = manager.isGranted(metric)
-            val detail = if (granted) runCatching { manager.readDetail(metric) }.getOrNull() else null
+            
+            val caloricBalanceGoal = goals[Metric.CALORIC_BALANCE] ?: 0f
+            val isCaloricBalanceActive = (metric == Metric.FOOD) && caloricBalanceGoal != 0f
+            
+            var finalGoal: Float? = goals[metric]
+            if (metric == Metric.FOOD && isCaloricBalanceActive) {
+                val energyToday = manager.readDailySeries(Metric.TOTAL_CALORIES, 1).lastOrNull()?.value ?: 0f
+                if (energyToday > 0) {
+                    finalGoal = (energyToday - caloricBalanceGoal).coerceAtLeast(0f)
+                }
+            }
+
+            val detail = if (granted) runCatching { manager.readDetail(metric, finalGoal, isCaloricBalanceActive) }.getOrNull() else null
             val value = when {
                 detail == null -> "-"
+                detail.headline.contains(metric.unit) || detail.headline.contains("goal") -> detail.headline
                 metric.kind == MetricKind.DAILY_TOTAL -> "${detail.headline} ${metric.unit}"
                 else -> detail.headline
             }

@@ -31,6 +31,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -63,16 +64,12 @@ fun MetricCard(
         }
     } else 0f
 
-    val isOver = if (goal != null && !locked) {
-        if (summary.metric == Metric.CALORIC_BALANCE) {
-            today < goal
-        } else {
-            if (goal >= 0f) today > goal else today < goal
-        }
-    } else false
-
     val showProgress = goal != null && !locked
-    val fillColor = if (isOver) Color(0xFFA86B6B) else accent
+    val fillColor = if (showProgress) {
+        lerp(Color(0xFFEF5350), Color(0xFF66BB6A), progress)
+    } else {
+        accent
+    }
 
     Surface(
         onClick = onClick,
@@ -84,13 +81,17 @@ fun MetricCard(
             if (showProgress && progress > 0.01f) {
                 Box(
                     Modifier
-                        .fillMaxWidth(if (isOver) 1f else progress)
+                        .fillMaxWidth(progress)
                         .fillMaxHeight()
                         .background(fillColor)
                         .clip(RoundedCornerShape(topEnd = 12.dp, bottomEnd = 12.dp))
                 )
             }
-            MetricItemContent(summary, isCompact = true, hasFill = showProgress && (progress > 0.05f || isOver))
+            MetricItemContent(
+                summary = summary, 
+                isCompact = true, 
+                hasFill = showProgress && progress > 0.05f
+            )
         }
     }
 }

@@ -60,12 +60,12 @@ import dev.easonhuang.sustenance.data.GoalsRepository
 import dev.easonhuang.sustenance.data.HealthConnectManager
 import dev.easonhuang.sustenance.data.Metric
 import dev.easonhuang.sustenance.data.MetricDetail
-import dev.easonhuang.sustenance.data.MetricKind
 import dev.easonhuang.sustenance.data.RecordRow
 import dev.easonhuang.sustenance.data.formatValue
 import dev.easonhuang.sustenance.ui.DetailViewModel
 import dev.easonhuang.sustenance.ui.components.BarChart
 import dev.easonhuang.sustenance.ui.components.LineChart
+import dev.easonhuang.sustenance.ui.components.PredictiveBackState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -73,11 +73,13 @@ fun DetailScreen(
     manager: HealthConnectManager,
     goalsRepo: GoalsRepository,
     metric: Metric,
+    dateOffset: Int = 0,
+    pbState: PredictiveBackState,
     onBack: () -> Unit,
 ) {
     val vm: DetailViewModel = viewModel(
-        key = metric.key,
-        factory = DetailViewModel.factory(manager, goalsRepo, metric),
+        key = "${metric.key}_$dateOffset",
+        factory = DetailViewModel.factory(manager, goalsRepo, metric, dateOffset),
     )
     val detail by vm.detail.collectAsStateWithLifecycle()
     val refreshing by vm.refreshing.collectAsStateWithLifecycle()
@@ -86,6 +88,19 @@ fun DetailScreen(
     LifecycleResumeEffect(metric.key) {
         vm.refresh(showIndicator = false)
         onPauseOrDispose { }
+    }
+
+    PredictiveBackHandler(enabled = true) { progress ->
+        pbState.isSwipeActive = true
+        try {
+            progress.collect { event -> pbState.progress = event.progress }
+            pbState.isSwipeActive = false
+            pbState.progress = 0f
+            onBack()
+        } catch (e: Exception) {
+            pbState.isSwipeActive = false
+            pbState.progress = 0f
+        }
     }
 
     if (showGoalDialog) {
@@ -122,63 +137,77 @@ fun DetailScreen(
         )
     }
 
-    Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        metric.title,
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.ExtraBold
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
-                    scrolledContainerColor = MaterialTheme.colorScheme.surface
-                )
-            )
-        },
-    ) { inner ->
-        val d = detail
-        if (d == null) {
-            Box(Modifier.fillMaxSize().padding(inner), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+    val progress = pbState.progress
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .graphicsLayer {
+                scaleX = 1f - (progress * 0.08f)
+                scaleY = 1f - (progress * 0.08f)
+                translationX = progress * 400f
+                alpha = 1f - (progress * 0.2f)
+                clip = true
+                shape = RoundedCornerShape(28.dp * progress)
             }
-            return@Scaffold
-        }
-        PullToRefreshBox(
-            isRefreshing = refreshing,
-            onRefresh = vm::refresh,
-            modifier = Modifier.padding(inner)
-        ) {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(top = 16.dp, bottom = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(20.dp),
-            ) {
-                item { HeaderCard(d, onEditGoal = { showGoalDialog = true }) }
-                if (d.todaySections.isNotEmpty()) {
-                    item { FoodItemsCard(d.todaySections) }
-                }
-                item { ChartCard(d) }
-                if (d.stats.isNotEmpty()) item { StatsCard(d) }
-                if (d.recent.isNotEmpty()) {
-                    item {
+    ) {
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            topBar = {
+                TopAppBar(
+                    title = {
                         Text(
-                            "Recent records",
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Black,
-                            modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+                            metric.title,
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.ExtraBold
                         )
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Transparent,
+                        scrolledContainerColor = MaterialTheme.colorScheme.surface
+                    )
+                )
+            },
+        ) { inner ->
+            val d = detail
+            if (d == null) {
+                Box(Modifier.fillMaxSize().padding(inner), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+                return@Scaffold
+            }
+            PullToRefreshBox(
+                isRefreshing = refreshing,
+                onRefresh = vm::refresh,
+                modifier = Modifier.padding(inner)
+            ) {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(top = 16.dp, bottom = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(20.dp),
+                ) {
+                    item { HeaderCard(d, onEditGoal = { showGoalDialog = true }) }
+                    if (d.todaySections.isNotEmpty()) {
+                        item { FoodItemsCard(d.todaySections) }
                     }
-                    items(d.recent) { row -> RecordItem(row) }
-                    item { Spacer(Modifier.height(100.dp)) } // Leave room for nav pill
+                    item { ChartCard(d) }
+                    if (d.stats.isNotEmpty()) item { StatsCard(d) }
+                    if (d.recent.isNotEmpty()) {
+                        item {
+                            Text(
+                                "Recent records",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Black,
+                                modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+                            )
+                        }
+                        items(d.recent) { row -> RecordItem(row) }
+                        item { Spacer(Modifier.height(100.dp)) } // Leave room for nav pill
+                    }
                 }
             }
         }
@@ -216,7 +245,9 @@ private fun FoodItemsCard(sections: List<Pair<String, List<RecordRow>>>) {
                         modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 4.dp)
                     )
                     items.forEachIndexed { i, item ->
-                        val (kcal, time) = item.secondary.split(" • ")
+                        val secondaryParts = item.secondary.split(" • ")
+                        val kcal = secondaryParts.getOrNull(0) ?: ""
+                        val time = secondaryParts.getOrNull(1) ?: ""
                         Row(
                             Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -255,7 +286,7 @@ private fun HeaderCard(d: MetricDetail, onEditGoal: () -> Unit) {
         Box(Modifier.fillMaxWidth()) {
             Box(
                 Modifier
-                    .fillMaxSize()
+                    .matchParentSize()
                     .background(
                         Brush.verticalGradient(
                             listOf(accent.copy(alpha = 0.12f), Color.Transparent)

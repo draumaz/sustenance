@@ -147,7 +147,7 @@ class ScallopedPillShape(private val isScalloped: Boolean) : Shape {
 fun ExpressiveNavigationBar(
     navController: NavHostController,
     destinations: List<dev.easonhuang.sustenance.ui.Dest>,
-    predictiveBackState: PredictiveBackState? = null,
+    predictiveBackState: PredictiveBackState,
     onNavigate: (dev.easonhuang.sustenance.ui.Dest) -> Unit
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -188,22 +188,22 @@ fun ExpressiveNavigationBar(
             ) {
                 val renderItem = @Composable { dest: dev.easonhuang.sustenance.ui.Dest ->
                     val isSelected = currentDestination?.hierarchy?.any { it.route == dest.route } == true
-
-                    val isPredictingToThis = predictiveBackState?.isSwipeActive == true &&
-                        !isSelected &&
-                        navController.previousBackStackEntry?.destination?.route == dest.route
-
-                    val alphaOverride = if (isPredictingToThis) {
-                        predictiveBackState?.progress
-                    } else if (isSelected && predictiveBackState?.isSwipeActive == true) {
-                        1f - (predictiveBackState?.progress ?: 0f)
-                    } else null
+                    
+                    var selectionAlphaOverride: Float? = null
+                    if (predictiveBackState.isSwipeActive) {
+                        val previousRoute = navController.previousBackStackEntry?.destination?.route
+                        if (previousRoute == dest.route) {
+                            selectionAlphaOverride = predictiveBackState.progress
+                        } else if (currentRoute == dest.route) {
+                            selectionAlphaOverride = 1f - predictiveBackState.progress
+                        }
+                    }
 
                     ExpressiveNavItem(
                         label = dest.label,
                         icon = dest.icon,
                         isSelected = isSelected,
-                        selectionAlphaOverride = alphaOverride,
+                        selectionAlphaOverride = selectionAlphaOverride,
                         onLongHold = { isScalloped = !isScalloped },
                         onClick = { onNavigate(dest) }
                     )
@@ -219,17 +219,6 @@ fun ExpressiveNavigationBar(
                 val isTodaySelected = currentDestination?.hierarchy?.any { it.route == "today" } == true
                 val isEffectivelySelected = isTodaySelected || isOnDetail
 
-                val isPredictingToToday = predictiveBackState?.isSwipeActive == true && 
-                    !isEffectivelySelected &&
-                    navController.previousBackStackEntry?.destination?.route == "today"
-
-                val todayAlpha = if (isPredictingToToday) {
-                    predictiveBackState?.progress
-                } else if (isEffectivelySelected && predictiveBackState?.isSwipeActive == true) {
-                    if (navController.previousBackStackEntry?.destination?.route == "today") 1f
-                    else 1f - (predictiveBackState?.progress ?: 0f)
-                } else null
-
                 AnimatedContent(
                     targetState = if (isOnDetail) detailMetric else null,
                     transitionSpec = {
@@ -239,11 +228,21 @@ fun ExpressiveNavigationBar(
                     },
                     label = "today_transform"
                 ) { targetMetric ->
+                    var selectionAlphaOverride: Float? = null
+                    if (predictiveBackState.isSwipeActive) {
+                        val previousRoute = navController.previousBackStackEntry?.destination?.route
+                        if (previousRoute == "today" || previousRoute?.startsWith("detail/") == true) {
+                            selectionAlphaOverride = predictiveBackState.progress
+                        } else if (currentRoute == "today" || currentRoute?.startsWith("detail/") == true) {
+                            selectionAlphaOverride = 1f - predictiveBackState.progress
+                        }
+                    }
+
                     ExpressiveNavItem(
                         label = targetMetric?.title ?: todayDest.label,
                         icon = targetMetric?.icon ?: todayDest.icon,
                         isSelected = isEffectivelySelected,
-                        selectionAlphaOverride = todayAlpha,
+                        selectionAlphaOverride = selectionAlphaOverride,
                         onLongHold = { isScalloped = !isScalloped },
                         onClick = { onNavigate(todayDest) }
                     )
