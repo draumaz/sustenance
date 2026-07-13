@@ -257,15 +257,15 @@ class HealthConnectManager(private val context: Context) {
                             val time = timeFmt.format(r.startTime.atZone(zone))
 
                             val macros = mutableListOf<String>()
-                            r.protein?.let { macros.add("• Protein: ${"%.0f".format(it.inGrams)}g") }
-                            r.totalCarbohydrate?.let { macros.add("Total Carbs: ${"%.0f".format(it.inGrams)}g") }
-                            r.dietaryFiber?.let { macros.add("Fiber: ${"%.0f".format(it.inGrams)}g") }
-                            r.totalFat?.let { macros.add("Total Fat: ${"%.0f".format(it.inGrams)}g") }
-                            r.saturatedFat?.let { macros.add("Saturated Fat: ${"%.0f".format(it.inGrams)}g") }
-                            r.sodium?.let { macros.add("Sodium: ${"%.0f".format(it.inMilligrams)}mg") }
+                            r.protein?.let { macros.add("• Protein: ${formatNumber(it.inGrams)}g") }
+                            r.totalCarbohydrate?.let { macros.add("Total Carbs: ${formatNumber(it.inGrams)}g") }
+                            r.dietaryFiber?.let { macros.add("Fiber: ${formatNumber(it.inGrams)}g") }
+                            r.totalFat?.let { macros.add("Total Fat: ${formatNumber(it.inGrams)}g") }
+                            r.saturatedFat?.let { macros.add("Saturated Fat: ${formatNumber(it.inGrams)}g") }
+                            r.sodium?.let { macros.add("Sodium: ${formatNumber(it.inMilligrams)}mg") }
                             val tertiary = macros.joinToString("\n• ").takeIf { it.isNotEmpty() }
 
-                            RecordRow(name, "${"%.0f".format(kcal)} kcal • $time", tertiary)
+                            RecordRow(name, "${formatNumber(kcal)} kcal • $time", tertiary)
                         }
                     }
                 }

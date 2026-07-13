@@ -4,6 +4,9 @@ import java.util.Locale
 
 /** Shared value formatting so the dashboard, summary and export all read the same. */
 fun Metric.formatValue(value: Float): String = when (this) {
-    Metric.SODIUM -> String.format(Locale.US, "%,d", value.toLong())
-    Metric.TOTAL_CALORIES, Metric.FOOD, Metric.FIBER, Metric.CARBS, Metric.PROTEIN, Metric.FAT, Metric.SATURATED_FAT, Metric.SUGAR, Metric.CALORIC_BALANCE -> String.format(Locale.US, "%,.0f", value)
+    Metric.SODIUM -> String.format(Locale.getDefault(), "%,d", value.toLong())
+    else -> String.format(Locale.getDefault(), "%,.0f", value)
 }
+
+/** Format a number with locale-aware thousands separators. */
+fun formatNumber(value: Number): String = String.format(Locale.getDefault(), "%,.0f", value.toDouble())

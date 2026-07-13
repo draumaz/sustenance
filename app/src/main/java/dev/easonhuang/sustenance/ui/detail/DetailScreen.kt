@@ -41,9 +41,12 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -85,6 +88,7 @@ fun DetailScreen(
     val detail by vm.detail.collectAsStateWithLifecycle()
     val refreshing by vm.refreshing.collectAsStateWithLifecycle()
     var showGoalDialog by remember { mutableStateOf(false) }
+    var selectedChartPoint by remember { mutableStateOf<Int?>(null) }
 
     LifecycleResumeEffect(metric.key) {
         vm.refresh(showIndicator = false)
@@ -150,6 +154,9 @@ fun DetailScreen(
                 clip = true
                 shape = RoundedCornerShape(28.dp * progress)
             }
+            .pointerInput(Unit) {
+                detectTapGestures { selectedChartPoint = null }
+            }
     ) {
         Scaffold(
             modifier = Modifier.fillMaxSize(),
@@ -192,10 +199,10 @@ fun DetailScreen(
                     verticalArrangement = Arrangement.spacedBy(20.dp),
                 ) {
                     item { HeaderCard(d, onEditGoal = { showGoalDialog = true }) }
+                    item { ChartCard(d, selectedChartPoint) { selectedChartPoint = it } }
                     if (d.todaySections.isNotEmpty()) {
                         item { FoodItemsCard(d.todaySections) }
                     }
-                    item { ChartCard(d) }
                     if (d.stats.isNotEmpty()) item { StatsCard(d) }
                     if (d.recent.isNotEmpty()) {
                         item {
@@ -291,11 +298,11 @@ private fun HeaderCard(d: MetricDetail, onEditGoal: () -> Unit) {
         else -> d.metric.accent
     }
     Card(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+        modifier = Modifier.fillMaxWidth().height(100.dp).padding(horizontal = 16.dp),
         shape = MaterialTheme.shapes.extraLarge,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
     ) {
-        Box(Modifier.fillMaxWidth()) {
+        Box(Modifier.fillMaxSize()) {
             Box(
                 Modifier
                     .matchParentSize()
@@ -305,7 +312,7 @@ private fun HeaderCard(d: MetricDetail, onEditGoal: () -> Unit) {
                         )
                     )
             )
-            Row(Modifier.padding(24.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.padding(horizontal = 24.dp, vertical = 16.dp).fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     Modifier.size(64.dp).clip(CircleShape)
                         .background(Brush.linearGradient(listOf(accent.copy(alpha = 0.30f), accent.copy(alpha = 0.14f)))),
@@ -314,17 +321,33 @@ private fun HeaderCard(d: MetricDetail, onEditGoal: () -> Unit) {
                     Icon(d.metric.icon, null, tint = accent, modifier = Modifier.size(32.dp))
                 }
                 Spacer(Modifier.size(20.dp))
-                Column(Modifier.weight(1f)) {
-                    val style = if (d.headline.contains("/")) {
-                        MaterialTheme.typography.headlineSmall
-                    } else {
-                        MaterialTheme.typography.headlineLarge
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.Center) {
+                    var textStyle by remember(d.headline) {
+                        mutableStateOf(if (d.headline.contains("/")) {
+                            TextStyle(
+                                fontSize = 24.sp,
+                                fontWeight = FontWeight.Black,
+                                letterSpacing = 0.sp
+                            )
+                        } else {
+                            TextStyle(
+                                fontSize = 32.sp,
+                                fontWeight = FontWeight.Black,
+                                letterSpacing = (-1).sp
+                            )
+                        })
                     }
+
                     Text(
-                        d.headline,
-                        style = style,
-                        fontWeight = FontWeight.Black,
-                        letterSpacing = if (d.headline.contains("/")) 0.sp else (-1).sp
+                        text = d.headline,
+                        style = textStyle,
+                        maxLines = 1,
+                        softWrap = false,
+                        onTextLayout = { result ->
+                            if (result.hasVisualOverflow) {
+                                textStyle = textStyle.copy(fontSize = textStyle.fontSize * 0.9f)
+                            }
+                        }
                     )
                     d.caption?.let {
                         Text(
@@ -332,7 +355,8 @@ private fun HeaderCard(d: MetricDetail, onEditGoal: () -> Unit) {
                             style = MaterialTheme.typography.labelMedium, 
                             fontWeight = FontWeight.ExtraBold,
                             color = accent,
-                            letterSpacing = 1.sp
+                            letterSpacing = 1.sp,
+                            maxLines = 1
                         )
                     }
                     d.goal?.let {
@@ -341,7 +365,8 @@ private fun HeaderCard(d: MetricDetail, onEditGoal: () -> Unit) {
                             Text(
                                 "$label: ${d.metric.formatValue(it)} ${d.metric.unit}",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                maxLines = 1
                             )
                         }
                     }
@@ -358,14 +383,21 @@ private fun HeaderCard(d: MetricDetail, onEditGoal: () -> Unit) {
 }
 
 @Composable
-private fun ChartCard(d: MetricDetail) {
+private fun ChartCard(d: MetricDetail, selectedIndex: Int?, onSelectedIndexChange: (Int?) -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
         shape = MaterialTheme.shapes.extraLarge,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
     ) {
-        Box(Modifier.fillMaxWidth().height(260.dp).padding(24.dp)) {
-            LineChart(d.points, d.metric.accent, Modifier.fillMaxSize())
+        Box(Modifier.fillMaxWidth().height(200.dp).padding(24.dp)) {
+            LineChart(
+                points = d.points, 
+                color = d.metric.accent, 
+                modifier = Modifier.fillMaxSize(), 
+                unit = d.metric.unit,
+                selectedIndex = selectedIndex,
+                onSelectedIndexChange = onSelectedIndexChange
+            )
         }
     }
 }
