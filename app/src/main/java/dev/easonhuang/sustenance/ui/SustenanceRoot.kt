@@ -301,6 +301,10 @@ private fun MainNav(
     val bottomBarHeightPx = with(LocalDensity.current) { bottomBarHeight.roundToPx().toFloat() }
     val bottomBarOffsetHeightPx = remember { mutableFloatStateOf(0f) }
 
+    LaunchedEffect(currentRoute) {
+        bottomBarOffsetHeightPx.floatValue = 0f
+    }
+
     val nestedScrollConnection = remember(isCameraActive) {
         object : NestedScrollConnection {
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
@@ -455,6 +459,10 @@ private fun MainNav(
                             navController.navigate("detail/${metric.key}")
                         },
                         onManagePermissions = onManagePermissions,
+                        onDateChanged = { 
+                            dashboardDateOffset = it
+                            bottomBarOffsetHeightPx.floatValue = 0f
+                        }
                     )
                 }
 

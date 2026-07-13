@@ -102,10 +102,10 @@ fun DetailScreen(
         pbState.isSwipeActive = true
         try {
             progress.collect { event -> pbState.progress = event.progress }
-            pbState.isSwipeActive = false
-            pbState.progress = 0f
             onBack()
         } catch (e: Exception) {
+            // Cancelled or error
+        } finally {
             pbState.isSwipeActive = false
             pbState.progress = 0f
         }

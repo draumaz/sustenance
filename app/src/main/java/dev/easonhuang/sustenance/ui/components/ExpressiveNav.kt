@@ -190,7 +190,7 @@ fun ExpressiveNavigationBar(
     
     val isOnDetail = currentRoute?.startsWith("detail/") == true
     val detailMetric = if (isOnDetail) {
-        navBackStackEntry?.arguments?.getString("key")?.let { Metric.fromKey(it) }
+        navBackStackEntry?.arguments?.getString("metricKey")?.let { Metric.fromKey(it) }
     } else null
 
     var isScalloped by remember { mutableStateOf(false) }
@@ -347,11 +347,7 @@ fun ExpressiveNavigationBar(
                         val isTodaySelected = currentDestination?.hierarchy?.any { it.route == "today" } == true
                         val isEffectivelySelected = isTodaySelected || isOnDetail
 
-                        val currentOffset = if (isOnDetail) {
-                            navBackStackEntry?.arguments?.getInt("offset") ?: 0
-                        } else {
-                            dateOffset
-                        }
+                        val currentOffset = dateOffset
 
                         val isLogState = currentOffset == 0 && hasApiKey && isEffectivelySelected
 
