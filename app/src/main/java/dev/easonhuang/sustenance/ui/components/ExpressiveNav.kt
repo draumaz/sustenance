@@ -234,12 +234,12 @@ fun ExpressiveNavigationBar(
                             .height(56.dp)
                             .clip(CircleShape)
                             .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                            .padding(horizontal = 16.dp),
+                            .padding(horizontal = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Box(
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier.weight(1f).width(50.dp),
                             contentAlignment = Alignment.CenterStart
                         ) {
                             if (batchInfoText.isEmpty()) {
@@ -294,7 +294,7 @@ fun ExpressiveNavigationBar(
                             )
                             ExpressiveNavItem(
                                 label = "Capture ($batchCount)",
-                                icon = Icons.Rounded.CameraEnhance,
+                                icon = Icons.Rounded.AddToPhotos,
                                 isSelected = false,
                                 onClick = onCaptureBatch
                             )
