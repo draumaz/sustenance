@@ -28,6 +28,8 @@ import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Key
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Palette
+import androidx.compose.material.icons.rounded.Visibility
+import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material.icons.rounded.Whatshot
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
@@ -65,6 +67,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.withLink
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -192,6 +196,7 @@ fun SettingsScreen(
                                 .padding(horizontal = 16.dp, vertical = 8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
+                            var apiKeyVisible by remember { mutableStateOf(false) }
                             OutlinedTextField(
                                 value = tempApiKey,
                                 onValueChange = { tempApiKey = it },
@@ -199,6 +204,15 @@ fun SettingsScreen(
                                 placeholder = { Text("AQ.", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)) },
                                 singleLine = true,
                                 label = { Text("API Key") },
+                                visualTransformation = if (apiKeyVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                                trailingIcon = {
+                                    IconButton(onClick = { apiKeyVisible = !apiKeyVisible }) {
+                                        Icon(
+                                            imageVector = if (apiKeyVisible) Icons.Rounded.VisibilityOff else Icons.Rounded.Visibility,
+                                            contentDescription = if (apiKeyVisible) "Hide API Key" else "Show API Key"
+                                        )
+                                    }
+                                }
                             )
                             Spacer(Modifier.size(8.dp))
                         }
