@@ -4,11 +4,15 @@
     <!-- Health Connect read permissions -->
     <uses-permission android:name="android.permission.health.READ_TOTAL_CALORIES_BURNED" />
     <uses-permission android:name="android.permission.health.READ_NUTRITION" />
+    <uses-permission android:name="android.permission.health.WRITE_NUTRITION" />
 
     <!-- Lets the widgets and the periodic refresh worker read while in the background -->
     <uses-permission android:name="android.permission.health.READ_HEALTH_DATA_IN_BACKGROUND" />
     <!-- Read data older than the default 30-day window (trends + export) -->
     <uses-permission android:name="android.permission.health.READ_HEALTH_DATA_HISTORY" />
+
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera.any" />
 
     <!-- Needed so the app can find the Health Connect APK on Android 13 and lower -->
     <queries>

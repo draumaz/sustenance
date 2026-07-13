@@ -113,7 +113,7 @@ fun SummaryScreen(
         PullToRefreshBox(
             isRefreshing = refreshing,
             onRefresh = vm::refresh,
-            modifier = Modifier.padding(inner)
+            modifier = Modifier.padding(top = inner.calculateTopPadding())
         ) {
             LazyColumn(
                 modifier = Modifier.fillMaxSize().nestedScroll(scrollBehavior.nestedScrollConnection),

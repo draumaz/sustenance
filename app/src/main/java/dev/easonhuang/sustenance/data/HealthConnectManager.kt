@@ -6,9 +6,16 @@ import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.NutritionRecord
 import androidx.health.connect.client.records.Record
 import androidx.health.connect.client.records.TotalCaloriesBurnedRecord
+import androidx.health.connect.client.records.metadata.Device
+import androidx.health.connect.client.records.metadata.Metadata
 import androidx.health.connect.client.request.AggregateGroupByPeriodRequest
 import androidx.health.connect.client.request.ReadRecordsRequest
 import androidx.health.connect.client.time.TimeRangeFilter
+import androidx.health.connect.client.units.Energy
+import androidx.health.connect.client.units.Mass
+import dev.easonhuang.sustenance.util.FoodNutrients
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -32,22 +39,31 @@ class HealthConnectManager(private val context: Context) {
 
     val client: HealthConnectClient by lazy { HealthConnectClient.getOrCreate(context) }
 
+    private val _changes = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val changes = _changes.asSharedFlow()
+
     /** Per-metric data-type read permissions (used for the dashboard's per-tile lock state). */
     val metricPermissions: Set<String> =
         Metric.entries.map { HealthPermission.getReadPermission(recordClass(it)) }.toSet()
+
+    /** Permissions required for logging food. */
+    val writePermissions: Set<String> = setOf(HealthPermission.getWritePermission(NutritionRecord::class))
 
     /** Extra access requested only after data permissions are held (HC requires a separate step). */
     val extraPermissions: Set<String> = setOf(PERMISSION_READ_IN_BACKGROUND, PERMISSION_READ_HISTORY)
 
     /** Everything we request: the data types plus background + history access. */
-    val permissions: Set<String> = metricPermissions + extraPermissions
+    val permissions: Set<String> = metricPermissions + writePermissions + extraPermissions
 
     fun availability(): Int = HealthConnectClient.getSdkStatus(context)
 
     val isAvailable: Boolean get() = availability() == HealthConnectClient.SDK_AVAILABLE
 
-    suspend fun grantedPermissions(): Set<String> =
-        client.permissionController.getGrantedPermissions()
+    suspend fun grantedPermissions(): Set<String> {
+        val g = client.permissionController.getGrantedPermissions()
+        android.util.Log.d("HealthConnectManager", "Granted permissions: $g")
+        return g
+    }
 
     fun permissionFor(metric: Metric): String =
         HealthPermission.getReadPermission(recordClass(metric))
@@ -59,6 +75,33 @@ class HealthConnectManager(private val context: Context) {
                     HealthPermission.getReadPermission(NutritionRecord::class) in granted
         } else {
             permissionFor(metric) in granted
+        }
+    }
+
+    suspend fun writeNutrition(nutrients: FoodNutrients, servingCount: Double) {
+        val multiplier = servingCount
+        val now = Instant.now()
+        val record = NutritionRecord(
+            startTime = now,
+            endTime = now.plusSeconds(1),
+            startZoneOffset = ZoneId.systemDefault().rules.getOffset(now),
+            endZoneOffset = ZoneId.systemDefault().rules.getOffset(now),
+            name = nutrients.foodItem,
+            energy = Energy.kilocalories((nutrients.calories * multiplier).coerceAtLeast(0.0)),
+            protein = Mass.grams((nutrients.protein * multiplier).coerceAtLeast(0.0)),
+            totalCarbohydrate = Mass.grams((nutrients.carbs * multiplier).coerceAtLeast(0.0)),
+            totalFat = Mass.grams((nutrients.fat * multiplier).coerceAtLeast(0.0)),
+            dietaryFiber = Mass.grams((nutrients.fiber * multiplier).coerceAtLeast(0.0)),
+            sugar = Mass.grams((nutrients.sugar * multiplier).coerceAtLeast(0.0)),
+            saturatedFat = Mass.grams((nutrients.saturatedFat * multiplier).coerceAtLeast(0.0)),
+            sodium = Mass.milligrams((nutrients.sodium * multiplier).coerceAtLeast(0.0)),
+            metadata = Metadata.manualEntry()
+        )
+        try {
+            client.insertRecords(listOf(record))
+            _changes.tryEmit(Unit)
+        } catch (e: Exception) {
+            throw Exception("Failed to write to Health Connect: ${e.localizedMessage}", e)
         }
     }
 
@@ -180,6 +223,19 @@ class HealthConnectManager(private val context: Context) {
 
     // ---- Detail --------------------------------------------------------------------------------
 
+    suspend fun deleteRecord(recordId: String) {
+        try {
+            client.deleteRecords(
+                recordType = NutritionRecord::class,
+                recordIdsList = listOf(recordId),
+                clientRecordIdsList = emptyList()
+            )
+            _changes.tryEmit(Unit)
+        } catch (e: Exception) {
+            throw Exception("Failed to delete record: ${e.localizedMessage}")
+        }
+    }
+
     suspend fun readDetail(
         metric: Metric,
         goal: Float? = null,
@@ -261,7 +317,13 @@ class HealthConnectManager(private val context: Context) {
                             r.sodium?.let { macros.add("Sodium: ${formatNumber(it.inMilligrams)}mg") }
                             val tertiary = macros.joinToString("\n• ").takeIf { it.isNotEmpty() }
 
-                            RecordRow(name, "${formatNumber(kcal)} kcal • $time", tertiary)
+                            RecordRow(
+                                primary = name,
+                                secondary = "${formatNumber(kcal)} kcal • $time",
+                                tertiary = tertiary,
+                                id = r.metadata.id,
+                                isEditable = r.metadata.dataOrigin.packageName == context.packageName
+                            )
                         }
                     }
                 }

@@ -39,4 +39,6 @@ data class RecordRow(
     val primary: String,
     val secondary: String,
     val tertiary: String? = null,
+    val id: String? = null,
+    val isEditable: Boolean = false,
 )

@@ -19,19 +19,36 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.MenuBook
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.AddToPhotos
+import androidx.compose.material.icons.rounded.ArrowBackIosNew
+import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.CameraAlt
+import androidx.compose.material.icons.rounded.CameraEnhance
+import androidx.compose.material.icons.rounded.FileUpload
+import androidx.compose.material.icons.rounded.Image
+import androidx.compose.material.icons.rounded.MultipleStop
+import androidx.compose.material.icons.rounded.Today
+import androidx.compose.material.icons.rounded.UploadFile
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -53,10 +70,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
@@ -152,7 +172,17 @@ fun ExpressiveNavigationBar(
     destinations: List<dev.easonhuang.sustenance.ui.Dest>,
     predictiveBackState: PredictiveBackState,
     dateOffset: Int = 0,
-    onNavigate: (dev.easonhuang.sustenance.ui.Dest) -> Unit
+    hasApiKey: Boolean = false,
+    isCameraMode: Boolean = false,
+    batchCount: Int = 0,
+    batchInfoText: String = "",
+    onBatchInfoTextChange: (String) -> Unit = {},
+    onSelectGallery: () -> Unit = {},
+    onCapture: () -> Unit = {},
+    onCaptureBatch: () -> Unit = {},
+    onFinishBatch: () -> Unit = {},
+    onNavigate: (dev.easonhuang.sustenance.ui.Dest) -> Unit,
+    onLogClick: () -> Unit = {}
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
@@ -166,11 +196,18 @@ fun ExpressiveNavigationBar(
     var isScalloped by remember { mutableStateOf(false) }
     val pillShape = remember(isScalloped) { ScallopedPillShape(isScalloped) }
 
+    val density = LocalDensity.current
+    val isImeVisible = WindowInsets.ime.getBottom(density) > 0
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .navigationBarsPadding()
-            .padding(bottom = 8.dp),
+            .imePadding()
+            .then(
+                if (isImeVisible) Modifier.graphicsLayer { translationY = 700f }
+                else Modifier
+            )
+            .padding(bottom = 36.dp),
         contentAlignment = Alignment.Center
     ) {
         Surface(
@@ -185,93 +222,192 @@ fun ExpressiveNavigationBar(
                 ),
             color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.95f)
         ) {
-            Row(
+            Column(
                 modifier = Modifier.padding(8.dp),
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalAlignment = Alignment.CenterVertically
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                val renderItem = @Composable { dest: dev.easonhuang.sustenance.ui.Dest ->
-                    val isSelected = currentDestination?.hierarchy?.any { it.route == dest.route } == true
-                    
-                    var selectionAlphaOverride: Float? = null
-                    if (predictiveBackState.isSwipeActive) {
-                        val previousRoute = navController.previousBackStackEntry?.destination?.route
-                        if (previousRoute == dest.route) {
-                            selectionAlphaOverride = predictiveBackState.progress
-                        } else if (currentRoute == dest.route) {
-                            selectionAlphaOverride = 1f - predictiveBackState.progress
+                if (isCameraMode && batchCount > 0) {
+                    Row(
+                        modifier = Modifier
+                            .width(250.dp)
+                            .height(56.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                            .padding(horizontal = 16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier.weight(1f),
+                            contentAlignment = Alignment.CenterStart
+                        ) {
+                            if (batchInfoText.isEmpty()) {
+                                Text(
+                                    text = "(Optional additional info here) ",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                                )
+                            }
+                            BasicTextField(
+                                value = batchInfoText,
+                                onValueChange = onBatchInfoTextChange,
+                                modifier = Modifier.fillMaxWidth(),
+                                textStyle = MaterialTheme.typography.bodySmall.copy(
+                                    color = MaterialTheme.colorScheme.onSurface
+                                ),
+                                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                                singleLine = true
+                            )
+                        }
+                        IconButton(
+                            onClick = onSelectGallery,
+                            modifier = Modifier.size(32.dp)
+                        )
+                        {
+                            Icon(
+                                imageVector = Icons.Rounded.Image,
+                                contentDescription = "Select from gallery",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
                         }
                     }
-
-                    ExpressiveNavItem(
-                        label = dest.label,
-                        icon = dest.icon,
-                        isSelected = isSelected,
-                        selectionAlphaOverride = selectionAlphaOverride,
-                        onLongHold = { isScalloped = !isScalloped },
-                        onClick = { onNavigate(dest) }
-                    )
                 }
-
-                val others = destinations.filter { it.route != "today" }
-                val todayDest = destinations.first { it.route == "today" }
-
-                // Summary (first item usually)
-                others.take(1).forEach { renderItem(it) }
-
-                // Today (Home) item - now transforms into detail metric
-                val isTodaySelected = currentDestination?.hierarchy?.any { it.route == "today" } == true
-                val isEffectivelySelected = isTodaySelected || isOnDetail
-
-                val currentOffset = if (isOnDetail) {
-                    navBackStackEntry?.arguments?.getInt("offset") ?: 0
-                } else {
-                    dateOffset
-                }
-
-                AnimatedContent(
-                    targetState = (if (isOnDetail) detailMetric else null) to currentOffset,
-                    transitionSpec = {
-                        (fadeIn(animationSpec = tween(250)) + scaleIn(initialScale = 0.92f))
-                            .togetherWith(fadeOut(animationSpec = tween(200)) + scaleOut(targetScale = 0.92f))
-                            .using(SizeTransform(clip = false))
-                    },
-                    label = "today_transform"
-                ) { (targetMetric, offset) ->
-                    var selectionAlphaOverride: Float? = null
-                    if (predictiveBackState.isSwipeActive) {
-                        val previousRoute = navController.previousBackStackEntry?.destination?.route
-                        if (previousRoute == "today" || previousRoute?.startsWith("detail/") == true) {
-                            selectionAlphaOverride = predictiveBackState.progress
-                        } else if (currentRoute == "today" || currentRoute?.startsWith("detail/") == true) {
-                            selectionAlphaOverride = 1f - predictiveBackState.progress
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (isCameraMode) {
+                        val todayDest = destinations.first { it.route == "today" }
+                        ExpressiveNavItem(
+                            label = "Today",
+                            icon = Icons.Rounded.ArrowBackIosNew,
+                            isSelected = false,
+                            onClick = { onNavigate(todayDest) }
+                        )
+                        if (batchCount > 0) {
+                            ExpressiveNavItem(
+                                label = "Analyze $batchCount photos",
+                                icon = Icons.Rounded.FileUpload,
+                                isSelected = true,
+                                onClick = onFinishBatch
+                            )
+                            ExpressiveNavItem(
+                                label = "Capture ($batchCount)",
+                                icon = Icons.Rounded.CameraEnhance,
+                                isSelected = false,
+                                onClick = onCaptureBatch
+                            )
+                        } else {
+                            ExpressiveNavItem(
+                                label = "Analyze",
+                                icon = Icons.Rounded.FileUpload,
+                                isSelected = true,//false,
+                                onClick = onCapture,
+                                onLongHold = onSelectGallery,
+                            )
+                            ExpressiveNavItem(
+                                label = "Details",
+                                icon = Icons.Rounded.AddToPhotos,
+                                isSelected = false,//batchCount == 0,
+                                onClick = onCaptureBatch
+                            )
                         }
-                    }
+                    } else {
+                        val renderItem = @Composable { dest: dev.easonhuang.sustenance.ui.Dest ->
+                            val isSelected = currentDestination?.hierarchy?.any { it.route == dest.route } == true
+                            
+                            var selectionAlphaOverride: Float? = null
+                            if (predictiveBackState.isSwipeActive) {
+                                val previousRoute = navController.previousBackStackEntry?.destination?.route
+                                if (previousRoute == dest.route) {
+                                    selectionAlphaOverride = predictiveBackState.progress
+                                } else if (currentRoute == dest.route) {
+                                    selectionAlphaOverride = 1f - predictiveBackState.progress
+                                }
+                            }
 
-                    val label = when {
-                        targetMetric != null -> targetMetric.title
-                        offset == 0 -> todayDest.label
-                        offset == 1 -> "Yesterday"
-                        else -> LocalDate.now().minusDays(offset.toLong())
-                            .format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
-                    }
+                            ExpressiveNavItem(
+                                label = dest.label,
+                                icon = dest.icon,
+                                isSelected = isSelected,
+                                selectionAlphaOverride = selectionAlphaOverride,
+                                onLongHold = { isScalloped = !isScalloped },
+                                onClick = { onNavigate(dest) }
+                            )
+                        }
 
-                    ExpressiveNavItem(
-                        label = label,
-                        icon = targetMetric?.icon ?: todayDest.icon,
-                        isSelected = isEffectivelySelected,
-                        selectionAlphaOverride = selectionAlphaOverride,
-                        onLongHold = { isScalloped = !isScalloped },
-                        onClick = { onNavigate(todayDest) }
-                    )
+                        val others = destinations.filter { it.route != "today" }
+                        val todayDest = destinations.first { it.route == "today" }
+
+                        // Summary (first item usually)
+                        others.take(1).forEach { renderItem(it) }
+
+                        // Today (Home) item - now transforms into detail metric
+                        val isTodaySelected = currentDestination?.hierarchy?.any { it.route == "today" } == true
+                        val isEffectivelySelected = isTodaySelected || isOnDetail
+
+                        val currentOffset = if (isOnDetail) {
+                            navBackStackEntry?.arguments?.getInt("offset") ?: 0
+                        } else {
+                            dateOffset
+                        }
+
+                        val isLogState = currentOffset == 0 && hasApiKey && isEffectivelySelected
+
+                        AnimatedContent(
+                            targetState = Triple(if (isOnDetail) detailMetric else null, currentOffset, isLogState),
+                            transitionSpec = {
+                                (fadeIn(animationSpec = tween(220)) + scaleIn(initialScale = 0.92f))
+                                    .togetherWith(fadeOut(animationSpec = tween(160)) + scaleOut(targetScale = 0.92f))
+                                    .using(SizeTransform(clip = false))
+                            },
+                            label = "today_transform"
+                        ) { (targetMetric, offset, isLog) ->
+                            var selectionAlphaOverride: Float? = null
+                            if (predictiveBackState.isSwipeActive) {
+                                val previousRoute = navController.previousBackStackEntry?.destination?.route
+                                if (previousRoute == "today" || previousRoute?.startsWith("detail/") == true) {
+                                    selectionAlphaOverride = predictiveBackState.progress
+                                } else if (currentRoute == "today" || currentRoute?.startsWith("detail/") == true) {
+                                    selectionAlphaOverride = 1f - predictiveBackState.progress
+                                }
+                            }
+
+                            val label = when {
+                                targetMetric != null -> targetMetric.title
+                                isLog -> "Log"
+                                offset == 0 -> todayDest.label
+                                offset == 1 -> "Yesterday"
+                                else -> LocalDate.now().minusDays(offset.toLong())
+                                    .format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
+                            }
+
+                            ExpressiveNavItem(
+                                label = label,
+                                icon = when {
+                                    targetMetric != null -> targetMetric.icon
+                                    isLog -> Icons.Rounded.Add
+                                    else -> todayDest.icon
+                                },
+                                isSelected = isEffectivelySelected,
+                                selectionAlphaOverride = selectionAlphaOverride,
+                                onLongHold = { isScalloped = !isScalloped },
+                                onClick = {
+                                    if (isLog) onLogClick() else onNavigate(todayDest)
+                                }
+                            )
+                        }
+
+                        // Settings and others
+                        others.drop(1).forEach { renderItem(it) }
+                    }
                 }
-
-                // Settings and others
-                others.drop(1).forEach { renderItem(it) }
             }
         }
     }
 }
+
 
 @Composable
 fun ExpressiveNavItem(
@@ -286,12 +422,15 @@ fun ExpressiveNavItem(
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale = remember { Animatable(1f) }
+    var isLongPressed by remember { mutableStateOf(false) }
 
     LaunchedEffect(isPressed) {
         if (isPressed) {
+            isLongPressed = false
             val job = launch {
-                delay(2000.milliseconds)
+                delay(500.milliseconds)
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                isLongPressed = true
                 onLongHold()
             }
             scale.animateTo(
@@ -340,14 +479,16 @@ fun ExpressiveNavItem(
                 interactionSource = interactionSource,
                 indication = null,
                 onClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                    onClick()
+                    if (!isLongPressed) {
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        onClick()
+                    }
                 }
             )
             .animateContentSize(
                 animationSpec = spring(
                     dampingRatio = Spring.DampingRatioNoBouncy,
-                    stiffness = Spring.StiffnessLow
+                    stiffness = Spring.StiffnessMedium
                 )
             )
             .padding(horizontal = 16.dp),

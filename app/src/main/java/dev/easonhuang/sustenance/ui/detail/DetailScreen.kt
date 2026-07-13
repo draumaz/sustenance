@@ -52,6 +52,8 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.foundation.background
 import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.TextButton
@@ -88,6 +90,7 @@ fun DetailScreen(
     val detail by vm.detail.collectAsStateWithLifecycle()
     val refreshing by vm.refreshing.collectAsStateWithLifecycle()
     var showGoalDialog by remember { mutableStateOf(false) }
+    var recordToDelete by remember { mutableStateOf<RecordRow?>(null) }
     var selectedChartPoint by remember { mutableStateOf<Int?>(null) }
 
     LifecycleResumeEffect(metric.key) {
@@ -136,6 +139,30 @@ fun DetailScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showGoalDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
+    recordToDelete?.let { record ->
+        AlertDialog(
+            onDismissRequest = { recordToDelete = null },
+            title = { Text("Delete log?") },
+            text = { Text("Are you sure you want to remove \"${record.primary}\"?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        record.id?.let { vm.deleteRecord(it) }
+                        recordToDelete = null
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text("Delete")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { recordToDelete = null }) {
                     Text("Cancel")
                 }
             }
@@ -191,7 +218,7 @@ fun DetailScreen(
             PullToRefreshBox(
                 isRefreshing = refreshing,
                 onRefresh = vm::refresh,
-                modifier = Modifier.padding(inner)
+                modifier = Modifier.padding(top = inner.calculateTopPadding())
             ) {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
@@ -201,7 +228,15 @@ fun DetailScreen(
                     item { HeaderCard(d, onEditGoal = { showGoalDialog = true }) }
                     item { ChartCard(d, selectedChartPoint) { selectedChartPoint = it } }
                     if (d.todaySections.isNotEmpty()) {
-                        item { FoodItemsCard(d.todaySections) }
+                        item {
+                            FoodItemsCard(
+                                sections = d.todaySections,
+                                onDelete = { id ->
+                                    val row = d.todaySections.flatMap { it.second }.find { it.id == id }
+                                    recordToDelete = row
+                                }
+                            )
+                        }
                     }
                     if (d.stats.isNotEmpty()) item { StatsCard(d) }
                     if (d.recent.isNotEmpty()) {
@@ -223,7 +258,7 @@ fun DetailScreen(
 }
 
 @Composable
-private fun FoodItemsCard(sections: List<Pair<String, List<RecordRow>>>) {
+private fun FoodItemsCard(sections: List<Pair<String, List<RecordRow>>>, onDelete: (String) -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
         shape = MaterialTheme.shapes.extraLarge,
@@ -273,7 +308,23 @@ private fun FoodItemsCard(sections: List<Pair<String, List<RecordRow>>>) {
                                     )
                                 }
                             }
-                            Text(kcal, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(kcal, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
+                                if (item.isEditable && item.id != null) {
+                                    Spacer(Modifier.padding(horizontal = 4.dp))
+                                    IconButton(
+                                        onClick = { onDelete(item.id) },
+                                        modifier = Modifier.size(24.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Rounded.Delete,
+                                            contentDescription = "Delete",
+                                            tint = MaterialTheme.colorScheme.error.copy(alpha = 0.6f),
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+                                }
+                            }
                         }
                         if (i < items.lastIndex) HorizontalDivider(Modifier.padding(horizontal = 16.dp).alpha(0.5f))
                     }

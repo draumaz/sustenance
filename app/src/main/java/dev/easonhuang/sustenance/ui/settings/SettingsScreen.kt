@@ -25,18 +25,21 @@ import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.HealthAndSafety
 import androidx.compose.material.icons.rounded.History
+import androidx.compose.material.icons.rounded.Key
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Whatshot
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -163,6 +166,42 @@ fun SettingsScreen(
                         onClick = { vm.setKetoMode(!ketoMode) }
                     ) {
                         Switch(checked = ketoMode, onCheckedChange = null)
+                    }
+                }
+            }
+            item { SectionLabel("Misc") }
+            item {
+                SettingsCard {
+                    val apiKeyEnabled by vm.apiKeyEnabled.collectAsState(initial = false)
+                    val apiKey by vm.apiKey.collectAsState(initial = "")
+                    var tempApiKey by remember(apiKey) { mutableStateOf(apiKey) }
+
+                    SettingRow(
+                        icon = Icons.Rounded.Key,
+                        title = "Enable Food logging",
+                        subtitle = "AI Studio API key required.\nSustenance talks to gemini-3.1-flash-lite.",
+                        onClick = { vm.setApiKeyEnabled(!apiKeyEnabled) }
+                    ) {
+                        Switch(checked = apiKeyEnabled, onCheckedChange = null)
+                    }
+
+                    if (apiKeyEnabled) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            OutlinedTextField(
+                                value = tempApiKey,
+                                onValueChange = { tempApiKey = it },
+                                modifier = Modifier.weight(1f),
+                                placeholder = { Text("AQ.", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)) },
+                                singleLine = true,
+                                label = { Text("API Key") },
+                            )
+                            Spacer(Modifier.size(8.dp))
+                        }
                     }
                 }
             }

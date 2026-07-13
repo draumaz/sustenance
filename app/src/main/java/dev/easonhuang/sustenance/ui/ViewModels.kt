@@ -51,6 +51,12 @@ class DashboardViewModel(
                 }
             }
         }
+        viewModelScope.launch {
+            manager.changes.collect {
+                _summariesMap.value = emptyMap()
+                refresh(showIndicator = false)
+            }
+        }
     }
 
     fun moveBack() {
@@ -123,6 +129,11 @@ class DetailViewModel(
                 refresh(showIndicator = false)
             }
         }
+        viewModelScope.launch {
+            manager.changes.collect {
+                refresh(showIndicator = false)
+            }
+        }
     }
 
     fun refresh(showIndicator: Boolean = true) {
@@ -151,6 +162,12 @@ class DetailViewModel(
         }
     }
 
+    fun deleteRecord(id: String) {
+        viewModelScope.launch {
+            manager.deleteRecord(id)
+        }
+    }
+
     companion object {
         fun factory(manager: HealthConnectManager, goalsRepo: GoalsRepository, metric: Metric, dateOffset: Int = 0) = viewModelFactory {
             initializer { DetailViewModel(manager, goalsRepo, metric, dateOffset) }
@@ -163,6 +180,8 @@ class SettingsViewModel(
 ) : ViewModel() {
     val dynamicColor = repository.dynamicColor
     val ketoMode = repository.ketoMode
+    val apiKeyEnabled = repository.apiKeyEnabled
+    val apiKey = repository.apiKey
 
     fun setDynamicColor(enabled: Boolean) {
         viewModelScope.launch { repository.setDynamicColor(enabled) }
@@ -170,6 +189,14 @@ class SettingsViewModel(
 
     fun setKetoMode(enabled: Boolean) {
         viewModelScope.launch { repository.setKetoMode(enabled) }
+    }
+
+    fun setApiKeyEnabled(enabled: Boolean) {
+        viewModelScope.launch { repository.setApiKeyEnabled(enabled) }
+    }
+
+    fun setApiKey(key: String) {
+        viewModelScope.launch { repository.setApiKey(key) }
     }
 
     companion object {
