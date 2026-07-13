@@ -349,7 +349,7 @@ fun ExpressiveNavigationBar(
 
                         val currentOffset = dateOffset
 
-                        val isLogState = currentOffset == 0 && hasApiKey && isEffectivelySelected
+                        val isLogState = currentOffset == 0 && hasApiKey && isTodaySelected && !isOnDetail
 
                         AnimatedContent(
                             targetState = Triple(if (isOnDetail) detailMetric else null, currentOffset, isLogState),
