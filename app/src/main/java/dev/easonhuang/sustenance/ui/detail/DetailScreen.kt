@@ -339,14 +339,11 @@ private fun HeaderCard(d: MetricDetail, onEditGoal: () -> Unit) {
     val todayValue = d.points.lastOrNull()?.value ?: 0f
     val goal = d.goal ?: 0f
     val progress = if (goal > 0) (todayValue / goal).coerceIn(0f, 1f) else 0f
-    val isTotalEnergy = d.metric == Metric.TOTAL_CALORIES
-    val isOver = goal > 0 && todayValue > goal && !isTotalEnergy
+    val isOver = goal > 0 && todayValue > goal
     
     val accent = when {
-        isTotalEnergy -> lerp(Color(0xFF568259), Color(0xFF709E73), progress)
         isOver -> Color(0xFFAB6161)
-        progress >= 1f -> Color(0xFF709E73)
-        else -> d.metric.accent
+        else -> lerp(d.metric.accent, Color(0xFFEF5350), progress)
     }
     Card(
         modifier = Modifier.fillMaxWidth().height(100.dp).padding(horizontal = 16.dp),

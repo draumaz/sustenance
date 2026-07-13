@@ -36,7 +36,6 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import dev.easonhuang.sustenance.data.Metric
 import dev.easonhuang.sustenance.data.MetricSummary
 
 @Composable
@@ -57,12 +56,10 @@ fun MetricCard(
 
     val showProgress = goal != null && !locked
     val isOver = showProgress && today > (goal ?: Float.MAX_VALUE)
-    val isTotalEnergy = summary.metric == Metric.TOTAL_CALORIES
 
     val fillColor = when {
-        isTotalEnergy -> lerp(Color(0xFF568259), Color(0xFF709E73), progress)
         isOver -> Color(0xFFAB6161)
-        showProgress -> lerp(Color(0xFFEF5350), Color(0xFF709E73), progress)
+        showProgress -> lerp(accent, Color(0xFFEF5350), progress)
         else -> accent
     }
 

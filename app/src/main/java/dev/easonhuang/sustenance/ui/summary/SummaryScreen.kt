@@ -153,16 +153,13 @@ fun SummaryScreen(
 
 @Composable
 private fun InsightCard(stat: WeeklyStat, onEdit: () -> Unit, editEnabled: Boolean = true) {
-    val isTotalEnergy = stat.metric == Metric.TOTAL_CALORIES
     val currentVal = if (stat.metric == Metric.CALORIC_BALANCE) kotlin.math.abs(stat.todayValue) else stat.todayValue
-    val isOver = stat.goal > 0 && currentVal > stat.goal && !isTotalEnergy
+    val isOver = stat.goal > 0 && currentVal > stat.goal
     val progress = stat.progress
     
     val accent = when {
-        isTotalEnergy -> lerp(Color(0xFF568259), Color(0xFF709E73), progress)
         isOver -> Color(0xFFAB6161)
-        progress >= 1f -> Color(0xFF709E73)
-        else -> stat.metric.accent
+        else -> lerp(stat.metric.accent, Color(0xFFEF5350), progress)
     }
 
     Card(

@@ -1,11 +1,12 @@
 # Sustenance
 
-A private, **read-only** [Health Connect](https://developer.android.com/health-connect)
-viewer for Android, built with Jetpack Compose and Material You. Sustenance is focused
-exclusively on tracking your nutritional and energy data—beautifully, and without
-sending a single byte anywhere.
+A private, local [Health Connect](https://developer.android.com/health-connect)-powered
+nutrition tracker.
 
-> No accounts. No network permission. No trackers. Just your food data, on your device.
+By default, Sustenance is read-only and beautifully displays your Health Connect data with
+customizable goals.
+
+And if you supply an AI Studio API key, Sustenance can talk to gemini-3.1-flash-lite to log data, too.
 
 ---
 
@@ -20,14 +21,22 @@ sending a single byte anywhere.
 
 
 ## Features
+- **Home**: view your daily progress with several helpful chips.
+- **Summary**, daily averages vs. goals you set, with progress rings and
+  comparison to yesterday.
 
-- **Today**, Material You cards for calories, macronutrients (Protein, Carbs, Fat),
-  and micronutrients (Fiber, Sodium, Sugar), each with current progress vs your goal.
-- **Detail views**, full charts, statistics and recent records per nutrient.
-- **Weekly summary**, daily averages vs. goals you set, with progress rings and
-  week-over-week trends.
-- **Home-screen widgets**, key nutrition metrics, dynamically themed (Glance + Material 3).
-- **Export**, save your accessible data to CSV or JSON via the system file picker.
+## Food logging
+
+By adding a [Google AI Studio-formatted API key](https://aistudio.google.com/app/api-keys), Sustenance is
+able to analyze photos of food items and write
+relevant nutritional information to Health Connect.
+
+|           Scan Item            |            Log Item             |
+|:------------------------------:|:-------------------------------:|
+| ![Home](img/sust-itemscan.jpg) | ![Search](img/sust-itemlog.jpg) |
+|          *Scan Item*           |           *Log Item*            |
+
+It talks to [gemini-3.1-flash-lite](https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/gemini/3-1-flash-lite) for speed and efficiency.
 
 ## Tech
 
@@ -39,13 +48,12 @@ sending a single byte anywhere.
 
 ## Privacy
 
-Sustenance requests only Health Connect **read** permissions for Nutrition and Energy, holds
-no network permission, and never transmits data. You control which data types it can read from
-Health Connect at any time.
+Sustenance requests only Health Connect **read/write** permissions for Nutrition and Energy.
+- By default, AI logging features are not used and must be explicitly enabled.
 
 ## Credits
-Special thanks to **GuyOnWifi** for the original [/heartwood](https://github.com/GuyOnWifi/heartwood) base code which this project is built upon.
+Special thanks to **GuyOnWifi** for the [heartwood](https://github.com/GuyOnWifi/heartwood) project, from which Sustenance was forked.
 
 ## License
 
-[GPL-3.0-or-later](LICENSE) © Eason Huang
+[GPL-3.0-or-later](LICENSE) © Eason Huang & draumaz
