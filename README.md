@@ -13,7 +13,7 @@ sending a single byte anywhere.
 
 |             Today Screen             |          Insights View          |         Food Details          |
 |:-----------------------------------:|:-------------------------------:|:-----------------------------:|
-|  ![Home](img/sust-today.png)  | ![Search](img/sust-summary.png) | ![List](img/sust-food.png) |
+|  ![Home](img/sust-today.jpg)  | ![Search](img/sust-summary.jpg) | ![List](img/sust-food.jpg) |
 |           *Today Screen*            |         *Insights View*         |        *Food Details*         |
 
 ---
