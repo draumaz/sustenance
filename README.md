@@ -15,7 +15,6 @@ And if you supply an AI Studio API key, Sustenance can talk to gemini-3.1-flash-
 |             Today Screen             |          Insights View          |         Food Details          |
 |:-----------------------------------:|:-------------------------------:|:-----------------------------:|
 |  ![Home](img/sust-today.jpg)  | ![Search](img/sust-summary.jpg) | ![List](img/sust-food.jpg) |
-|           *Today Screen*            |         *Insights View*         |        *Food Details*         |
 
 ---
 
@@ -34,10 +33,11 @@ relevant nutritional information to Health Connect.
 |           Scan Item            |            Log Item             |
 |:------------------------------:|:-------------------------------:|
 | ![Home](img/sust-itemscan.jpg) | ![Search](img/sust-itemlog.jpg) |
-|          *Scan Item*           |           *Log Item*            |
 
 It talks to [gemini-3.1-flash-lite](https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/gemini/3-1-flash-lite) for speed and efficiency.
 
+---
+\
 ## Tech
 
 - Kotlin, Jetpack Compose, Material 3 (dynamic color)
