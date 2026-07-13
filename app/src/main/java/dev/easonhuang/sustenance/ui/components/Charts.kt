@@ -56,9 +56,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.offset
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalView
+import android.view.HapticFeedbackConstants
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
@@ -177,7 +177,7 @@ fun LineChart(
     val min = values.min()
     val max = values.max()
 
-    val haptic = LocalHapticFeedback.current
+    val view = LocalView.current
 
     Column(
         modifier
@@ -230,9 +230,9 @@ fun LineChart(
                                 // Only trigger if tap is within 48dp of the point vertically
                                 if (dy < 48.dp.toPx()) {
                                     if (selectedIndex != i) {
-                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                        onSelectedIndexChange(i)
-                                    } else {
+                                    view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                                    onSelectedIndexChange(i)
+                                } else {
                                         onSelectedIndexChange(null)
                                     }
                                 } else {
@@ -247,13 +247,13 @@ fun LineChart(
                         detectDragGesturesAfterLongPress(
                             onDragStart = { offset ->
                                 val i = (offset.x / stepX).roundToInt().coerceIn(0, points.size - 1)
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
                                 onSelectedIndexChange(i)
                             },
                             onDrag = { change, _ ->
                                 val i = (change.position.x / stepX).roundToInt().coerceIn(0, points.size - 1)
                                 if (selectedIndex != i) {
-                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
                                     onSelectedIndexChange(i)
                                 }
                                 change.consume()
@@ -265,14 +265,14 @@ fun LineChart(
                             onDragStart = { offset ->
                                 val i = (offset.x / stepX).roundToInt().coerceIn(0, points.size - 1)
                                 if (selectedIndex != i) {
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
                                     onSelectedIndexChange(i)
                                 }
                             },
                             onHorizontalDrag = { change, _ ->
                                 val i = (change.position.x / stepX).roundToInt().coerceIn(0, points.size - 1)
                                 if (selectedIndex != i) {
-                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
                                     onSelectedIndexChange(i)
                                 }
                             }
@@ -467,7 +467,7 @@ fun LineChart(
                         detectTapGestures { offset ->
                             val i = (offset.x / stepX).roundToInt().coerceIn(0, points.size - 1)
                             if (selectedIndex != i) {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
                                 onSelectedIndexChange(i)
                             } else {
                                 onSelectedIndexChange(null)
@@ -478,13 +478,13 @@ fun LineChart(
                         detectDragGesturesAfterLongPress(
                             onDragStart = { offset ->
                                 val i = (offset.x / stepX).roundToInt().coerceIn(0, points.size - 1)
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
                                 onSelectedIndexChange(i)
                             },
                             onDrag = { change, _ ->
                                 val i = (change.position.x / stepX).roundToInt().coerceIn(0, points.size - 1)
                                 if (selectedIndex != i) {
-                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
                                     onSelectedIndexChange(i)
                                 }
                                 change.consume()
@@ -496,14 +496,14 @@ fun LineChart(
                             onDragStart = { offset ->
                                 val i = (offset.x / stepX).roundToInt().coerceIn(0, points.size - 1)
                                 if (selectedIndex != i) {
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
                                     onSelectedIndexChange(i)
                                 }
                             },
                             onHorizontalDrag = { change, _ ->
                                 val i = (change.position.x / stepX).roundToInt().coerceIn(0, points.size - 1)
                                 if (selectedIndex != i) {
-                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
                                     onSelectedIndexChange(i)
                                 }
                             }

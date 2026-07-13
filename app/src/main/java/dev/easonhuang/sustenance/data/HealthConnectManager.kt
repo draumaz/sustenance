@@ -126,18 +126,14 @@ class HealthConnectManager(private val context: Context) {
                 val yesterday = if (targetIdx >= 1) points[targetIdx - 1].value else 0f
                 val displayValue = when {
                     metric == Metric.CALORIC_BALANCE -> {
+                        val sign = if (today > 0) "-" else ""
+                        val formatted = "$sign${metric.formatValue(today)}${metric.unit}"
                         if (goal != null && goal > 0) {
-                            val diff = goal - today
-                            if (diff > 0) "${metric.formatValue(diff)}${metric.unit} to goal"
-                            else if (diff < 0) "${metric.formatValue(-diff)}${metric.unit} over goal"
-                            else "Balance reached"
-                        } else {
-                            when {
-                                today < 0 -> "${metric.formatValue(-today)}${metric.unit} surplus"
-                                today > 0 -> "${metric.formatValue(today)}${metric.unit} deficit"
-                                else -> "0${metric.unit}"
-                            }
-                        }
+                            val diff = today - goal
+                            val absDiff = if (diff < 0) -diff else diff
+                            val label = if (diff >= 0) "over" else "left"
+                            "$formatted (${metric.formatValue(absDiff)} $label)"
+                        } else formatted
                     }
                     metric == Metric.TOTAL_CALORIES -> "${metric.formatValue(today)}${metric.unit}"
                     goal != null -> {
