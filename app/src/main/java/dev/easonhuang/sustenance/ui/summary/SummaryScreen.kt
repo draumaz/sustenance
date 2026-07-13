@@ -154,7 +154,8 @@ fun SummaryScreen(
 @Composable
 private fun InsightCard(stat: WeeklyStat, onEdit: () -> Unit, editEnabled: Boolean = true) {
     val isTotalEnergy = stat.metric == Metric.TOTAL_CALORIES
-    val isOver = stat.goal > 0 && stat.todayValue > stat.goal && !isTotalEnergy
+    val currentVal = if (stat.metric == Metric.CALORIC_BALANCE) kotlin.math.abs(stat.todayValue) else stat.todayValue
+    val isOver = stat.goal > 0 && currentVal > stat.goal && !isTotalEnergy
     val progress = stat.progress
     
     val accent = when {
@@ -186,8 +187,14 @@ private fun InsightCard(stat: WeeklyStat, onEdit: () -> Unit, editEnabled: Boole
                         fontWeight = FontWeight.Black,
                         letterSpacing = (-0.5).sp
                     )
+                    val displayToday = if (stat.metric == Metric.CALORIC_BALANCE) {
+                        val absVal = kotlin.math.abs(stat.todayValue)
+                        val sign = if (stat.todayValue > 0) "-" else if (stat.todayValue < 0) "+" else ""
+                        "$sign${stat.metric.formatValue(absVal)}"
+                    } else stat.metric.formatValue(stat.todayValue)
+
                     Text(
-                        "${stat.metric.formatValue(stat.todayValue)} / ${stat.metric.formatValue(stat.goal)} ${stat.metric.unit}",
+                        "$displayToday / ${stat.metric.formatValue(stat.goal)} ${stat.metric.unit}",
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,

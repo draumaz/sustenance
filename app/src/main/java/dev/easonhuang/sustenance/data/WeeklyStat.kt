@@ -9,9 +9,17 @@ data class WeeklyStat(
     val goal: Float,
 ) {
     /** 0f..1f progress of today toward the goal. */
-    val progress: Float get() = if (goal > 0f) (todayValue / goal).coerceIn(0f, 1f) else 0f
+    val progress: Float get() {
+        if (goal <= 0f) return 0f
+        val current = if (metric == Metric.CALORIC_BALANCE) kotlin.math.abs(todayValue) else todayValue
+        return (current / goal).coerceIn(0f, 1f)
+    }
 
     /** Day-over-day change as a percentage. */
-    val deltaPercent: Float? get() =
-        if (yesterdayValue > 0f) (todayValue - yesterdayValue) / yesterdayValue * 100f else null
+    val deltaPercent: Float? get() {
+        val current = if (metric == Metric.CALORIC_BALANCE) -todayValue else todayValue
+        val prior = if (metric == Metric.CALORIC_BALANCE) -yesterdayValue else yesterdayValue
+        val absPrior = kotlin.math.abs(prior)
+        return if (absPrior > 0f) (current - prior) / absPrior * 100f else null
+    }
 }
