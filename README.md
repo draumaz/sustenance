@@ -1,12 +1,11 @@
 # Sustenance
 
-A private, local [Health Connect](https://developer.android.com/health-connect)-powered
-nutrition tracker.
+A private, local nutrition tracker for Android, powered by [Health Connect](https://developer.android.com/health-connect).
 
 By default, Sustenance is read-only and beautifully displays your Health Connect data with
 customizable goals.
 
-And if you supply an AI Studio API key, Sustenance can talk to gemini-3.1-flash-lite to log data, too.
+And if you supply an AI Studio API key, Sustenance can talk to Gemini to log data, too.
 
 ---
 
@@ -20,9 +19,10 @@ And if you supply an AI Studio API key, Sustenance can talk to gemini-3.1-flash-
 
 
 ## Features
-- **Home**: view your daily progress with several helpful chips.
-- **Summary**, daily averages vs. goals you set, with progress rings and
+- **Home**: view your daily progress with context-aware greetings and helpful chips.
+- **Summary**: daily averages vs. goals you set, with progress rings and
   comparison to yesterday.
+- **Pull-to-Yesterday**: pull up from the dashboard to quickly view previous days.
 
 ## Food logging
 
@@ -37,12 +37,13 @@ relevant nutritional information to Health Connect.
 It talks to [gemini-3.1-flash-lite](https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/gemini/3-1-flash-lite) for speed and efficiency.
 
 ---
-\
+
 ## Tech
 
 - Kotlin, Jetpack Compose, Material 3 (dynamic color)
 - `androidx.health.connect:connect-client` for all nutrition and energy reads
-- `androidx.glance` widgets, WorkManager for periodic refresh
+- `androidx.camera` for scanning, `androidx.glance` widgets
+- WorkManager for periodic refresh, Predictive Back support
 - DataStore for goals
 - `minSdk 30`, `targetSdk 36`
 
