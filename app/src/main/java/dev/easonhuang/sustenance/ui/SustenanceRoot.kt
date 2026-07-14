@@ -3,6 +3,7 @@ package dev.easonhuang.sustenance.ui
 import android.content.Intent
 import android.Manifest
 import android.graphics.Bitmap
+import android.graphics.Matrix
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -360,8 +361,8 @@ private fun MainNav(
                         predictiveBackState = pbState,
                         dateOffset = dashboardDateOffset,
                         hasApiKey = hasApiKey,
-                        isCameraMode = isCameraActive,
-                        batchCount = capturedBitmaps.size,
+                        isCameraMode = isCameraActive && !isAnalyzing,
+                        capturedBitmaps = capturedBitmaps,
                         batchInfoText = batchInfoText,
                         onBatchInfoTextChange = { batchInfoText = it },
                         onSelectGallery = { galleryLauncher.launch("image/*") },
@@ -542,11 +543,23 @@ private fun MainNav(
                             isTorchOn = isTorchOn,
                             onImageCaptured = { imageProxy ->
                                 scope.launch {
+                                    val rotation = imageProxy.imageInfo.rotationDegrees
                                     val bitmap = imageProxy.toBitmap()
                                     imageProxy.close()
 
+                                    val rotatedBitmap = if (rotation != 0) {
+                                        val matrix = Matrix().apply { postRotate(rotation.toFloat()) }
+                                        val rotated = Bitmap.createBitmap(
+                                            bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true
+                                        )
+                                        if (rotated != bitmap) bitmap.recycle()
+                                        rotated
+                                    } else {
+                                        bitmap
+                                    }
+
                                     if (isBatchMode) {
-                                        capturedBitmaps = capturedBitmaps + bitmap
+                                        capturedBitmaps = capturedBitmaps + rotatedBitmap
                                         isCapturing = false
                                     } else {
                                         val trimmedKey = apiKey.trim()
@@ -563,7 +576,7 @@ private fun MainNav(
 
                                         isAnalyzing = true
                                         val result = GeminiManager(trimmedKey).analyzeFoodImage(
-                                            bitmap,
+                                            rotatedBitmap,
                                             batchInfoText
                                         )
                                         isAnalyzing = false

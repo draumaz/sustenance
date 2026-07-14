@@ -1,5 +1,6 @@
 package dev.easonhuang.sustenance.ui.components
 
+import android.graphics.Bitmap
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.animateContentSize
@@ -13,7 +14,9 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -33,6 +36,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.MenuBook
@@ -67,9 +71,11 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.TextStyle
@@ -105,7 +111,7 @@ fun ExpressiveNavigationBar(
     dateOffset: Int = 0,
     hasApiKey: Boolean = false,
     isCameraMode: Boolean = false,
-    batchCount: Int = 0,
+    capturedBitmaps: List<Bitmap> = emptyList(),
     batchInfoText: String = "",
     onBatchInfoTextChange: (String) -> Unit = {},
     onSelectGallery: () -> Unit = {},
@@ -127,8 +133,9 @@ fun ExpressiveNavigationBar(
 
     val density = LocalDensity.current
     val isImeVisible = WindowInsets.ime.getBottom(density) > 0
+    val batchCount = capturedBitmaps.size
 
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .imePadding()
@@ -137,8 +144,38 @@ fun ExpressiveNavigationBar(
                 else Modifier
             )
             .padding(bottom = 36.dp),
-        contentAlignment = Alignment.Center
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        if (isCameraMode && capturedBitmaps.isNotEmpty()) {
+            val lastPhotos = remember(capturedBitmaps) { capturedBitmaps.takeLast(8) }
+            Row(
+                modifier = Modifier.padding(bottom = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy((-16).dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                lastPhotos.forEachIndexed { index, bitmap ->
+                    Image(
+                        bitmap = bitmap.asImageBitmap(),
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(56.dp)
+                            .graphicsLayer {
+                                rotationZ = (index - (lastPhotos.size / 2f)) * 7f
+                                shadowElevation = 12f
+                                shape = RoundedCornerShape(12.dp)
+                                clip = true
+                            }
+                            .background(MaterialTheme.colorScheme.surface)
+                            .border(
+                                2.dp,
+                                MaterialTheme.colorScheme.surfaceVariant,
+                                RoundedCornerShape(12.dp)
+                            ),
+                        contentScale = ContentScale.Crop
+                    )
+                }
+            }
+        }
         Surface(
             modifier = Modifier
                 .wrapContentWidth()
