@@ -8,6 +8,9 @@ import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -19,7 +22,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -30,6 +37,8 @@ import androidx.core.content.ContextCompat
 fun CameraPreview(
     modifier: Modifier = Modifier,
     isCapturing: Boolean = false,
+    isBatchMode: Boolean = false,
+    isTorchOn: Boolean = false,
     onImageCaptured: (ImageProxy) -> Unit = {}
 ) {
     val context = LocalContext.current
@@ -38,9 +47,16 @@ fun CameraPreview(
     val imageCapture = remember { ImageCapture.Builder().build() }
     val previewView = remember { PreviewView(context) }
     var frozenBitmap by remember { mutableStateOf<Bitmap?>(null) }
+    var camera by remember { mutableStateOf<androidx.camera.core.Camera?>(null) }
+    val shutterProgress = remember { Animatable(0f) }
+
+    LaunchedEffect(isTorchOn) {
+        camera?.cameraControl?.enableTorch(isTorchOn)
+    }
 
     LaunchedEffect(isCapturing) {
         if (isCapturing) {
+            shutterProgress.animateTo(1f, tween(500))
             frozenBitmap = previewView.bitmap
             imageCapture.takePicture(
                 ContextCompat.getMainExecutor(context),
@@ -55,6 +71,9 @@ fun CameraPreview(
                 }
             )
         } else {
+            if (isBatchMode) {
+                shutterProgress.animateTo(0f, tween(500))
+            }
             frozenBitmap = null
         }
     }
@@ -73,7 +92,7 @@ fun CameraPreview(
 
                     try {
                         cameraProvider.unbindAll()
-                        cameraProvider.bindToLifecycle(
+                        camera = cameraProvider.bindToLifecycle(
                             lifecycleOwner,
                             cameraSelector,
                             preview,
@@ -97,10 +116,26 @@ fun CameraPreview(
             )
         }
 
-        if (isCapturing) {
-            ScallopedLoadingAnimation(
-                modifier = Modifier.align(Alignment.Center)
-            )
+        if (shutterProgress.value > 0f) {
+            Canvas(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen)
+            ) {
+                drawRect(Color.Black)
+                drawCircle(
+                    color = Color.Transparent,
+                    radius = (size.maxDimension) * (1f - shutterProgress.value),
+                    center = center,
+                    blendMode = BlendMode.Clear
+                )
+            }
         }
+
+        //if (isCapturing && !isBatchMode) {
+        //    ScallopedLoadingAnimation(
+        //      modifier = Modifier.align(Alignment.Center)
+        //    )
+        //}
     }
 }

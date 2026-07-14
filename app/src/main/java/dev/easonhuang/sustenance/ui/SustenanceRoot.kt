@@ -238,6 +238,7 @@ private fun MainNav(
     var todayClickCount by remember { mutableIntStateOf(0) }
     var dashboardDateOffset by remember { mutableIntStateOf(0) }
     var isCameraActive by remember { mutableStateOf(false) }
+    var isTorchOn by remember { mutableStateOf(false) }
     var isCapturing by remember { mutableStateOf(false) }
     var isBatchMode by remember { mutableStateOf(false) }
     var isAnalyzing by remember { mutableStateOf(false) }
@@ -268,6 +269,7 @@ private fun MainNav(
 
     fun clearCapture() {
         isCameraActive = false
+        isTorchOn = false
         isCapturing = false
         isBatchMode = false
         batchInfoText = ""
@@ -363,7 +365,9 @@ private fun MainNav(
                         batchInfoText = batchInfoText,
                         onBatchInfoTextChange = { batchInfoText = it },
                         onSelectGallery = { galleryLauncher.launch("image/*") },
+                        onToggleTorch = { isTorchOn = !isTorchOn },
                         onCapture = {
+                            isTorchOn = false
                             isBatchMode = false
                             isCapturing = true
                         },
@@ -372,6 +376,7 @@ private fun MainNav(
                             isCapturing = true
                         },
                         onFinishBatch = {
+                            isTorchOn = false
                             scope.launch {
                                 val trimmedKey = apiKey.trim()
                                 if (trimmedKey.isBlank()) {
@@ -533,6 +538,8 @@ private fun MainNav(
                         CameraPreview(
                             modifier = Modifier.blur(blurRadius),
                             isCapturing = isCapturing,
+                            isBatchMode = isBatchMode,
+                            isTorchOn = isTorchOn,
                             onImageCaptured = { imageProxy ->
                                 scope.launch {
                                     val bitmap = imageProxy.toBitmap()
@@ -588,8 +595,8 @@ private fun MainNav(
                     ) {
                         ScallopedLoadingAnimation(
                             size = androidx.compose.ui.unit.DpSize(
-                                120.dp,
-                                120.dp
+                                150.dp,
+                                150.dp
                             )
                         )
                     }

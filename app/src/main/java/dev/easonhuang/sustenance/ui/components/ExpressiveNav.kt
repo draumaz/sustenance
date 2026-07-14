@@ -63,13 +63,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Outline
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -91,9 +87,6 @@ import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlin.math.PI
-import kotlin.math.cos
-import kotlin.math.sin
 import kotlin.time.Duration.Companion.milliseconds
 
 @Stable
@@ -102,69 +95,7 @@ class PredictiveBackState {
     var isSwipeActive by mutableStateOf(false)
 }
 
-class ScallopedPillShape(private val isScalloped: Boolean) : Shape {
-    override fun createOutline(
-        size: Size,
-        layoutDirection: LayoutDirection,
-        density: Density,
-    ): Outline {
-        val path = Path()
-        val width = size.width
-        val height = size.height
-        val radius = height / 2f
 
-        if (!isScalloped) {
-            path.addRoundRect(
-                androidx.compose.ui.geometry.RoundRect(
-                    0f, 0f, width, height,
-                    androidx.compose.ui.geometry.CornerRadius(radius)
-                )
-            )
-            return Outline.Generic(path)
-        }
-
-        val bumpDepth = with(density) { 2.5.dp.toPx() }
-        val bumpsCount = 12f
-        val numPoints = 120
-
-        fun getPoint(p: Float): Pair<Offset, Offset> {
-            val straight = (width - (2 * radius)).coerceAtLeast(0f)
-            val arc = PI.toFloat() * radius
-            val total = 2 * straight + 2 * arc
-            val d = p * total
-            
-            return when {
-                d < straight -> {
-                    Offset(radius + d, 0f) to Offset(0f, -1f)
-                }
-                d < straight + arc -> {
-                    val angle = 1.5f * PI.toFloat() + (d - straight) / radius
-                    val n = Offset(cos(angle), sin(angle))
-                    Offset(width - radius, radius) + n * radius to n
-                }
-                d < 2 * straight + arc -> {
-                    Offset(width - radius - (d - (straight + arc)), height) to Offset(0f, 1f)
-                }
-                else -> {
-                    val angle = 0.5f * PI.toFloat() + (d - (2 * straight + arc)) / radius
-                    val n = Offset(cos(angle), sin(angle))
-                    Offset(radius, radius) + n * radius to n
-                }
-            }
-        }
-
-        for (i in 0..numPoints) {
-            val p = i.toFloat() / numPoints
-            val (pos, normal) = getPoint(p)
-            val bump = sin(p * bumpsCount * 2 * PI.toFloat()) * bumpDepth
-            val finalPos = pos + normal * bump
-            if (i == 0) path.moveTo(finalPos.x, finalPos.y) else path.lineTo(finalPos.x, finalPos.y)
-        }
-        
-        path.close()
-        return Outline.Generic(path)
-    }
-}
 
 @Composable
 fun ExpressiveNavigationBar(
@@ -178,6 +109,7 @@ fun ExpressiveNavigationBar(
     batchInfoText: String = "",
     onBatchInfoTextChange: (String) -> Unit = {},
     onSelectGallery: () -> Unit = {},
+    onToggleTorch: () -> Unit = {},
     onCapture: () -> Unit = {},
     onCaptureBatch: () -> Unit = {},
     onFinishBatch: () -> Unit = {},
@@ -192,9 +124,6 @@ fun ExpressiveNavigationBar(
     val detailMetric = if (isOnDetail) {
         navBackStackEntry?.arguments?.getString("metricKey")?.let { Metric.fromKey(it) }
     } else null
-
-    var isScalloped by remember { mutableStateOf(false) }
-    val pillShape = remember(isScalloped) { ScallopedPillShape(isScalloped) }
 
     val density = LocalDensity.current
     val isImeVisible = WindowInsets.ime.getBottom(density) > 0
@@ -213,7 +142,7 @@ fun ExpressiveNavigationBar(
         Surface(
             modifier = Modifier
                 .wrapContentWidth()
-                .clip(pillShape)
+                .clip(CircleShape)
                 .animateContentSize(
                     animationSpec = spring(
                         dampingRatio = Spring.DampingRatioNoBouncy,
@@ -290,7 +219,8 @@ fun ExpressiveNavigationBar(
                                 label = "Analyze $batchCount photos",
                                 icon = Icons.Rounded.FileUpload,
                                 isSelected = true,
-                                onClick = onFinishBatch
+                                onClick = onFinishBatch,
+                                onLongHold = onToggleTorch,
                             )
                             ExpressiveNavItem(
                                 label = "Capture ($batchCount)",
@@ -304,19 +234,20 @@ fun ExpressiveNavigationBar(
                                 icon = Icons.Rounded.FileUpload,
                                 isSelected = true,//false,
                                 onClick = onCapture,
-                                onLongHold = onSelectGallery,
+                                onLongHold = onToggleTorch,
                             )
                             ExpressiveNavItem(
                                 label = "Details",
                                 icon = Icons.Rounded.AddToPhotos,
                                 isSelected = false,//batchCount == 0,
-                                onClick = onCaptureBatch
+                                onClick = onCaptureBatch,
+                                onLongHold = onSelectGallery,
                             )
                         }
                     } else {
                         val renderItem = @Composable { dest: dev.easonhuang.sustenance.ui.Dest ->
                             val isSelected = currentDestination?.hierarchy?.any { it.route == dest.route } == true
-                            
+
                             var selectionAlphaOverride: Float? = null
                             if (predictiveBackState.isSwipeActive) {
                                 val previousRoute = navController.previousBackStackEntry?.destination?.route
@@ -332,7 +263,6 @@ fun ExpressiveNavigationBar(
                                 icon = dest.icon,
                                 isSelected = isSelected,
                                 selectionAlphaOverride = selectionAlphaOverride,
-                                onLongHold = { isScalloped = !isScalloped },
                                 onClick = { onNavigate(dest) }
                             )
                         }
@@ -388,7 +318,6 @@ fun ExpressiveNavigationBar(
                                 },
                                 isSelected = isEffectivelySelected,
                                 selectionAlphaOverride = selectionAlphaOverride,
-                                onLongHold = { isScalloped = !isScalloped },
                                 onClick = {
                                     if (isLog) onLogClick() else onNavigate(todayDest)
                                 }
@@ -455,12 +384,9 @@ fun ExpressiveNavItem(
     )
 
     val selectionAlpha = selectionAlphaOverride ?: animatedAlpha
-    val containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = selectionAlpha)
-    val contentColor = if (selectionAlpha > 0.5f) {
-        MaterialTheme.colorScheme.onPrimaryContainer
-    } else {
-        MaterialTheme.colorScheme.onSurfaceVariant
-    }
+    val containerColorBase = MaterialTheme.colorScheme.primaryContainer
+    val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
+    val onPrimaryContainer = MaterialTheme.colorScheme.onPrimaryContainer
 
     Box(
         modifier = Modifier
@@ -470,7 +396,9 @@ fun ExpressiveNavItem(
                 scaleY = scale.value
             }
             .clip(CircleShape)
-            .background(containerColor)
+            .drawBehind {
+                drawRect(color = containerColorBase, alpha = selectionAlpha)
+            }
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
@@ -481,15 +409,11 @@ fun ExpressiveNavItem(
                     }
                 }
             )
-            .animateContentSize(
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioNoBouncy,
-                    stiffness = Spring.StiffnessMedium
-                )
-            )
             .padding(horizontal = 16.dp),
         contentAlignment = Alignment.Center
     ) {
+        val contentColor = if (selectionAlpha > 0.5f) onPrimaryContainer else onSurfaceVariant
+
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
@@ -501,7 +425,7 @@ fun ExpressiveNavItem(
                 modifier = Modifier.size(24.dp)
             )
 
-            if (selectionAlpha > 0.8f) {
+            if (isSelected || (selectionAlphaOverride ?: 0f) > 0.8f) {
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = label,

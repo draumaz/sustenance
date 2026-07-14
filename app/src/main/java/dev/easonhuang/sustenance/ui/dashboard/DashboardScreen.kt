@@ -69,7 +69,6 @@ import dev.easonhuang.sustenance.data.MetricSummary
 import dev.easonhuang.sustenance.ui.DashboardViewModel
 import dev.easonhuang.sustenance.ui.components.MetricCard
 import dev.easonhuang.sustenance.ui.components.ScallopedLoadingAnimation
-import dev.easonhuang.sustenance.ui.components.ScallopedPillShape
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -269,7 +268,7 @@ fun DashboardScreen(
                         }
                 ) {
                     ScallopedLoadingAnimation(
-                        size = DpSize(50.dp, 50.dp),
+                        size = DpSize(150.dp, 150.dp),
                         bumpsCount = 12f
                     )
                 }
@@ -312,7 +311,10 @@ fun DashboardScreen(
                         ) { isLoaded ->
                             if (!isLoaded) {
                                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                    ScallopedLoadingAnimation(Modifier.offset(y = (-75).dp))
+                                    ScallopedLoadingAnimation(size = androidx.compose.ui.unit.DpSize(
+                                        150.dp,
+                                        150.dp
+                                    ), modifier = Modifier.offset(y = (-75).dp),)
                                 }
                             } else {
                                 val currentData = summariesMap[targetOffset] ?: emptyList()
