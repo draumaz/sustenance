@@ -6,6 +6,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Done
@@ -16,9 +18,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import dev.easonhuang.sustenance.util.FoodNutrients
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -26,10 +32,23 @@ import dev.easonhuang.sustenance.util.FoodNutrients
 fun FoodReviewDialog(
     nutrients: FoodNutrients,
     onDismiss: () -> Unit,
-    onLog: (FoodNutrients, Double) -> Unit
+    onLog: (FoodNutrients, Double) -> Unit,
 ) {
     var servingCount by remember { mutableFloatStateOf(1f) }
+    var foodItem by remember { mutableStateOf(nutrients.foodItem) }
+    var servingSize by remember { mutableStateOf(nutrients.servingSize) }
+
+    fun format(d: Double): String = if (d % 1.0 == 0.0) d.toInt().toString() else String.format("%.1f", d)
     
+    var cal by remember { mutableStateOf(format(nutrients.calories)) }
+    var prot by remember { mutableStateOf(format(nutrients.protein)) }
+    var carb by remember { mutableStateOf(format(nutrients.carbs)) }
+    var fat by remember { mutableStateOf(format(nutrients.fat)) }
+    var satFat by remember { mutableStateOf(format(nutrients.saturatedFat)) }
+    var fiber by remember { mutableStateOf(format(nutrients.fiber)) }
+    var sugar by remember { mutableStateOf(format(nutrients.sugar)) }
+    var sodium by remember { mutableStateOf(format(nutrients.sodium)) }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = {
@@ -42,17 +61,37 @@ fun FoodReviewDialog(
         },
         title = {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    text = nutrients.foodItem,
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center
+                BasicTextField(
+                    value = foodItem,
+                    onValueChange = { foodItem = it },
+                    textStyle = MaterialTheme.typography.headlineSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onSurface
+                    ),
+                    cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                    modifier = Modifier.fillMaxWidth()
                 )
-                Text(
-                    text = "Base Serving: ${nutrients.servingSize}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "Base Serving: ",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    BasicTextField(
+                        value = servingSize,
+                        onValueChange = { servingSize = it },
+                        textStyle = MaterialTheme.typography.bodySmall.copy(
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
+                        ),
+                        cursorBrush = SolidColor(MaterialTheme.colorScheme.onSurfaceVariant)
+                    )
+                }
             }
         },
         text = {
@@ -113,26 +152,62 @@ fun FoodReviewDialog(
                 }
 
                 // Nutrient Chips
-                FlowRow(
+                Column(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     val m = servingCount.toDouble()
-                    NutrientChip("Calories", nutrients.calories * m, "kcal", MaterialTheme.colorScheme.primaryContainer)
-                    NutrientChip("Protein", nutrients.protein * m, "g", Color(0xFFE3F2FD))
-                    NutrientChip("Carbs", nutrients.carbs * m, "g", Color(0xFFFFF3E0))
-                    NutrientChip("Fat", nutrients.fat * m, "g", Color(0xFFFBE9E7))
-                    NutrientChip("Saturated Fat", nutrients.saturatedFat * m, "g", Color(0xFFE0F2F1))
-                    NutrientChip("Fiber", nutrients.fiber * m, "g", Color(0xFFE8F5E9))
-                    NutrientChip("Sugar", nutrients.sugar * m, "g", Color(0xFFF3E5F5))
-                    NutrientChip("Sodium", nutrients.sodium * m, "mg", Color(0xFFEEEEEE))
+                    
+                    val items = listOf(
+                        Triple("Calories", cal to { s: String -> cal = s }, "kcal" to MaterialTheme.colorScheme.primaryContainer),
+                        Triple("Protein", prot to { s: String -> prot = s }, "g" to Color(0xFFE3F2FD)),
+                        Triple("Carbs", carb to { s: String -> carb = s }, "g" to Color(0xFFFFF3E0)),
+                        Triple("Fat", fat to { s: String -> fat = s }, "g" to Color(0xFFFBE9E7)),
+                        Triple("Sat. Fat", satFat to { s: String -> satFat = s }, "g" to Color(0xFFE0F2F1)),
+                        Triple("Fiber", fiber to { s: String -> fiber = s }, "g" to Color(0xFFE8F5E9)),
+                        Triple("Sugar", sugar to { s: String -> sugar = s }, "g" to Color(0xFFF3E5F5)),
+                        Triple("Sodium", sodium to { s: String -> sodium = s }, "mg" to Color(0xFFEEEEEE))
+                    )
+
+                    items.chunked(2).forEach { row ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            row.forEach { (label, state, meta) ->
+                                EditableNutrientChip(
+                                    label = label,
+                                    value = state.first,
+                                    onValueChange = state.second,
+                                    multiplier = m,
+                                    unit = meta.first,
+                                    containerColor = meta.second,
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                            if (row.size == 1) Spacer(Modifier.weight(1f))
+                        }
+                    }
                 }
             }
         },
         confirmButton = {
             Button(
-                onClick = { onLog(nutrients, servingCount.toDouble()) },
+                onClick = {
+                    val edited = FoodNutrients(
+                        foodItem = foodItem,
+                        servingSize = servingSize,
+                        calories = cal.toDoubleOrNull() ?: 0.0,
+                        protein = prot.toDoubleOrNull() ?: 0.0,
+                        carbs = carb.toDoubleOrNull() ?: 0.0,
+                        fat = fat.toDoubleOrNull() ?: 0.0,
+                        saturatedFat = satFat.toDoubleOrNull() ?: 0.0,
+                        fiber = fiber.toDoubleOrNull() ?: 0.0,
+                        sugar = sugar.toDoubleOrNull() ?: 0.0,
+                        sodium = sodium.toDoubleOrNull() ?: 0.0
+                    )
+                    onLog(edited, servingCount.toDouble())
+                },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp)
             ) {
@@ -153,27 +228,77 @@ fun FoodReviewDialog(
 }
 
 @Composable
-private fun NutrientChip(label: String, value: Double, unit: String, containerColor: Color) {
+private fun EditableNutrientChip(
+    label: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+    multiplier: Double,
+    unit: String,
+    containerColor: Color,
+    modifier: Modifier = Modifier
+) {
+    val displayValue = (value.replace(',', '.').toDoubleOrNull() ?: 0.0) * multiplier
+    
     Surface(
         color = containerColor,
         shape = RoundedCornerShape(12.dp),
+        modifier = modifier
     ) {
         Column(
             modifier = Modifier
-                .padding(horizontal = 12.dp, vertical = 8.dp)
+                .padding(vertical = 8.dp, horizontal = 4.dp)
                 .animateContentSize(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                text = String.format(if (value >= 100) "%.0f" else "%.1f", value) + " " + unit,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                color = Color.Black.copy(alpha = 0.8f)
-            )
+            // Main Value Row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                BasicTextField(
+                    value = value,
+                    onValueChange = {
+                        val sanitized = it.replace(',', '.')
+                        if (it.isEmpty() || sanitized.toDoubleOrNull() != null || it == "." || it == ",") {
+                            onValueChange(it)
+                        }
+                    },
+                    textStyle = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                        color = Color.Black.copy(alpha = 0.8f)
+                    ),
+                    modifier = Modifier.weight(1f, fill = false),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    cursorBrush = SolidColor(Color.Black.copy(alpha = 0.4f)),
+                    singleLine = true
+                )
+                Text(
+                    text = " $unit",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.Black.copy(alpha = 0.6f),
+                    maxLines = 1
+                )
+            }
+            
+            // Total Preview (Smaller)
+            if (multiplier != 1.0) {
+                Text(
+                    text = "Total: " + if (displayValue >= 100) String.format("%.0f", displayValue) else String.format("%.1f", displayValue),
+                    style = TextStyle(fontSize = 10.sp, fontWeight = FontWeight.Bold),
+                    color = Color.Black.copy(alpha = 0.4f),
+                    maxLines = 1
+                )
+            }
+
+            // Bottom Label
             Text(
                 text = label,
-                style = MaterialTheme.typography.labelSmall,
-                color = Color.Black.copy(alpha = 0.6f)
+                style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp),
+                color = Color.Black.copy(alpha = 0.6f),
+                maxLines = 1,
+                textAlign = TextAlign.Left
             )
         }
     }
