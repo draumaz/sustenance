@@ -268,8 +268,8 @@ fun DashboardScreen(
                         }
                 ) {
                     ScallopedLoadingAnimation(
-                        size = DpSize(150.dp, 150.dp),
-                        bumpsCount = 12f
+                        size = DpSize(50.dp, 50.dp),
+                        bumpsCount = 3f
                     )
                 }
             },
