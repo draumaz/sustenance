@@ -196,8 +196,8 @@ fun ExpressiveNavigationBar(
                 if (isCameraMode && batchCount > 0) {
                     Row(
                         modifier = Modifier
-                            .width(250.dp)
-                            .height(56.dp)
+                            .width(320.dp)
+                            .height(64.dp)
                             .clip(CircleShape)
                             .background(MaterialTheme.colorScheme.surfaceContainerHigh)
                             .padding(horizontal = 8.dp),
@@ -205,8 +205,8 @@ fun ExpressiveNavigationBar(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Box(
-                            modifier = Modifier.weight(1f).width(50.dp),
-                            contentAlignment = Alignment.CenterStart
+                            modifier = Modifier.weight(1f).width(16.dp),
+                            contentAlignment = Alignment.Center
                         ) {
                             if (batchInfoText.isEmpty()) {
                                 Text(
@@ -249,20 +249,20 @@ fun ExpressiveNavigationBar(
                             label = "Today",
                             icon = Icons.Rounded.ArrowBackIosNew,
                             isSelected = false,
-                            onClick = { onNavigate(todayDest) }
+                            onClick = { onNavigate(todayDest) },
                         )
                         if (batchCount > 0) {
                             ExpressiveNavItem(
                                 label = "Analyze $batchCount photos",
                                 icon = Icons.Rounded.FileUpload,
-                                isSelected = true,
+                                isSelected = false,//true,
                                 onClick = onFinishBatch,
                                 onLongHold = onToggleTorch,
                             )
                             ExpressiveNavItem(
                                 label = "Capture ($batchCount)",
                                 icon = Icons.Rounded.AddToPhotos,
-                                isSelected = false,
+                                isSelected = true,//false,
                                 onClick = onCaptureBatch
                             )
                         } else {
@@ -337,28 +337,31 @@ fun ExpressiveNavigationBar(
                                 }
                             }
 
-                            val label = when {
+                            val label = (when {
                                 targetMetric != null -> targetMetric.title
                                 isLog -> "Log"
                                 offset == 0 -> todayDest.label
                                 offset == 1 -> "Yesterday"
                                 else -> LocalDate.now().minusDays(offset.toLong())
                                     .format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
-                            }
+                            }).also {
 
-                            ExpressiveNavItem(
-                                label = label,
-                                icon = when {
-                                    targetMetric != null -> targetMetric.icon
-                                    isLog -> Icons.Rounded.Add
-                                    else -> todayDest.icon
-                                },
-                                isSelected = isEffectivelySelected,
-                                selectionAlphaOverride = selectionAlphaOverride,
-                                onClick = {
-                                    if (isLog) onLogClick() else onNavigate(todayDest)
-                                }
-                            )
+                                ExpressiveNavItem(
+                                    label = it,
+                                    icon = when {
+                                        targetMetric != null -> targetMetric.icon
+                                        isLog -> Icons.Rounded.Add
+                                        else -> todayDest.icon
+                                    },
+                                    isSelected = isEffectivelySelected,
+                                    selectionAlphaOverride = selectionAlphaOverride,
+                                    onClick = {
+                                        if (isLog) onLogClick() else onNavigate(todayDest)
+                                    },
+                                    onLongHold = { if (isLog) { onLogClick(); onSelectGallery() } },
+
+                                )
+                            }
                         }
 
                         // Settings and others
