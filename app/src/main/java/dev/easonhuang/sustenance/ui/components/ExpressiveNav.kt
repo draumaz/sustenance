@@ -237,6 +237,17 @@ fun ExpressiveNavigationBar(
                                 tint = MaterialTheme.colorScheme.primary
                             )
                         }
+                        IconButton(
+                            onClick = onFinishBatch,
+                            modifier = Modifier.size(32.dp)
+                        )
+                        {
+                            Icon(
+                                imageVector = Icons.Rounded.FileUpload,
+                                contentDescription = "Analyze $batchCount photos",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
                     }
                 }
                 Row(
