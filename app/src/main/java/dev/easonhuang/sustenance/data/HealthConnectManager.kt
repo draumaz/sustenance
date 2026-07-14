@@ -316,7 +316,7 @@ class HealthConnectManager(private val context: Context) {
                             r.dietaryFiber?.let { macros.add("Fiber: ${formatNumber(it.inGrams)}g") }
                             r.totalFat?.let { macros.add("Total Fat: ${formatNumber(it.inGrams)}g") }
                             r.saturatedFat?.let { macros.add("Saturated Fat: ${formatNumber(it.inGrams)}g") }
-                            r.sugar?.let { macros.add("Sugar: ${formatNumber(it.inMilligrams)}mg") }
+                            r.sugar?.let { macros.add("Sugar: ${formatNumber(it.inGrams)}g") }
                             r.sodium?.let { macros.add("Sodium: ${formatNumber(it.inMilligrams)}mg") }
                             val tertiary = macros.joinToString("\n• ").takeIf { it.isNotEmpty() }
 
