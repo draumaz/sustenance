@@ -46,7 +46,7 @@ class GeminiManager(apiKey: String) {
             val response = model.generateContent(
                 content {
                     scaledBitmaps.forEach { image(it) }
-                    var prompt = "Analyze these food images. Return a JSON object with: food_item, serving_size, calories, protein, carbs, fat, fiber, sugar, saturated_fat, and sodium. Use numbers for nutrients. Return ONLY the JSON."
+                    var prompt = "Analyze these food images. Return a JSON object with: food_item, serving_size, calories, protein, carbs, fat, fiber, sugar, saturated_fat, and sodium. Use numbers for nutrients. You MUST specify serving_size as a weight in grams (e.g., '150g'). Estimate the weight if not known. Return ONLY the JSON."
                     if (!additionalInfo.isNullOrBlank()) {
                         prompt += " Additional context from user: $additionalInfo"
                     }

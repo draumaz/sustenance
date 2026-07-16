@@ -67,11 +67,11 @@ import dev.easonhuang.sustenance.data.HealthConnectManager
 import dev.easonhuang.sustenance.data.Metric
 import dev.easonhuang.sustenance.data.MetricDetail
 import dev.easonhuang.sustenance.data.RecordRow
-import dev.easonhuang.sustenance.data.formatValue
 import dev.easonhuang.sustenance.ui.DetailViewModel
 import dev.easonhuang.sustenance.ui.components.BarChart
 import dev.easonhuang.sustenance.ui.components.LineChart
 import dev.easonhuang.sustenance.ui.components.PredictiveBackState
+import dev.easonhuang.sustenance.data.formatValue
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -258,7 +258,10 @@ fun DetailScreen(
 }
 
 @Composable
-private fun FoodItemsCard(sections: List<Pair<String, List<RecordRow>>>, onDelete: (String) -> Unit) {
+private fun FoodItemsCard(
+    sections: List<Pair<String, List<RecordRow>>>,
+    onDelete: (String) -> Unit
+) {
     Card(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
         shape = MaterialTheme.shapes.extraLarge,

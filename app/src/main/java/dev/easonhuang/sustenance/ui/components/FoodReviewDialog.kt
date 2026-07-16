@@ -34,11 +34,25 @@ fun FoodReviewDialog(
     onDismiss: () -> Unit,
     onLog: (FoodNutrients, Double) -> Unit,
 ) {
-    var servingCount by remember { mutableFloatStateOf(1f) }
     var foodItem by remember { mutableStateOf(nutrients.foodItem) }
     var servingSize by remember { mutableStateOf(nutrients.servingSize) }
 
+    val baseGrams = remember(servingSize) {
+        "(\\d+)".toRegex().find(servingSize)?.groupValues?.get(1)?.toDoubleOrNull() ?: 100.0
+    }
+
     fun format(d: Double): String = if (d % 1.0 == 0.0) d.toInt().toString() else String.format("%.1f", d)
+
+    var currentGrams by remember { mutableDoubleStateOf(baseGrams) }
+    var quantityText by remember { mutableStateOf(currentGrams.toInt().toString()) }
+
+    // Keep quantityText in sync when currentGrams is changed via buttons
+    LaunchedEffect(currentGrams) {
+        val expected = currentGrams.toInt().toString()
+        if (quantityText != expected) {
+            quantityText = expected
+        }
+    }
     
     var cal by remember { mutableStateOf(format(nutrients.calories)) }
     var prot by remember { mutableStateOf(format(nutrients.protein)) }
@@ -62,7 +76,7 @@ fun FoodReviewDialog(
         title = {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 BasicTextField(
-                    value = foodItem,
+                    value = foodItem.replace("\\s*\\(\\d+g\\)".toRegex(), "").trim(),
                     onValueChange = { foodItem = it },
                     textStyle = MaterialTheme.typography.headlineSmall.copy(
                         fontWeight = FontWeight.Bold,
@@ -102,7 +116,7 @@ fun FoodReviewDialog(
                 verticalArrangement = Arrangement.spacedBy(20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Serving Selector
+                // Gram Selector
                 Surface(
                     shape = CircleShape,
                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
@@ -114,7 +128,7 @@ fun FoodReviewDialog(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         IconButton(
-                            onClick = { if (servingCount > 0.1f) servingCount -= 0.1f },
+                            onClick = { if (currentGrams > 1) currentGrams -= 1 },
                             colors = IconButtonDefaults.filledIconButtonColors(
                                 containerColor = MaterialTheme.colorScheme.surface,
                                 contentColor = MaterialTheme.colorScheme.onSurface
@@ -125,13 +139,25 @@ fun FoodReviewDialog(
                         }
                         
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(
-                                text = String.format("%.1f", servingCount),
-                                style = MaterialTheme.typography.headlineMedium,
-                                fontWeight = FontWeight.Black
+                            BasicTextField(
+                                value = quantityText,
+                                onValueChange = { newValue ->
+                                    quantityText = newValue
+                                    val num = newValue.replace(',', '.').toDoubleOrNull()
+                                    if (num != null && num >= 0) {
+                                        currentGrams = num
+                                    }
+                                },
+                                textStyle = MaterialTheme.typography.headlineMedium.copy(
+                                    fontWeight = FontWeight.Black,
+                                    textAlign = TextAlign.Center,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                ),
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                modifier = Modifier.widthIn(min = 80.dp)
                             )
                             Text(
-                                text = "SERVINGS",
+                                text = "GRAMS",
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -139,7 +165,7 @@ fun FoodReviewDialog(
                         }
 
                         IconButton(
-                            onClick = { servingCount += 0.1f },
+                            onClick = { currentGrams += 1 },
                             colors = IconButtonDefaults.filledIconButtonColors(
                                 containerColor = MaterialTheme.colorScheme.primary,
                                 contentColor = MaterialTheme.colorScheme.onPrimary
@@ -156,7 +182,7 @@ fun FoodReviewDialog(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    val m = servingCount.toDouble()
+                    val m = currentGrams / baseGrams
                     
                     val items = listOf(
                         Triple("Calories", cal to { s: String -> cal = s }, "kcal" to MaterialTheme.colorScheme.primaryContainer),
@@ -172,7 +198,7 @@ fun FoodReviewDialog(
                     items.chunked(2).forEach { row ->
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
                             row.forEach { (label, state, meta) ->
                                 EditableNutrientChip(
@@ -206,7 +232,7 @@ fun FoodReviewDialog(
                         sugar = sugar.toDoubleOrNull() ?: 0.0,
                         sodium = sodium.toDoubleOrNull() ?: 0.0
                     )
-                    onLog(edited, servingCount.toDouble())
+                    onLog(edited, currentGrams / baseGrams)
                 },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp)

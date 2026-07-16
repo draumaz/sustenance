@@ -41,4 +41,5 @@ data class RecordRow(
     val tertiary: String? = null,
     val id: String? = null,
     val isEditable: Boolean = false,
+    val startTime: Instant? = null
 )

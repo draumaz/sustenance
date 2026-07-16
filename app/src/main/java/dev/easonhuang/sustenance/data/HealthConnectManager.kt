@@ -81,12 +81,18 @@ class HealthConnectManager(private val context: Context) {
     suspend fun writeNutrition(nutrients: FoodNutrients, servingCount: Double) {
         val multiplier = servingCount
         val now = Instant.now()
+        
+        val baseGrams = "(\\d+)".toRegex().find(nutrients.servingSize)?.groupValues?.get(1)?.toDoubleOrNull() ?: 100.0
+        val totalGrams = Math.round(baseGrams * multiplier).toInt()
+        val cleanName = nutrients.foodItem.replace("\\s*\\(\\d+g\\)".toRegex(), "").trim()
+        val entryName = "$cleanName (${totalGrams}g)"
+
         val record = NutritionRecord(
             startTime = now,
             endTime = now.plusSeconds(1),
             startZoneOffset = ZoneId.systemDefault().rules.getOffset(now),
             endZoneOffset = ZoneId.systemDefault().rules.getOffset(now),
-            name = nutrients.foodItem,
+            name = entryName,
             energy = Energy.kilocalories((nutrients.calories * multiplier).coerceAtLeast(0.0)),
             protein = Mass.grams((nutrients.protein * multiplier).coerceAtLeast(0.0)),
             totalCarbohydrate = Mass.grams((nutrients.carbs * multiplier).coerceAtLeast(0.0)),
@@ -287,7 +293,11 @@ class HealthConnectManager(private val context: Context) {
                 )
             }
             val recent = points.takeLast(20).reversed().map {
-                RecordRow("${metric.formatValue(it.value)} ${metric.unit}", dayMonthTime(it.time))
+                RecordRow(
+                    primary = "${metric.formatValue(it.value)} ${metric.unit}",
+                    secondary = dayMonthTime(it.time),
+                    startTime = it.time
+                )
             }
 
             val todaySections = if (metric == Metric.FOOD) {
@@ -325,7 +335,8 @@ class HealthConnectManager(private val context: Context) {
                                 secondary = "${formatNumber(kcal)} kcal • $time",
                                 tertiary = tertiary,
                                 id = r.metadata.id,
-                                isEditable = r.metadata.dataOrigin.packageName == context.packageName
+                                isEditable = r.metadata.dataOrigin.packageName == context.packageName,
+                                startTime = r.startTime
                             )
                         }
                     }
