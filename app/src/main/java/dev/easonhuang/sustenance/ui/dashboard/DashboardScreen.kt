@@ -62,6 +62,8 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.DpSize
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.ui.res.stringResource
+import dev.easonhuang.sustenance.R
 import dev.easonhuang.sustenance.data.HealthConnectManager
 import dev.easonhuang.sustenance.data.Metric
 import dev.easonhuang.sustenance.data.GoalsRepository
@@ -172,11 +174,11 @@ fun DashboardScreen(
 
     val greeting = when (dateOffset) {
         0 -> when (LocalTime.now().hour) {
-            in 0..11 -> "Good morning"
-            in 12..16 -> "Good afternoon"
-            else -> "Good evening"
+            in 0..11 -> stringResource(R.string.greeting_morning)
+            in 12..16 -> stringResource(R.string.greeting_afternoon)
+            else -> stringResource(R.string.greeting_evening)
         }
-        1 -> "Yesterday"
+        1 -> stringResource(R.string.yesterday)
         else -> LocalDate.now().minusDays(dateOffset.toLong()).format(DateTimeFormatter.ofPattern("EEEE, MMM d"))
     }
 
@@ -233,11 +235,11 @@ fun DashboardScreen(
                 title = {
                     Column {
                         Text(greeting, style = MaterialTheme.typography.labelSmall.copy(fontSize = 15.sp), color = MaterialTheme.colorScheme.primary)
-                        Text("Sustenance", style = MaterialTheme.typography.titleLarge.copy(fontSize = 25.sp), fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.app_name), style = MaterialTheme.typography.titleLarge.copy(fontSize = 25.sp), fontWeight = FontWeight.Bold)
                     }
                 },
                 actions = {
-                    SquishyIconButton(onClick = vm::refresh, contentDescription = "Refresh") {
+                    SquishyIconButton(onClick = vm::refresh, contentDescription = stringResource(R.string.refresh)) {
                         if (refreshing) {
                             CircularProgressIndicator(Modifier.size(24.dp).padding(4.dp), strokeWidth = 2.dp)
                         } else {
@@ -346,7 +348,7 @@ fun DashboardScreen(
                                     if (energyGroup.isNotEmpty()) {
                                         item {
                                             MetricSection(
-                                                title = "Energy",
+                                                title = stringResource(R.string.section_energy),
                                                 items = energyGroup,
                                                 columns = 2,
                                                 onOpenMetric = { onOpenMetric(it, targetOffset) },
@@ -357,7 +359,7 @@ fun DashboardScreen(
                                     if (foodGroup.isNotEmpty()) {
                                         item {
                                             MetricSection(
-                                                title = "Food",
+                                                title = stringResource(R.string.section_food),
                                                 items = foodGroup,
                                                 columns = 1,
                                                 onOpenMetric = { onOpenMetric(it, targetOffset) },
@@ -368,7 +370,7 @@ fun DashboardScreen(
                                     if (macrosGroup.isNotEmpty()) {
                                         item {
                                             MetricSection(
-                                                title = "Macros",
+                                                title = stringResource(R.string.section_macros),
                                                 items = macrosGroup,
                                                 columns = 2,
                                                 onOpenMetric = { onOpenMetric(it, targetOffset) },
@@ -379,7 +381,7 @@ fun DashboardScreen(
                                     if (microsGroup.isNotEmpty()) {
                                         item {
                                             MetricSection(
-                                                title = "Micros",
+                                                title = stringResource(R.string.section_micros),
                                                 items = microsGroup,
                                                 columns = 1,
                                                 onOpenMetric = { onOpenMetric(it, targetOffset) },

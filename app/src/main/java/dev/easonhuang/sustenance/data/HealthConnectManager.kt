@@ -14,6 +14,7 @@ import androidx.health.connect.client.time.TimeRangeFilter
 import androidx.health.connect.client.units.Energy
 import androidx.health.connect.client.units.Mass
 import dev.easonhuang.sustenance.util.FoodNutrients
+import dev.easonhuang.sustenance.R
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import java.time.Instant
@@ -126,7 +127,7 @@ class HealthConnectManager(private val context: Context) {
                 MetricSummary(metric, "-", null, hasData = false, granted = false, goal = goal)
             } else {
                 runCatching { summarize(metric, goal, dateOffset) }
-                    .getOrElse { MetricSummary(metric, "-", "No data", hasData = false, granted = true, goal = goal) }
+                    .getOrElse { MetricSummary(metric, "-", context.getString(R.string.no_data), hasData = false, granted = true, goal = goal) }
             }
         }
 
@@ -142,15 +143,16 @@ class HealthConnectManager(private val context: Context) {
             val netCarbs = (carbsVal - fiberVal).coerceAtLeast(0f)
             val goal = goals[Metric.CARBS]
 
+            val unit = context.getString(Metric.CARBS.unitRes)
             val displayValue = if (goal != null && goal > 0) {
                 val diff = netCarbs - goal
                 val absDiff = if (diff < 0) -diff else diff
-                val label = if (diff >= 0) "over" else "left"
-                "${Metric.CARBS.formatValue(netCarbs)}${Metric.CARBS.unit} (${Metric.CARBS.formatValue(absDiff)} $label)"
-            } else "${Metric.CARBS.formatValue(netCarbs)}${Metric.CARBS.unit}"
+                val label = context.getString(if (diff >= 0) R.string.over else R.string.left)
+                "${Metric.CARBS.formatValue(netCarbs)}$unit (${Metric.CARBS.formatValue(absDiff)} $label)"
+            } else "${Metric.CARBS.formatValue(netCarbs)}$unit"
 
             val netCarbsSummary = carbsSummary.copy(
-                titleOverride = "Net Carbs",
+                titleOverride = context.getString(R.string.metric_net_carbs),
                 value = displayValue,
                 spark = carbsSummary.spark.zip(fiberSummary.spark.ifEmpty { List(carbsSummary.spark.size) { 0f } }) { c, f -> (c - f).coerceAtLeast(0f) }
             )
@@ -164,10 +166,11 @@ class HealthConnectManager(private val context: Context) {
     private suspend fun summarize(metric: Metric, goal: Float?, dateOffset: Int): MetricSummary {
         val points = series(metric, days = 7 + dateOffset)
         if (points.size <= dateOffset) {
-            return MetricSummary(metric, "-", "No data", hasData = false, granted = true, goal = goal)
+            return MetricSummary(metric, "-", context.getString(R.string.no_data), hasData = false, granted = true, goal = goal)
         }
         val targetIdx = points.size - 1 - dateOffset
         val spark = points.map { it.value }.take(targetIdx + 1).takeLast(7)
+        val unit = context.getString(metric.unitRes)
         
         return when (metric.kind) {
             MetricKind.DAILY_TOTAL -> {
@@ -177,30 +180,30 @@ class HealthConnectManager(private val context: Context) {
                     metric == Metric.CALORIC_BALANCE -> {
                         val absToday = if (today < 0) -today else today
                         val sign = if (today > 0) "-" else if (today < 0) "+" else ""
-                        val formatted = "$sign${metric.formatValue(absToday)}${metric.unit}"
+                        val formatted = "$sign${metric.formatValue(absToday)}$unit"
                         if (goal != null && goal > 0) {
                             val diff = absToday - goal
                             val absDiff = if (diff < 0) -diff else diff
-                            val label = if (diff >= 0) "over" else "left"
+                            val label = context.getString(if (diff >= 0) R.string.over else R.string.left)
                             "$formatted (${metric.formatValue(absDiff)} $label)"
                         } else formatted
                     }
-                    metric == Metric.TOTAL_CALORIES -> "${metric.formatValue(today)}${metric.unit}"
+                    metric == Metric.TOTAL_CALORIES -> "${metric.formatValue(today)}$unit"
                     goal != null -> {
                         val diff = today - goal
                         val absDiff = if (diff < 0) -diff else diff
-                        val label = if (diff >= 0) "over" else "left"
-                        "${metric.formatValue(today)}${metric.unit} (${metric.formatValue(absDiff)} $label)"
+                        val label = context.getString(if (diff >= 0) R.string.over else R.string.left)
+                        "${metric.formatValue(today)}$unit (${metric.formatValue(absDiff)} $label)"
                     }
-                    else -> "${metric.formatValue(today)}${metric.unit}"
+                    else -> "${metric.formatValue(today)}$unit"
                 }
 
                 val displayCaption = if (metric == Metric.CALORIC_BALANCE) {
                     val absYesterday = if (yesterday < 0) -yesterday else yesterday
-                    val label = if (yesterday < 0) "surplus" else "deficit"
-                    "Prior: ${metric.formatValue(absYesterday)}${metric.unit} $label"
+                    val label = context.getString(if (yesterday < 0) R.string.surplus else R.string.deficit)
+                    context.getString(R.string.prior, "${metric.formatValue(absYesterday)}$unit $label")
                 } else {
-                    "Prior: ${metric.formatValue(yesterday)}${metric.unit}"
+                    context.getString(R.string.prior, "${metric.formatValue(yesterday)}$unit")
                 }
 
                 MetricSummary(
@@ -217,8 +220,8 @@ class HealthConnectManager(private val context: Context) {
                 val last = points[targetIdx]
                 MetricSummary(
                     metric = metric,
-                    value = "${metric.formatValue(last.value)}${metric.unit}",
-                    caption = "as of ${dayFmt.format(last.time.atZone(zone))}",
+                    value = "${metric.formatValue(last.value)}$unit",
+                    caption = context.getString(R.string.as_of, dayFmt.format(last.time.atZone(zone))),
                     hasData = true,
                     granted = true,
                     spark = spark,
@@ -253,9 +256,10 @@ class HealthConnectManager(private val context: Context) {
         return runCatching {
             val days = if (metric.kind == MetricKind.DAILY_TOTAL) 14 else 90
             val points = series(metric, days, dateOffset)
+            val unit = context.getString(metric.unitRes)
 
             if (points.isEmpty()) {
-                return MetricDetail(metric, "-", "No data recorded", emptyList(), goal = goal, isGoalEditable = isGoalEditable)
+                return MetricDetail(metric, "-", context.getString(R.string.no_data_recorded), emptyList(), goal = goal, isGoalEditable = isGoalEditable)
             }
             val values = points.map { it.value }
             val headline: String
@@ -263,38 +267,38 @@ class HealthConnectManager(private val context: Context) {
             val stats: List<Pair<String, String>>
             if (metric.kind == MetricKind.DAILY_TOTAL) {
                 if (metric == Metric.FOOD && isCaloricBalanceActive && goal != null) {
-                    headline = "${metric.formatValue(points.last().value)}/${metric.formatValue(goal)} ${metric.unit}"
+                    headline = "${metric.formatValue(points.last().value)}/${metric.formatValue(goal)} $unit"
                     caption = null
                 } else if (metric == Metric.CALORIC_BALANCE && goal != null && goal > 0) {
                     val absVal = if (points.last().value < 0) -points.last().value else points.last().value
                     val diff = goal - absVal
                     headline = when {
-                        diff > 0 -> "${metric.formatValue(diff)}${metric.unit} to goal"
-                        diff < 0 -> "${metric.formatValue(-diff)}${metric.unit} over goal"
-                        else -> "Balance reached"
+                        diff > 0 -> context.getString(R.string.to_goal, "${metric.formatValue(diff)}$unit")
+                        diff < 0 -> context.getString(R.string.over_goal, "${metric.formatValue(-diff)}$unit")
+                        else -> context.getString(R.string.balance_reached)
                     }
-                    caption = if (dateOffset == 0) "Today, ${metric.unit}" else "${dayFmt.format(points.last().time.atZone(zone))}, ${metric.unit}"
+                    caption = if (dateOffset == 0) context.getString(R.string.today_comma, unit) else "${dayFmt.format(points.last().time.atZone(zone))}, $unit"
                 } else {
                     headline = metric.formatValue(points.last().value)
-                    caption = if (dateOffset == 0) "Today, ${metric.unit}" else "${dayFmt.format(points.last().time.atZone(zone))}, ${metric.unit}"
+                    caption = if (dateOffset == 0) context.getString(R.string.today_comma, unit) else "${dayFmt.format(points.last().time.atZone(zone))}, $unit"
                 }
                 stats = listOf(
-                    "Daily avg" to "${metric.formatValue(values.average().toFloat())} ${metric.unit}",
-                    "Best day" to "${metric.formatValue(values.max())} ${metric.unit}",
-                    "14-day total" to "${metric.formatValue(values.sum())} ${metric.unit}",
+                    context.getString(R.string.daily_avg) to "${metric.formatValue(values.average().toFloat())} $unit",
+                    context.getString(R.string.best_day) to "${metric.formatValue(values.max())} $unit",
+                    context.getString(R.string.fourteen_day_total) to "${metric.formatValue(values.sum())} $unit",
                 )
             } else {
-                headline = "${metric.formatValue(points.last().value)} ${metric.unit}"
-                caption = "Latest, ${dayFmt.format(points.last().time.atZone(zone))}"
+                headline = "${metric.formatValue(points.last().value)} $unit"
+                caption = context.getString(R.string.latest_comma, dayFmt.format(points.last().time.atZone(zone)))
                 stats = listOf(
-                    "Average" to "${metric.formatValue(values.average().toFloat())} ${metric.unit}",
-                    "Min" to "${metric.formatValue(values.min())} ${metric.unit}",
-                    "Max" to "${metric.formatValue(values.max())} ${metric.unit}",
+                    context.getString(R.string.average) to "${metric.formatValue(values.average().toFloat())} $unit",
+                    context.getString(R.string.min) to "${metric.formatValue(values.min())} $unit",
+                    context.getString(R.string.max) to "${metric.formatValue(values.max())} $unit",
                 )
             }
             val recent = points.takeLast(20).reversed().map {
                 RecordRow(
-                    primary = "${metric.formatValue(it.value)} ${metric.unit}",
+                    primary = "${metric.formatValue(it.value)} $unit",
                     secondary = dayMonthTime(it.time),
                     startTime = it.time
                 )
@@ -308,31 +312,31 @@ class HealthConnectManager(private val context: Context) {
                 val grouped = records.groupBy { r ->
                     val hour = r.startTime.atZone(zone).hour
                     when (hour) {
-                        in 5..11 -> "Morning"
-                        in 12..17 -> "Day"
-                        else -> "Night"
+                        in 5..11 -> context.getString(R.string.morning)
+                        in 12..17 -> context.getString(R.string.day)
+                        else -> context.getString(R.string.night)
                     }
                 }
-                listOf("Morning", "Day", "Night").mapNotNull { section ->
+                listOf(context.getString(R.string.morning), context.getString(R.string.day), context.getString(R.string.night)).mapNotNull { section ->
                     grouped[section]?.let { recs ->
                         section to recs.sortedBy { it.startTime }.map { r ->
-                            val name = r.name ?: "Unknown Food"
+                            val name = r.name ?: context.getString(R.string.unknown_food)
                             val kcal = r.energy?.inKilocalories ?: 0.0
                             val time = timeFmt.format(r.startTime.atZone(zone))
 
                             val macros = mutableListOf<String>()
-                            r.protein?.let { macros.add("• Protein: ${formatNumber(it.inGrams)}g") }
-                            r.totalCarbohydrate?.let { macros.add("Total Carbs: ${formatNumber(it.inGrams)}g") }
-                            r.dietaryFiber?.let { macros.add("Fiber: ${formatNumber(it.inGrams)}g") }
-                            r.totalFat?.let { macros.add("Total Fat: ${formatNumber(it.inGrams)}g") }
-                            r.saturatedFat?.let { macros.add("Saturated Fat: ${formatNumber(it.inGrams)}g") }
-                            r.sugar?.let { macros.add("Sugar: ${formatNumber(it.inGrams)}g") }
-                            r.sodium?.let { macros.add("Sodium: ${formatNumber(it.inMilligrams)}mg") }
+                            r.protein?.let { macros.add("${context.getString(R.string.metric_protein)}: ${formatNumber(it.inGrams)}${context.getString(R.string.unit_g)}") }
+                            r.totalCarbohydrate?.let { macros.add("${context.getString(R.string.metric_carbs)}: ${formatNumber(it.inGrams)}${context.getString(R.string.unit_g)}") }
+                            r.dietaryFiber?.let { macros.add("${context.getString(R.string.metric_fiber)}: ${formatNumber(it.inGrams)}${context.getString(R.string.unit_g)}") }
+                            r.totalFat?.let { macros.add("${context.getString(R.string.metric_fat)}: ${formatNumber(it.inGrams)}${context.getString(R.string.unit_g)}") }
+                            r.saturatedFat?.let { macros.add("${context.getString(R.string.metric_saturated_fat)}: ${formatNumber(it.inGrams)}${context.getString(R.string.unit_g)}") }
+                            r.sugar?.let { macros.add("${context.getString(R.string.metric_sugar)}: ${formatNumber(it.inGrams)}${context.getString(R.string.unit_g)}") }
+                            r.sodium?.let { macros.add("${context.getString(R.string.metric_sodium)}: ${formatNumber(it.inMilligrams)}${context.getString(R.string.unit_mg)}") }
                             val tertiary = macros.joinToString("\n• ").takeIf { it.isNotEmpty() }
 
                             RecordRow(
                                 primary = name,
-                                secondary = "${formatNumber(kcal)} kcal • $time",
+                                secondary = "${formatNumber(kcal)} ${context.getString(R.string.unit_kcal)} • $time",
                                 tertiary = tertiary,
                                 id = r.metadata.id,
                                 isEditable = r.metadata.dataOrigin.packageName == context.packageName,
@@ -345,7 +349,7 @@ class HealthConnectManager(private val context: Context) {
 
             MetricDetail(metric, headline, caption, points, stats, recent, todaySections, goal = goal, isGoalEditable = isGoalEditable)
         }.getOrElse {
-            val msg = if (isGranted(metric)) "Error reading data" else "Permission not granted"
+            val msg = if (isGranted(metric)) context.getString(R.string.error_reading_data) else context.getString(R.string.permission_not_granted)
             MetricDetail(metric, "-", msg, emptyList(), emptyList(), emptyList(), emptyList(), goal = goal, isGoalEditable = isGoalEditable)
         }
     }

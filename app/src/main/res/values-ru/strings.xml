@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Sustenance</string>
+    <string name="widget_dashboard_name">Панель Sustenance</string>
+    <string name="widget_metric_name">Метрика Sustenance</string>
+    <string name="widget_description">Наглядные показатели здоровья из Health Connect.</string>
+    <string name="metric_widget_description">Одиночный показатель здоровья с графиком на ваш выбор.</string>
+
+    <string name="cancel">Отмена</string>
+    <string name="save">Сохранить</string>
+    <string name="delete">Удалить</string>
+    <string name="refresh">Обновить</string>
+    <string name="back">Назад</string>
+    <string name="locked">Заблокировано</string>
+
+    <string name="greeting_morning">Доброе утро</string>
+    <string name="greeting_afternoon">Добрый день</string>
+    <string name="greeting_evening">Добрый вечер</string>
+    <string name="yesterday">Вчера</string>
+    <string name="today_label">Сегодня</string>
+    <string name="section_energy">Энергия</string>
+    <string name="section_food">Еда</string>
+    <string name="section_macros">Макросы</string>
+    <string name="section_micros">Микроэлементы</string>
+
+    <string name="metric_total_calories">Всего энергии</string>
+    <string name="metric_food">Еда</string>
+    <string name="metric_caloric_balance">Калорийный баланс</string>
+    <string name="metric_protein">Белки</string>
+    <string name="metric_carbs">Углеводы</string>
+    <string name="metric_fat">Жиры</string>
+    <string name="metric_saturated_fat">Насыщенные жиры</string>
+    <string name="metric_sodium">Натрий</string>
+    <string name="metric_sugar">Сахар</string>
+    <string name="metric_fiber">Клетчатка</string>
+    <string name="metric_net_carbs">Чистые углеводы</string>
+
+    <string name="unit_kcal">ккал</string>
+    <string name="unit_g">г</string>
+    <string name="unit_mg">мг</string>
+
+    <string name="base_serving">Базовая порция: </string>
+    <string name="grams_label">ГРАММ</string>
+    <string name="less">Меньше</string>
+    <string name="more">Больше</string>
+    <string name="log_food">Записать еду</string>
+    <string name="total_preview">Всего: %s</string>
+    <string name="food_item_placeholder">Название еды</string>
+
+    <string name="summary_subtitle">Ваш ежедневный рацион</string>
+    <string name="summary_title">Сводка</string>
+    <string name="new_label">Новое</string>
+    <string name="steady_label">Стабильно</string>
+    <string name="vs_yesterday">%d%% по сравнению со вчера</string>
+    <string name="nothing_here">Здесь пока ничего нет</string>
+    <string name="grant_access_prompt">Разрешите доступ к данным о питании в Настройках, чтобы увидеть результаты.</string>
+    <string name="edit_goal_desc">Изменить цель</string>
+
+    <string name="settings_subtitle">Полезные настройки</string>
+    <string name="settings_title">Настройки</string>
+    <string name="section_appearance">Внешний вид</string>
+    <string name="section_diet">Диета</string>
+    <string name="section_misc">Разное</string>
+    <string name="section_data">Данные</string>
+    <string name="section_about">О приложении</string>
+    <string name="dynamic_color">Динамические цвета</string>
+    <string name="dynamic_color_summary">Использовать цвета системных обоев (Android 12+)</string>
+    <string name="keto_mode">Кето-режим</string>
+    <string name="keto_mode_summary">Показывать чистые углеводы (Углеводы - Клетчатка)</string>
+    <string name="enable_food_logging">Включить запись еды</string>
+    <string name="food_logging_summary">Требуется API-ключ AI Studio.\nSustenance использует gemini-3.1-flash-lite.</string>
+    <string name="api_key">API-ключ</string>
+    <string name="hide_api_key">Скрыть API-ключ</string>
+    <string name="show_api_key">Показать API-ключ</string>
+    <string name="launch_hc">Запустить Health Connect</string>
+    <string name="launch_hc_summary">Проверьте, есть ли у Sustenance доступ к вашим данным.</string>
+    <string name="about_summary">Ваш удобный офлайн-дневник питания на базе Health Connect.</string>
+    <string name="export_no_data">Нет доступных данных для экспорта</string>
+    <string name="export_success">Экспортировано %1$d записей в формате %2$s</string>
+    <string name="export_failed">Ошибка экспорта: %s</string>
+    <string name="export_format_title">Формат экспорта</string>
+    <string name="export_format_summary">Выберите способ сохранения данных.</string>
+
+    <string name="edit_caloric_balance_offset">Изменить смещение калорийного баланса</string>
+    <string name="edit_metric_goal">Изменить цель: %s</string>
+    <string name="offset_label">Смещение (%s)</string>
+    <string name="target_label">Цель (%s)</string>
+    <string name="delete_log_title">Удалить запись?</string>
+    <string name="delete_log_confirm">Вы уверены, что хотите удалить «%s»?</string>
+    <string name="recent_records">Последние записи</string>
+    <string name="todays_intake">Сегодняшний рацион</string>
+    <string name="offset_short">Смещение</string>
+    <string name="goal_short">Цель</string>
+    <string name="edit_offset_desc">Изменить смещение</string>
+
+    <string name="no_data">Нет данных</string>
+    <string name="over">превышение</string>
+    <string name="left">осталось</string>
+    <string name="prior">Ранее: %s</string>
+    <string name="surplus">избыток</string>
+    <string name="deficit">дефицит</string>
+    <string name="as_of">от %s</string>
+    <string name="no_data_recorded">Нет записей</string>
+    <string name="to_goal">%s до цели</string>
+    <string name="over_goal">%s сверх цели</string>
+    <string name="balance_reached">Баланс достигнут</string>
+    <string name="today_comma">Сегодня, %s</string>
+    <string name="daily_avg">Среднее за день</string>
+    <string name="best_day">Лучший день</string>
+    <string name="fourteen_day_total">Всего за 14 дней</string>
+    <string name="average">Среднее</string>
+    <string name="min">Мин</string>
+    <string name="max">Макс</string>
+    <string name="latest_comma">Последнее, %s</string>
+    <string name="morning">Утро</string>
+    <string name="day">День</string>
+    <string name="night">Ночь</string>
+    <string name="unknown_food">Неизвестная еда</string>
+    <string name="one_serving">1 порция</string>
+    <string name="error_reading_data">Ошибка при чтении данных</string>
+    <string name="permission_not_granted">Доступ не предоставлен</string>
+
+    <string name="optional_info">(Дополнительная информация - необязательно)</string>
+    <string name="select_from_gallery">Выбрать из галереи</string>
+    <string name="analyze_photos">Анализировать фото (%d)</string>
+    <string name="analyze">Анализировать</string>
+    <string name="details">Детали</string>
+    <string name="capture_count">Снять (%d)</string>
+    <string name="log">Запись</string>
+
+    <string name="api_key_missing">API-ключ отсутствует.</string>
+    <string name="api_key_invalid">API-ключ отсутствует или недействителен.</string>
+    <string name="analysis_failed">Ошибка анализа: %s</string>
+    <string name="write_permission_required">Требуется разрешение на запись. Пожалуйста, включите его.</string>
+    <string name="failed_to_log_food">Не удалось записать еду</string>
+    <string name="pick_metric">Выберите метрику</string>
+    <string name="onboarding_title">Добро пожаловать в Sustenance</string>
+    <string name="onboarding_subtitle">Приватный и наглядный дневник вашего питания. Sustenance только читает данные — они никогда не покидают ваше устройство.</string>
+    <string name="onboarding_button">Подключить Health Connect</string>
+    <string name="unavailable_title">Требуется Health Connect</string>
+    <string name="unavailable_subtitle">Sustenance требует наличия Health Connect для безопасного доступа к вашим данным о питании. Пожалуйста, установите его.</string>
+    <string name="unavailable_button">Скачать Health Connect</string>
+    <string name="widget_connect_prompt">Нажмите, чтобы подключить данные</string>
+    <string name="tap_to_connect">Нажмите, чтобы подключить</string>
+    <string name="no_recent_data">Нет последних данных</string>
+</resources>

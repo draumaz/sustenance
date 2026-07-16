@@ -44,6 +44,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.annotation.StringRes
+import androidx.compose.ui.res.stringResource
 import androidx.core.net.toUri
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
@@ -67,6 +69,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import dev.easonhuang.sustenance.R
 import dev.easonhuang.sustenance.data.ExportManager
 import dev.easonhuang.sustenance.data.GoalsRepository
 import dev.easonhuang.sustenance.data.HealthConnectManager
@@ -93,10 +96,10 @@ private const val HEALTH_CONNECT_PACKAGE = "com.google.android.apps.healthdata"
 private const val ACTION_HC_SETTINGS = "androidx.health.connect.action.HEALTH_CONNECT_SETTINGS"
 private const val ACTION_MANAGE_HEALTH_PERMISSIONS = "androidx.health.connect.action.MANAGE_HEALTH_PERMISSIONS"
 
-enum class Dest(val route: String, val label: String, val icon: ImageVector) {
-    TODAY("today", "Today", Icons.Rounded.Today),
-    SUMMARY("summary", "Summary", Icons.Rounded.Insights),
-    SETTINGS("settings", "Settings", Icons.Rounded.Settings),
+enum class Dest(val route: String, @StringRes val labelRes: Int, val icon: ImageVector) {
+    TODAY("today", R.string.today_label, Icons.Rounded.Today),
+    SUMMARY("summary", R.string.summary_title, Icons.Rounded.Insights),
+    SETTINGS("settings", R.string.settings_title, Icons.Rounded.Settings),
 }
 
 @Composable
@@ -383,7 +386,7 @@ private fun MainNav(
                                 if (trimmedKey.isBlank()) {
                                     Toast.makeText(
                                         currentContext,
-                                        "API Key missing.",
+                                        R.string.api_key_missing,
                                         Toast.LENGTH_SHORT
                                     ).show()
                                     return@launch
@@ -400,7 +403,7 @@ private fun MainNav(
                                 } else {
                                     Toast.makeText(
                                         currentContext,
-                                        "Analysis failed: ${result.exceptionOrNull()?.message}",
+                                        currentContext.getString(R.string.analysis_failed, result.exceptionOrNull()?.message ?: ""),
                                         Toast.LENGTH_LONG
                                     ).show()
                                 }
@@ -566,7 +569,7 @@ private fun MainNav(
                                         if (trimmedKey.isBlank()) {
                                             Toast.makeText(
                                                 currentContext,
-                                                "API Key is missing or invalid.",
+                                                R.string.api_key_invalid,
                                                 Toast.LENGTH_LONG
                                             ).show()
                                             isCapturing = false
@@ -587,10 +590,10 @@ private fun MainNav(
                                         } else {
                                             val errorMsg =
                                                 result.exceptionOrNull()?.localizedMessage
-                                                    ?: "Unknown error"
+                                                    ?: ""
                                             Toast.makeText(
                                                 currentContext,
-                                                "Analysis failed: $errorMsg",
+                                                currentContext.getString(R.string.analysis_failed, errorMsg),
                                                 Toast.LENGTH_LONG
                                             ).show()
                                             isCapturing = false
@@ -639,7 +642,7 @@ private fun MainNav(
                                     )
                                     Toast.makeText(
                                         currentContext,
-                                        "Write permission required. Please enable it.",
+                                        R.string.write_permission_required,
                                         Toast.LENGTH_LONG
                                     ).show()
                                     onManagePermissions()
@@ -647,7 +650,7 @@ private fun MainNav(
                                     Log.e("MainNav", "Failed to log food", e)
                                     Toast.makeText(
                                         currentContext,
-                                        e.message ?: "Failed to log food",
+                                        R.string.failed_to_log_food,
                                         Toast.LENGTH_LONG
                                     ).show()
                                 }

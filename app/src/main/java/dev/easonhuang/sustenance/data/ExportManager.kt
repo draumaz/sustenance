@@ -47,8 +47,8 @@ class ExportManager(
         sections.forEach { (metric, points) ->
             points.forEach { p ->
                 writer.append(metric.key).append(',')
-                    .append(csv(metric.title)).append(',')
-                    .append(metric.unit).append(',')
+                    .append(csv(context.getString(metric.titleRes))).append(',')
+                    .append(context.getString(metric.unitRes)).append(',')
                     .append(iso.format(p.time)).append(',')
                     .append(p.value.toString()).append('\n')
             }
@@ -60,8 +60,8 @@ class ExportManager(
         sections.forEachIndexed { si, (metric, points) ->
             if (si > 0) writer.append(',')
             writer.append("{\"key\":\"").append(metric.key).append("\",")
-                .append("\"title\":").append(jsonStr(metric.title)).append(',')
-                .append("\"unit\":\"").append(metric.unit).append("\",")
+                .append("\"title\":").append(jsonStr(context.getString(metric.titleRes))).append(',')
+                .append("\"unit\":\"").append(context.getString(metric.unitRes)).append("\",")
                 .append("\"points\":[")
             points.forEachIndexed { pi, p ->
                 if (pi > 0) writer.append(',')

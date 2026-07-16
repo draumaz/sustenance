@@ -68,7 +68,7 @@ private fun WidgetContent(tiles: List<MetricSummary>) {
             .clickable(actionStartActivity(Intent(context, MainActivity::class.java))),
     ) {
         Text(
-            text = "Sustenance",
+            text = context.getString(dev.easonhuang.sustenance.R.string.app_name),
             style = TextStyle(
                 color = GlanceTheme.colors.primary,
                 fontWeight = FontWeight.Bold,
@@ -78,7 +78,7 @@ private fun WidgetContent(tiles: List<MetricSummary>) {
         Spacer(GlanceModifier.height(10.dp))
         if (tiles.isEmpty()) {
             Text(
-                text = "Tap to connect your health data",
+                text = context.getString(dev.easonhuang.sustenance.R.string.widget_connect_prompt),
                 style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 13.sp),
             )
         } else {
@@ -98,6 +98,7 @@ private fun WidgetContent(tiles: List<MetricSummary>) {
 
 @Composable
 private fun Tile(tile: MetricSummary, modifier: GlanceModifier) {
+    val context = LocalContext.current
     Column(
         modifier = modifier
             .background(GlanceTheme.colors.secondaryContainer)
@@ -105,7 +106,7 @@ private fun Tile(tile: MetricSummary, modifier: GlanceModifier) {
             .padding(12.dp),
     ) {
         Text(
-            text = tile.metric.title,
+            text = context.getString(tile.metric.titleRes),
             maxLines = 1,
             style = TextStyle(color = GlanceTheme.colors.onSecondaryContainer, fontSize = 12.sp),
         )
@@ -121,7 +122,7 @@ private fun Tile(tile: MetricSummary, modifier: GlanceModifier) {
             )
             Spacer(GlanceModifier.width(3.dp))
             Text(
-                text = tile.metric.unit,
+                text = context.getString(tile.metric.unitRes),
                 style = TextStyle(color = GlanceTheme.colors.onSecondaryContainer, fontSize = 11.sp),
             )
         }

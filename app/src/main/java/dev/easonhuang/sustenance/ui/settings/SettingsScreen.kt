@@ -74,6 +74,8 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.ui.res.stringResource
+import dev.easonhuang.sustenance.R
 import dev.easonhuang.sustenance.BuildConfig
 import dev.easonhuang.sustenance.data.ExportFormat
 import dev.easonhuang.sustenance.data.ExportManager
@@ -110,11 +112,11 @@ fun SettingsScreen(
         val granted = runCatching { manager.grantedPermissions() }.getOrDefault(emptySet())
         val metrics = Metric.entries.filter { manager.permissionFor(it) in granted }
         if (metrics.isEmpty()) {
-            snackbar.showSnackbar("No accessible data to export"); return
+            snackbar.showSnackbar(context.getString(R.string.export_no_data)); return
         }
         exporter.export(uri, metrics, format).fold(
-            onSuccess = { count -> snackbar.showSnackbar("Exported $count records as ${format.label}") },
-            onFailure = { snackbar.showSnackbar("Export failed: ${it.message}") },
+            onSuccess = { count -> snackbar.showSnackbar(context.getString(R.string.export_success, count, format.label)) },
+            onFailure = { snackbar.showSnackbar(context.getString(R.string.export_failed, it.message)) },
         )
     }
 
@@ -131,8 +133,8 @@ fun SettingsScreen(
             TopAppBar(
                 title = {
                     Column {
-                        Text("Helpful adjustments", style = MaterialTheme.typography.labelSmall.copy(fontSize = 15.sp), color = MaterialTheme.colorScheme.primary)
-                        Text("Settings", style = MaterialTheme.typography.titleLarge.copy(fontSize = 25.sp), fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.settings_subtitle), style = MaterialTheme.typography.labelSmall.copy(fontSize = 15.sp), color = MaterialTheme.colorScheme.primary)
+                        Text(stringResource(R.string.settings_title), style = MaterialTheme.typography.titleLarge.copy(fontSize = 25.sp), fontWeight = FontWeight.Bold)
                     }
                 },
                 scrollBehavior = scrollBehavior,
@@ -146,34 +148,34 @@ fun SettingsScreen(
             contentPadding = PaddingValues(top = inner.calculateTopPadding(), bottom = bottomInset + 24.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            item { SectionLabel("Appearance") }
+            item { SectionLabel(stringResource(R.string.section_appearance)) }
             item {
                 SettingsCard {
                     SettingRow(
                         icon = Icons.Rounded.Palette,
-                        title = "Dynamic color",
-                        subtitle = "Use colors from your system wallpaper (Android 12+)",
+                        title = stringResource(R.string.dynamic_color),
+                        subtitle = stringResource(R.string.dynamic_color_summary),
                         onClick = { vm.setDynamicColor(!dynamicColor) }
                     ) {
                         Switch(checked = dynamicColor, onCheckedChange = null)
                     }
                 }
             }
-            item { SectionLabel("Diet") }
+            item { SectionLabel(stringResource(R.string.section_diet)) }
             item {
                 SettingsCard {
                     val ketoMode by vm.ketoMode.collectAsState(initial = false)
                     SettingRow(
                         icon = Icons.Rounded.Whatshot,
-                        title = "Keto Mode",
-                        subtitle = "Display Net Carbs (Carbs - Fiber)",
+                        title = stringResource(R.string.keto_mode),
+                        subtitle = stringResource(R.string.keto_mode_summary),
                         onClick = { vm.setKetoMode(!ketoMode) }
                     ) {
                         Switch(checked = ketoMode, onCheckedChange = null)
                     }
                 }
             }
-            item { SectionLabel("Misc") }
+            item { SectionLabel(stringResource(R.string.section_misc)) }
             item {
                 SettingsCard {
                     val apiKeyEnabled by vm.apiKeyEnabled.collectAsState(initial = false)
@@ -182,8 +184,8 @@ fun SettingsScreen(
 
                     SettingRow(
                         icon = Icons.Rounded.Key,
-                        title = "Enable Food logging",
-                        subtitle = "AI Studio API key required.\nSustenance talks to gemini-3.1-flash-lite.",
+                        title = stringResource(R.string.enable_food_logging),
+                        subtitle = stringResource(R.string.food_logging_summary),
                         onClick = { vm.setApiKeyEnabled(!apiKeyEnabled) }
                     ) {
                         Switch(checked = apiKeyEnabled, onCheckedChange = null)
@@ -203,13 +205,13 @@ fun SettingsScreen(
                                 modifier = Modifier.weight(1f),
                                 placeholder = { Text("AQ.", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)) },
                                 singleLine = true,
-                                label = { Text("API Key") },
+                                label = { Text(stringResource(R.string.api_key)) },
                                 visualTransformation = if (apiKeyVisible) VisualTransformation.None else PasswordVisualTransformation(),
                                 trailingIcon = {
                                     IconButton(onClick = { apiKeyVisible = !apiKeyVisible }) {
                                         Icon(
                                             imageVector = if (apiKeyVisible) Icons.Rounded.VisibilityOff else Icons.Rounded.Visibility,
-                                            contentDescription = if (apiKeyVisible) "Hide API Key" else "Show API Key"
+                                            contentDescription = if (apiKeyVisible) stringResource(R.string.hide_api_key) else stringResource(R.string.show_api_key)
                                         )
                                     }
                                 }
@@ -219,13 +221,13 @@ fun SettingsScreen(
                     }
                 }
             }
-            item { SectionLabel("Data") }
+            item { SectionLabel(stringResource(R.string.section_data)) }
             item {
                 SettingsCard {
                     SettingRow(
                         icon = Icons.Rounded.HealthAndSafety,
-                        title = "Launch Health Connect",
-                        subtitle = "Verify Sustenance can see your health data.",
+                        title = stringResource(R.string.launch_hc),
+                        subtitle = stringResource(R.string.launch_hc_summary),
                         onClick = {
                             runCatching {
                                 val intent = Intent(HealthConnectClient.ACTION_HEALTH_CONNECT_SETTINGS)
@@ -235,13 +237,13 @@ fun SettingsScreen(
                     )
                 }
             }
-            item { SectionLabel("About") }
+            item { SectionLabel(stringResource(R.string.section_about)) }
             item {
                 SettingsCard {
                     SettingRow(
                         icon = Icons.AutoMirrored.Rounded.OpenInNew,
                         title = "Sustenance ${BuildConfig.VERSION_NAME}",
-                        subtitle = "Your beautiful, offline nutrition summary, powered by Health Connect.",
+                        subtitle = stringResource(R.string.about_summary),
                         onClick = {
                             runCatching {
                                 context.startActivity(Intent(Intent.ACTION_VIEW, REPO_URL.toUri()))
@@ -270,8 +272,8 @@ fun SettingsScreen(
     if (showFormatDialog) {
         AlertDialog(
             onDismissRequest = { showFormatDialog = false },
-            title = { Text("Export format") },
-            text = { Text("Choose how to save your data.") },
+            title = { Text(stringResource(R.string.export_format_title)) },
+            text = { Text(stringResource(R.string.export_format_summary)) },
             confirmButton = {
                 TextButton(onClick = {
                     showFormatDialog = false

@@ -32,6 +32,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.background
 
+import androidx.compose.ui.res.stringResource
+import dev.easonhuang.sustenance.R
+
 @Composable
 fun LoadingScreen() {
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -55,7 +58,7 @@ fun OnboardingScreen(onConnect: () -> Unit) {
             Icon(Icons.Rounded.Restaurant, null, tint = accent, modifier = Modifier.size(56.dp))
         }
         Spacer(Modifier.height(40.dp))
-        Text("Welcome to Sustenance", 
+        Text(stringResource(R.string.onboarding_title), 
             style = MaterialTheme.typography.headlineLarge,
             fontWeight = FontWeight.Black, 
             textAlign = TextAlign.Center,
@@ -63,7 +66,7 @@ fun OnboardingScreen(onConnect: () -> Unit) {
         )
         Spacer(Modifier.height(16.dp))
         Text(
-            "A private, expressive viewer for your nutritional data. Sustenance only reads—nothing ever leaves your device.",
+            stringResource(R.string.onboarding_subtitle),
             style = MaterialTheme.typography.bodyLarge,
             fontWeight = FontWeight.Medium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -76,7 +79,7 @@ fun OnboardingScreen(onConnect: () -> Unit) {
             shape = MaterialTheme.shapes.extraLarge,
             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
         ) {
-            Text("Connect Health Connect", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.onboarding_button), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
         }
     }
 }
@@ -91,14 +94,14 @@ fun UnavailableScreen(onInstall: () -> Unit) {
         Icon(Icons.Rounded.HealthAndSafety, null, tint = MaterialTheme.colorScheme.error,
             modifier = Modifier.size(80.dp))
         Spacer(Modifier.height(32.dp))
-        Text("Health Connect needed", 
+        Text(stringResource(R.string.unavailable_title), 
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Black, 
             textAlign = TextAlign.Center
         )
         Spacer(Modifier.height(16.dp))
         Text(
-            "Sustenance requires Health Connect to access your nutritional data securely. Please install it to continue.",
+            stringResource(R.string.unavailable_subtitle),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
@@ -109,7 +112,7 @@ fun UnavailableScreen(onInstall: () -> Unit) {
             modifier = Modifier.fillMaxWidth().height(56.dp),
             shape = MaterialTheme.shapes.large
         ) {
-            Text("Get Health Connect", fontWeight = FontWeight.Bold)
+            Text(stringResource(R.string.unavailable_button), fontWeight = FontWeight.Bold)
         }
     }
 }

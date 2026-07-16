@@ -62,6 +62,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.res.stringResource
+import dev.easonhuang.sustenance.R
 import dev.easonhuang.sustenance.data.GoalsRepository
 import dev.easonhuang.sustenance.data.HealthConnectManager
 import dev.easonhuang.sustenance.data.Metric
@@ -114,12 +116,12 @@ fun DetailScreen(
     if (showGoalDialog) {
         val currentGoal = detail?.goal ?: 0f
         var text by remember { mutableStateOf(currentGoal.toString().removeSuffix(".0")) }
-        val titleText = if (metric == Metric.CALORIC_BALANCE) "Edit Caloric balance offset" else "Edit ${metric.title} Goal"
+        val titleText = if (metric == Metric.CALORIC_BALANCE) stringResource(R.string.edit_caloric_balance_offset) else stringResource(R.string.edit_metric_goal, stringResource(metric.titleRes))
         AlertDialog(
             onDismissRequest = { showGoalDialog = false },
             title = { Text(titleText) },
             text = {
-                val labelText = if (metric == Metric.CALORIC_BALANCE) "Offset (${metric.unit})" else "Target (${metric.unit})"
+                val labelText = if (metric == Metric.CALORIC_BALANCE) stringResource(R.string.offset_label, stringResource(metric.unitRes)) else stringResource(R.string.target_label, stringResource(metric.unitRes))
                 OutlinedTextField(
                     value = text,
                     onValueChange = { text = it },
@@ -134,12 +136,12 @@ fun DetailScreen(
                     text.toFloatOrNull()?.let { vm.setGoal(it) }
                     showGoalDialog = false
                 }) {
-                    Text("Save")
+                    Text(stringResource(R.string.save))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showGoalDialog = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
@@ -148,8 +150,8 @@ fun DetailScreen(
     recordToDelete?.let { record ->
         AlertDialog(
             onDismissRequest = { recordToDelete = null },
-            title = { Text("Delete log?") },
-            text = { Text("Are you sure you want to remove \"${record.primary}\"?") },
+            title = { Text(stringResource(R.string.delete_log_title)) },
+            text = { Text(stringResource(R.string.delete_log_confirm, record.primary)) },
             confirmButton = {
                 TextButton(
                     onClick = {
@@ -158,12 +160,12 @@ fun DetailScreen(
                     },
                     colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
                 ) {
-                    Text("Delete")
+                    Text(stringResource(R.string.delete))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { recordToDelete = null }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
@@ -191,14 +193,14 @@ fun DetailScreen(
                 TopAppBar(
                     title = {
                         Text(
-                            metric.title,
+                            stringResource(metric.titleRes),
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.ExtraBold
                         )
                     },
                     navigationIcon = {
                         IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Back")
+                            Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.back))
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
@@ -242,7 +244,7 @@ fun DetailScreen(
                     if (d.recent.isNotEmpty()) {
                         item {
                             Text(
-                                "Recent records",
+                                stringResource(R.string.recent_records),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Black,
                                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
@@ -269,7 +271,7 @@ private fun FoodItemsCard(
     ) {
         Column(Modifier.padding(vertical = 12.dp)) {
             Text(
-                "Today's intake",
+                stringResource(R.string.todays_intake),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Black,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
@@ -321,7 +323,7 @@ private fun FoodItemsCard(
                                     ) {
                                         Icon(
                                             Icons.Rounded.Delete,
-                                            contentDescription = "Delete",
+                                            contentDescription = stringResource(R.string.delete),
                                             tint = MaterialTheme.colorScheme.error.copy(alpha = 0.6f),
                                             modifier = Modifier.size(18.dp)
                                         )
@@ -412,9 +414,9 @@ private fun HeaderCard(d: MetricDetail, onEditGoal: () -> Unit) {
                     }
                     d.goal?.let {
                         if (d.isGoalEditable) {
-                            val label = if (d.metric == Metric.CALORIC_BALANCE) "Offset" else "Goal"
+                            val label = if (d.metric == Metric.CALORIC_BALANCE) stringResource(R.string.offset_short) else stringResource(R.string.goal_short)
                             Text(
-                                "$label: ${d.metric.formatValue(it)} ${d.metric.unit}",
+                                "$label: ${d.metric.formatValue(it)} ${stringResource(d.metric.unitRes)}",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                                 maxLines = 1
@@ -423,7 +425,7 @@ private fun HeaderCard(d: MetricDetail, onEditGoal: () -> Unit) {
                     }
                 }
                 if (d.isGoalEditable) {
-                    val editDesc = if (d.metric == Metric.CALORIC_BALANCE) "Edit Offset" else "Edit Goal"
+                    val editDesc = if (d.metric == Metric.CALORIC_BALANCE) stringResource(R.string.edit_offset_desc) else stringResource(R.string.edit_goal_desc)
                     IconButton(onClick = onEditGoal) {
                         Icon(Icons.Rounded.Edit, contentDescription = editDesc, tint = accent.copy(alpha = 0.6f))
                     }
@@ -445,7 +447,7 @@ private fun ChartCard(d: MetricDetail, selectedIndex: Int?, onSelectedIndexChang
                 points = d.points, 
                 color = d.metric.accent, 
                 modifier = Modifier.fillMaxSize(), 
-                unit = d.metric.unit,
+                unit = stringResource(d.metric.unitRes),
                 selectedIndex = selectedIndex,
                 onSelectedIndexChange = onSelectedIndexChange
             )

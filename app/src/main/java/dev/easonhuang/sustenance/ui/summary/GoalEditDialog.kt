@@ -16,6 +16,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import dev.easonhuang.sustenance.R
 import dev.easonhuang.sustenance.data.Metric
 import dev.easonhuang.sustenance.data.WeeklyStat
 
@@ -30,8 +32,8 @@ fun GoalEditDialog(
             if (stat.goal % 1f == 0f) stat.goal.toInt().toString() else stat.goal.toString()
         )
     }
-    val title = if (stat.metric == Metric.CALORIC_BALANCE) "Caloric balance offset" else "${stat.metric.title} goal"
-    val prompt = if (stat.metric == Metric.CALORIC_BALANCE) "Daily offset in ${stat.metric.unit}" else "Daily target in ${stat.metric.unit}"
+    val title = if (stat.metric == Metric.CALORIC_BALANCE) stringResource(R.string.edit_caloric_balance_offset) else stringResource(R.string.edit_metric_goal, stringResource(stat.metric.titleRes))
+    val prompt = if (stat.metric == Metric.CALORIC_BALANCE) stringResource(R.string.offset_label, stringResource(stat.metric.unitRes)) else stringResource(R.string.target_label, stringResource(stat.metric.unitRes))
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
@@ -44,15 +46,15 @@ fun GoalEditDialog(
                     onValueChange = { text = it.filter { c -> c.isDigit() || c == '.' } },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    suffix = { Text(stat.metric.unit) },
+                    suffix = { Text(stringResource(stat.metric.unitRes)) },
                 )
             }
         },
         confirmButton = {
             TextButton(
                 onClick = { text.toFloatOrNull()?.let { onSave(it) } ?: onDismiss() },
-            ) { Text("Save") }
+            ) { Text(stringResource(R.string.save)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
     )
 }

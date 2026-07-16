@@ -36,6 +36,8 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import dev.easonhuang.sustenance.R
 import dev.easonhuang.sustenance.data.MetricSummary
 
 @Composable
@@ -124,7 +126,7 @@ fun MetricItemContent(
         Spacer(Modifier.width(8.dp))
         Column(Modifier.weight(1f)) {
             Text(
-                text = summary.titleOverride ?: summary.metric.title,
+                text = summary.titleOverride ?: stringResource(summary.metric.titleRes),
                 style = MaterialTheme.typography.labelSmall.copy(shadow = textShadow),
                 fontWeight = FontWeight.Medium,
                 color = Color.White.copy(alpha = 0.8f),
@@ -142,7 +144,7 @@ fun MetricItemContent(
             }
 
             Text(
-                text = if (locked) "Locked" else summary.value,
+                text = if (locked) stringResource(R.string.locked) else summary.value,
                 style = textStyle,
                 maxLines = 1,
                 softWrap = false,

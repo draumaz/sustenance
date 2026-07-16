@@ -87,6 +87,8 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.compose.ui.res.stringResource
+import dev.easonhuang.sustenance.R
 import dev.easonhuang.sustenance.data.Metric
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -210,7 +212,7 @@ fun ExpressiveNavigationBar(
                         ) {
                             if (batchInfoText.isEmpty()) {
                                 Text(
-                                    text = "(Optional additional info here) ",
+                                    text = stringResource(R.string.optional_info),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                                 )
@@ -233,7 +235,7 @@ fun ExpressiveNavigationBar(
                         {
                             Icon(
                                 imageVector = Icons.Rounded.Image,
-                                contentDescription = "Select from gallery",
+                                contentDescription = stringResource(R.string.select_from_gallery),
                                 tint = MaterialTheme.colorScheme.primary
                             )
                         }
@@ -244,7 +246,7 @@ fun ExpressiveNavigationBar(
                         {
                             Icon(
                                 imageVector = Icons.Rounded.FileUpload,
-                                contentDescription = "Analyze $batchCount photos",
+                                contentDescription = stringResource(R.string.analyze_photos, batchCount),
                                 tint = MaterialTheme.colorScheme.primary
                             )
                         }
@@ -257,35 +259,35 @@ fun ExpressiveNavigationBar(
                     if (isCameraMode) {
                         val todayDest = destinations.first { it.route == "today" }
                         ExpressiveNavItem(
-                            label = "Today",
+                            label = stringResource(todayDest.labelRes),
                             icon = Icons.Rounded.ArrowBackIosNew,
                             isSelected = false,
                             onClick = { onNavigate(todayDest) },
                         )
                         if (batchCount > 0) {
                             ExpressiveNavItem(
-                                label = "Analyze $batchCount photos",
+                                label = stringResource(R.string.analyze_photos, batchCount),
                                 icon = Icons.Rounded.FileUpload,
                                 isSelected = false,//true,
                                 onClick = onFinishBatch,
                                 onLongHold = onToggleTorch,
                             )
                             ExpressiveNavItem(
-                                label = "Capture ($batchCount)",
+                                label = stringResource(R.string.capture_count, batchCount),
                                 icon = Icons.Rounded.AddToPhotos,
                                 isSelected = true,//false,
                                 onClick = onCaptureBatch
                             )
                         } else {
                             ExpressiveNavItem(
-                                label = "Analyze",
+                                label = stringResource(R.string.analyze),
                                 icon = Icons.Rounded.FileUpload,
                                 isSelected = true,//false,
                                 onClick = onCapture,
                                 onLongHold = onToggleTorch,
                             )
                             ExpressiveNavItem(
-                                label = "Details",
+                                label = stringResource(R.string.details),
                                 icon = Icons.Rounded.AddToPhotos,
                                 isSelected = false,//batchCount == 0,
                                 onClick = onCaptureBatch,
@@ -307,7 +309,7 @@ fun ExpressiveNavigationBar(
                             }
 
                             ExpressiveNavItem(
-                                label = dest.label,
+                                label = stringResource(dest.labelRes),
                                 icon = dest.icon,
                                 isSelected = isSelected,
                                 selectionAlphaOverride = selectionAlphaOverride,
@@ -349,10 +351,10 @@ fun ExpressiveNavigationBar(
                             }
 
                             val label = (when {
-                                targetMetric != null -> targetMetric.title
-                                isLog -> "Log"
-                                offset == 0 -> todayDest.label
-                                offset == 1 -> "Yesterday"
+                                targetMetric != null -> stringResource(targetMetric.titleRes)
+                                isLog -> stringResource(R.string.log)
+                                offset == 0 -> stringResource(todayDest.labelRes)
+                                offset == 1 -> stringResource(R.string.yesterday)
                                 else -> LocalDate.now().minusDays(offset.toLong())
                                     .format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
                             }).also {

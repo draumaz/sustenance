@@ -25,6 +25,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import dev.easonhuang.sustenance.R
 import dev.easonhuang.sustenance.util.FoodNutrients
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -92,7 +94,7 @@ fun FoodReviewDialog(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = "Base Serving: ",
+                        text = stringResource(R.string.base_serving),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -135,7 +137,7 @@ fun FoodReviewDialog(
                             ),
                             modifier = Modifier.size(48.dp)
                         ) {
-                            Icon(Icons.Rounded.Remove, "Less")
+                            Icon(Icons.Rounded.Remove, stringResource(R.string.less))
                         }
                         
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -157,7 +159,7 @@ fun FoodReviewDialog(
                                 modifier = Modifier.widthIn(min = 80.dp)
                             )
                             Text(
-                                text = "GRAMS",
+                                text = stringResource(R.string.grams_label),
                                 style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -172,7 +174,7 @@ fun FoodReviewDialog(
                             ),
                             modifier = Modifier.size(48.dp)
                         ) {
-                            Icon(Icons.Rounded.Add, "More")
+                            Icon(Icons.Rounded.Add, stringResource(R.string.more))
                         }
                     }
                 }
@@ -185,14 +187,14 @@ fun FoodReviewDialog(
                     val m = currentGrams / baseGrams
                     
                     val items = listOf(
-                        Triple("Calories", cal to { s: String -> cal = s }, "kcal" to MaterialTheme.colorScheme.primaryContainer),
-                        Triple("Protein", prot to { s: String -> prot = s }, "g" to Color(0xFFE3F2FD)),
-                        Triple("Carbs", carb to { s: String -> carb = s }, "g" to Color(0xFFFFF3E0)),
-                        Triple("Fat", fat to { s: String -> fat = s }, "g" to Color(0xFFFBE9E7)),
-                        Triple("Sat. Fat", satFat to { s: String -> satFat = s }, "g" to Color(0xFFE0F2F1)),
-                        Triple("Fiber", fiber to { s: String -> fiber = s }, "g" to Color(0xFFE8F5E9)),
-                        Triple("Sugar", sugar to { s: String -> sugar = s }, "g" to Color(0xFFF3E5F5)),
-                        Triple("Sodium", sodium to { s: String -> sodium = s }, "mg" to Color(0xFFEEEEEE))
+                        Triple(stringResource(R.string.metric_total_calories), cal to { s: String -> cal = s }, stringResource(R.string.unit_kcal) to MaterialTheme.colorScheme.primaryContainer),
+                        Triple(stringResource(R.string.metric_protein), prot to { s: String -> prot = s }, stringResource(R.string.unit_g) to Color(0xFFE3F2FD)),
+                        Triple(stringResource(R.string.metric_carbs), carb to { s: String -> carb = s }, stringResource(R.string.unit_g) to Color(0xFFFFF3E0)),
+                        Triple(stringResource(R.string.metric_fat), fat to { s: String -> fat = s }, stringResource(R.string.unit_g) to Color(0xFFFBE9E7)),
+                        Triple(stringResource(R.string.metric_saturated_fat), satFat to { s: String -> satFat = s }, stringResource(R.string.unit_g) to Color(0xFFE0F2F1)),
+                        Triple(stringResource(R.string.metric_fiber), fiber to { s: String -> fiber = s }, stringResource(R.string.unit_g) to Color(0xFFE8F5E9)),
+                        Triple(stringResource(R.string.metric_sugar), sugar to { s: String -> sugar = s }, stringResource(R.string.unit_g) to Color(0xFFF3E5F5)),
+                        Triple(stringResource(R.string.metric_sodium), sodium to { s: String -> sodium = s }, stringResource(R.string.unit_mg) to Color(0xFFEEEEEE))
                     )
 
                     items.chunked(2).forEach { row ->
@@ -239,7 +241,7 @@ fun FoodReviewDialog(
             ) {
                 Icon(Icons.Rounded.Done, null)
                 Spacer(Modifier.width(8.dp))
-                Text("Log Food")
+                Text(stringResource(R.string.log_food))
             }
         },
         dismissButton = {
@@ -247,7 +249,7 @@ fun FoodReviewDialog(
                 onClick = onDismiss,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.cancel), color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
     )
@@ -310,8 +312,9 @@ private fun EditableNutrientChip(
             
             // Total Preview (Smaller)
             if (multiplier != 1.0) {
+                val formattedTotal = if (displayValue >= 100) String.format("%.0f", displayValue) else String.format("%.1f", displayValue)
                 Text(
-                    text = "Total: " + if (displayValue >= 100) String.format("%.0f", displayValue) else String.format("%.1f", displayValue),
+                    text = stringResource(R.string.total_preview, formattedTotal),
                     style = TextStyle(fontSize = 10.sp, fontWeight = FontWeight.Bold),
                     color = Color.Black.copy(alpha = 0.4f),
                     maxLines = 1

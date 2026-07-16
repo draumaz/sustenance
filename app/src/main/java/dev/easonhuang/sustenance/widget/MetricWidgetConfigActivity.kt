@@ -33,10 +33,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.glance.state.PreferencesGlanceStateDefinition
 import androidx.lifecycle.lifecycleScope
+import dev.easonhuang.sustenance.R
 import dev.easonhuang.sustenance.data.Metric
 import dev.easonhuang.sustenance.ui.theme.SustenanceTheme
 import kotlinx.coroutines.launch
@@ -96,7 +98,7 @@ class MetricWidgetConfigActivity : ComponentActivity() {
 @Composable
 private fun MetricPicker(onPick: (Metric) -> Unit) {
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Choose a metric") }) },
+        topBar = { TopAppBar(title = { Text(stringResource(R.string.pick_metric)) }) },
     ) { inner ->
         LazyColumn(
             modifier = Modifier.fillMaxSize().padding(inner),
@@ -119,7 +121,7 @@ private fun MetricPicker(onPick: (Metric) -> Unit) {
                         Icon(metric.icon, null, tint = metric.accent, modifier = Modifier.size(22.dp))
                     }
                     Spacer(Modifier.size(16.dp))
-                    Text(metric.title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+                    Text(stringResource(metric.titleRes), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
                 }
             }
         }

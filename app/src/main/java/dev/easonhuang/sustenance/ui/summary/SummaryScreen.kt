@@ -57,6 +57,8 @@ import androidx.compose.foundation.background
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.TopAppBar
+import androidx.compose.ui.res.stringResource
+import dev.easonhuang.sustenance.R
 import dev.easonhuang.sustenance.data.GoalsRepository
 import dev.easonhuang.sustenance.data.HealthConnectManager
 import dev.easonhuang.sustenance.data.Metric
@@ -93,8 +95,8 @@ fun SummaryScreen(
             TopAppBar(
                 title = {
                     Column {
-                        Text("Your daily intake", style = MaterialTheme.typography.labelSmall.copy(fontSize = 15.sp), color = MaterialTheme.colorScheme.primary)
-                        Text("Summary", style = MaterialTheme.typography.titleLarge.copy(fontSize = 25.sp), fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.summary_subtitle), style = MaterialTheme.typography.labelSmall.copy(fontSize = 15.sp), color = MaterialTheme.colorScheme.primary)
+                        Text(stringResource(R.string.summary_title), style = MaterialTheme.typography.titleLarge.copy(fontSize = 25.sp), fontWeight = FontWeight.Bold)
                     }
                 },
                 actions = {
@@ -102,7 +104,7 @@ fun SummaryScreen(
                         if (refreshing) {
                             CircularProgressIndicator(Modifier.size(24.dp).padding(4.dp), strokeWidth = 2.dp)
                         } else {
-                            Icon(Icons.Rounded.Refresh, contentDescription = "Refresh")
+                            Icon(Icons.Rounded.Refresh, contentDescription = stringResource(R.string.refresh))
                         }
                     }
                 },
@@ -179,7 +181,7 @@ private fun InsightCard(stat: WeeklyStat, onEdit: () -> Unit, editEnabled: Boole
                 Spacer(Modifier.size(20.dp))
                 Column(Modifier.weight(1f)) {
                     Text(
-                        stat.metric.title,
+                        stringResource(stat.metric.titleRes),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Black,
                         letterSpacing = (-0.5).sp
@@ -191,7 +193,7 @@ private fun InsightCard(stat: WeeklyStat, onEdit: () -> Unit, editEnabled: Boole
                     } else stat.metric.formatValue(stat.todayValue)
 
                     Text(
-                        "$displayToday / ${stat.metric.formatValue(stat.goal)} ${stat.metric.unit}",
+                        "$displayToday / ${stat.metric.formatValue(stat.goal)} ${stringResource(stat.metric.unitRes)}",
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -204,7 +206,7 @@ private fun InsightCard(stat: WeeklyStat, onEdit: () -> Unit, editEnabled: Boole
                         onClick = onEdit,
                         modifier = Modifier.clip(CircleShape).background(accent.copy(alpha = 0.2f))
                     ) {
-                        Icon(Icons.Rounded.Edit, contentDescription = "Edit goal", tint = accent, modifier = Modifier.size(20.dp))
+                        Icon(Icons.Rounded.Edit, contentDescription = stringResource(R.string.edit_goal_desc), tint = accent, modifier = Modifier.size(20.dp))
                     }
                 }
             }
@@ -216,10 +218,10 @@ private fun InsightCard(stat: WeeklyStat, onEdit: () -> Unit, editEnabled: Boole
 private fun DeltaChip(stat: WeeklyStat) {
     val delta = stat.deltaPercent
     val (icon, tint, label) = when {
-        delta == null -> Triple(Icons.AutoMirrored.Rounded.TrendingFlat, MaterialTheme.colorScheme.onSurfaceVariant, "New")
-        delta >= 1f -> Triple(Icons.AutoMirrored.Rounded.TrendingUp, stat.metric.accent, "+${delta.roundToInt()}% vs yesterday")
-        delta <= -1f -> Triple(Icons.AutoMirrored.Rounded.TrendingDown, MaterialTheme.colorScheme.error, "${delta.roundToInt()}% vs yesterday")
-        else -> Triple(Icons.AutoMirrored.Rounded.TrendingFlat, MaterialTheme.colorScheme.onSurfaceVariant, "Steady")
+        delta == null -> Triple(Icons.AutoMirrored.Rounded.TrendingFlat, MaterialTheme.colorScheme.onSurfaceVariant, stringResource(R.string.new_label))
+        delta >= 1f -> Triple(Icons.AutoMirrored.Rounded.TrendingUp, stat.metric.accent, stringResource(R.string.vs_yesterday, delta.roundToInt()))
+        delta <= -1f -> Triple(Icons.AutoMirrored.Rounded.TrendingDown, MaterialTheme.colorScheme.error, stringResource(R.string.vs_yesterday, delta.roundToInt()))
+        else -> Triple(Icons.AutoMirrored.Rounded.TrendingFlat, MaterialTheme.colorScheme.onSurfaceVariant, stringResource(R.string.steady_label))
     }
     Row(
         Modifier
@@ -241,13 +243,13 @@ private fun EmptyState() {
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            "Nothing here yet",
+            stringResource(R.string.nothing_here),
             style = MaterialTheme.typography.headlineSmall,
             fontWeight = FontWeight.Black
         )
         Spacer(Modifier.height(12.dp))
         Text(
-            "Grant access to nutrition data in Settings to see your insights.",
+            stringResource(R.string.grant_access_prompt),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,

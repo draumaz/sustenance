@@ -90,10 +90,11 @@ class MetricWidget : GlanceAppWidget() {
             }
 
             val detail = if (granted) runCatching { manager.readDetail(metric, finalGoal, isCaloricBalanceActive) }.getOrNull() else null
+            val unit = context.getString(metric.unitRes)
             val value = when {
                 detail == null -> "-"
-                detail.headline.contains(metric.unit) || detail.headline.contains("goal") -> detail.headline
-                metric.kind == MetricKind.DAILY_TOTAL -> "${detail.headline} ${metric.unit}"
+                detail.headline.contains(unit) || detail.headline.contains("goal") -> detail.headline
+                metric.kind == MetricKind.DAILY_TOTAL -> "${detail.headline} $unit"
                 else -> detail.headline
             }
             val points = detail?.points?.map { it.value } ?: emptyList()
@@ -136,18 +137,18 @@ private fun MetricWidgetContent() {
             ),
     ) {
         Text(
-            text = metric.title,
+            text = context.getString(metric.titleRes),
             style = TextStyle(color = ColorProvider(metric.accent), fontWeight = FontWeight.Bold, fontSize = 14.sp),
         )
         Spacer(GlanceModifier.height(2.dp))
         when {
             !granted -> Text(
-                text = "Tap to connect",
+                text = context.getString(dev.easonhuang.sustenance.R.string.tap_to_connect),
                 style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 13.sp),
             )
             points.size < 2 -> {
                 Text(value, style = TextStyle(color = GlanceTheme.colors.onSurface, fontWeight = FontWeight.Bold, fontSize = 30.sp))
-                Text("No recent data", style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 12.sp))
+                Text(context.getString(dev.easonhuang.sustenance.R.string.no_recent_data), style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 12.sp))
             }
             else -> {
                 Text(value, style = TextStyle(color = GlanceTheme.colors.onSurface, fontWeight = FontWeight.Bold, fontSize = 30.sp))
