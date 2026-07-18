@@ -47,6 +47,7 @@ import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.CameraAlt
 import androidx.compose.material.icons.rounded.CameraEnhance
 import androidx.compose.material.icons.rounded.FileUpload
+import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.MultipleStop
 import androidx.compose.material.icons.rounded.Today
@@ -121,6 +122,7 @@ fun ExpressiveNavigationBar(
     onCapture: () -> Unit = {},
     onCaptureBatch: () -> Unit = {},
     onFinishBatch: () -> Unit = {},
+    onHistoryClick: () -> Unit = {},
     onNavigate: (dev.easonhuang.sustenance.ui.Dest) -> Unit,
     onLogClick: () -> Unit = {}
 ) {
@@ -264,6 +266,14 @@ fun ExpressiveNavigationBar(
                             isSelected = false,
                             onClick = { onNavigate(todayDest) },
                         )
+                        if (batchCount == 0) {
+                            ExpressiveNavItem(
+                                label = stringResource(R.string.history),
+                                icon = Icons.Rounded.History,
+                                isSelected = false,
+                                onClick = onHistoryClick
+                            )
+                        }
                         if (batchCount > 0) {
                             ExpressiveNavItem(
                                 label = stringResource(R.string.analyze_photos, batchCount),

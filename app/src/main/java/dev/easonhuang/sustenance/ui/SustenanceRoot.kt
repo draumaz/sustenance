@@ -88,6 +88,7 @@ import dev.easonhuang.sustenance.ui.settings.SettingsScreen
 import dev.easonhuang.sustenance.ui.summary.SummaryScreen
 import dev.easonhuang.sustenance.ui.summary.SummaryViewModel
 import dev.easonhuang.sustenance.ui.components.FoodReviewDialog
+import dev.easonhuang.sustenance.ui.history.HistoryScreen
 import dev.easonhuang.sustenance.util.FoodNutrients
 import dev.easonhuang.sustenance.util.GeminiManager
 import dev.easonhuang.sustenance.widget.WidgetUpdateWorker
@@ -246,6 +247,7 @@ private fun MainNav(
     var isCapturing by remember { mutableStateOf(false) }
     var isBatchMode by remember { mutableStateOf(false) }
     var isAnalyzing by remember { mutableStateOf(false) }
+    var isHistoryActive by remember { mutableStateOf(false) }
     var capturedBitmaps by remember { mutableStateOf<List<Bitmap>>(emptyList()) }
     var batchInfoText by remember { mutableStateOf("") }
     var pendingNutrients by remember { mutableStateOf<FoodNutrients?>(null) }
@@ -290,13 +292,17 @@ private fun MainNav(
     }
 
     if (isCameraActive) {
-        PredictiveBackHandler { progress ->
+        PredictiveBackHandler(enabled = !isHistoryActive) { progress ->
             try {
                 progress.collect { }
             } finally {
                 clearCapture()
             }
         }
+    }
+
+    BackHandler(enabled = isHistoryActive) {
+        isHistoryActive = false
     }
 
     val apiKeyEnabled by settingsRepo.apiKeyEnabled.collectAsStateWithLifecycle(initialValue = false)
@@ -412,8 +418,12 @@ private fun MainNav(
                         onLogClick = {
                             cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
                         },
+                        onHistoryClick = {
+                            isHistoryActive = true
+                        },
                         onNavigate = { dest ->
                             if (isCameraActive) clearCapture()
+                            isHistoryActive = false
                             if (dest == Dest.TODAY) {
                                 if (currentRoute == Dest.TODAY.route) {
                                     todayClickCount++
@@ -617,6 +627,22 @@ private fun MainNav(
                         )
                     }
                 }
+            }
+
+            androidx.compose.animation.AnimatedVisibility(
+                visible = isHistoryActive,
+                enter = fadeIn() + scaleIn(initialScale = 0.95f),
+                exit = fadeOut() + scaleOut(targetScale = 0.95f)
+            ) {
+                HistoryScreen(
+                    manager = manager,
+                    onItemSelected = { item ->
+                        pendingNutrients = item.nutrients
+                        isHistoryActive = false
+                        isCameraActive = false
+                    },
+                    onBack = { isHistoryActive = false }
+                )
             }
 
             pendingNutrients?.let { nutrients ->
