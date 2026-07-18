@@ -1,5 +1,6 @@
 package dev.easonhuang.sustenance.data
 
+import dev.easonhuang.sustenance.util.FoodNutrients
 import java.time.Instant
 
 /** One dashboard tile: the headline value for a metric plus a sparkline of recent points. */
@@ -42,4 +43,10 @@ data class RecordRow(
     val id: String? = null,
     val isEditable: Boolean = false,
     val startTime: Instant? = null
+)
+
+/** A history item representing a previously logged food. */
+data class HistoryItem(
+    val nutrients: FoodNutrients,
+    val timestamp: Instant
 )

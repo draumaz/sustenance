@@ -246,6 +246,42 @@ class HealthConnectManager(private val context: Context) {
         }
     }
 
+    suspend fun readHistory(): List<HistoryItem> {
+        return runCatching {
+            val end = Instant.now()
+            val start = end.minus(java.time.Duration.ofDays(30))
+            val records = read(NutritionRecord::class, start, end).filterIsInstance<NutritionRecord>()
+                .filter { it.metadata.dataOrigin.packageName == context.packageName }
+                .sortedByDescending { it.startTime }
+
+            records.map { r ->
+                HistoryItem(
+                    nutrients = extractNutrients(r),
+                    timestamp = r.startTime
+                )
+            }
+        }.getOrElse { emptyList() }
+    }
+
+    private fun extractNutrients(r: NutritionRecord): FoodNutrients {
+        val name = r.name ?: context.getString(R.string.unknown_food)
+        val gramsMatch = "\\((\\d+)g\\)".toRegex().find(name)
+        val servingSize = gramsMatch?.groupValues?.get(0)?.removeSurrounding("(", ")") ?: "1 serving"
+        
+        return FoodNutrients(
+            foodItem = name,
+            servingSize = servingSize,
+            calories = r.energy?.inKilocalories ?: 0.0,
+            protein = r.protein?.inGrams ?: 0.0,
+            carbs = r.totalCarbohydrate?.inGrams ?: 0.0,
+            fat = r.totalFat?.inGrams ?: 0.0,
+            fiber = r.dietaryFiber?.inGrams ?: 0.0,
+            sugar = r.sugar?.inGrams ?: 0.0,
+            saturatedFat = r.saturatedFat?.inGrams ?: 0.0,
+            sodium = r.sodium?.inMilligrams ?: 0.0
+        )
+    }
+
     suspend fun readDetail(
         metric: Metric,
         goal: Float? = null,

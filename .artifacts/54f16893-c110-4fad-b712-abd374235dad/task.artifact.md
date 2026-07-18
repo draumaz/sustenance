@@ -1,0 +1,7 @@
+- [ ] Add strings to `strings.xml`
+- [ ] Add `HistoryItem` to `Models.kt`
+- [ ] Implement `readHistory` in `HealthConnectManager.kt`
+- [ ] Add `onHistoryClick` and History button to `ExpressiveNav.kt`
+- [ ] Create `HistoryScreen.kt`
+- [ ] Integrate History view in `SustenanceRoot.kt`
+- [ ] Verify functionality

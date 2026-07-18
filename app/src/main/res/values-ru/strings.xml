@@ -124,7 +124,9 @@
     <string name="select_from_gallery">Выбрать из галереи</string>
     <string name="analyze_photos">Анализировать фото (%d)</string>
     <string name="analyze">Анализировать</string>
-    <string name="details">Детали</string>
+    <string name="add_label">Добавить</string>
+    <string name="history">История</string>
+    <string name="no_history">История не найдена</string>
     <string name="capture_count">Снять (%d)</string>
     <string name="log">Запись</string>
 
