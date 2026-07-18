@@ -50,6 +50,7 @@ import androidx.compose.material.icons.rounded.FileUpload
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material.icons.rounded.MultipleStop
+import androidx.compose.material.icons.rounded.Textsms
 import androidx.compose.material.icons.rounded.Today
 import androidx.compose.material.icons.rounded.UploadFile
 import androidx.compose.material3.Icon
@@ -261,12 +262,12 @@ fun ExpressiveNavigationBar(
                 ) {
                     if (isCameraMode) {
                         val todayDest = destinations.first { it.route == "today" }
-                        ExpressiveNavItem(
-                            label = stringResource(todayDest.labelRes),
-                            icon = Icons.Rounded.ArrowBackIosNew,
-                            isSelected = false,
-                            onClick = { onNavigate(todayDest) },
-                        )
+                        //ExpressiveNavItem(
+                        //    label = stringResource(todayDest.labelRes),
+                        //    icon = Icons.Rounded.ArrowBackIosNew,
+                        //    isSelected = false,
+                        //    onClick = { onNavigate(todayDest) },
+                        //)
                         if (batchCount == 0) {
                             ExpressiveNavItem(
                                 label = stringResource(R.string.history),
@@ -276,19 +277,19 @@ fun ExpressiveNavigationBar(
                             )
                         }
                         if (batchCount > 0) {
-                            ExpressiveNavItem(
-                                label = stringResource(R.string.analyze_photos, batchCount),
-                                icon = Icons.Rounded.FileUpload,
-                                isSelected = false,//true,
-                                onClick = onFinishBatch,
-                                onLongHold = onToggleTorch,
-                            )
-                            ExpressiveNavItem(
-                                label = stringResource(R.string.capture_count, batchCount),
-                                icon = Icons.Rounded.AddToPhotos,
-                                isSelected = true,//false,
-                                onClick = onCaptureBatch
-                            )
+                            //ExpressiveNavItem(
+                            //    label = stringResource(R.string.analyze_photos, batchCount),
+                            //    icon = Icons.Rounded.FileUpload,
+                            //    isSelected = false,//true,
+                            //    onClick = onFinishBatch,
+                            //    onLongHold = onToggleTorch,
+                            //)
+                            //ExpressiveNavItem(
+                            //    label = stringResource(R.string.capture_count, batchCount),
+                            //    icon = Icons.Rounded.Textsms,
+                            //    isSelected = true,//false,
+                            //    onClick = onCaptureBatch
+                            //)
                         } else {
                             if (isHistorySelected) {
                                 ExpressiveNavItem(
@@ -307,14 +308,16 @@ fun ExpressiveNavigationBar(
                                     onLongHold = onToggleTorch,
                                 )
                             }
-                            ExpressiveNavItem(
-                                label = stringResource(R.string.details),
-                                icon = Icons.Rounded.AddToPhotos,
-                                isSelected = false,//batchCount == 0,
-                                onClick = onCaptureBatch,
-                                onLongHold = onSelectGallery,
-                            )
                         }
+
+                        ExpressiveNavItem(
+                            label = stringResource(R.string.add_label),
+                            icon = Icons.Rounded.CameraAlt,
+                            isSelected = batchCount > 0,
+                            onClick = onCaptureBatch,
+                            onLongHold = onSelectGallery,
+                        )
+                        
                     } else {
                         val renderItem = @Composable { dest: dev.easonhuang.sustenance.ui.Dest ->
                             val isSelected = currentDestination?.hierarchy?.any { it.route == dest.route } == true

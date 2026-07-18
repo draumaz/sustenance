@@ -124,7 +124,7 @@
     <string name="select_from_gallery">Select from gallery</string>
     <string name="analyze_photos">Analyze %d photos</string>
     <string name="analyze">Analyze</string>
-    <string name="details">Details</string>
+    <string name="add_label">Add</string>
     <string name="history">History</string>
     <string name="no_history">No history found</string>
     <string name="capture_count">Capture (%d)</string>
