@@ -204,11 +204,11 @@ fun ExpressiveNavigationBar(
                         modifier = Modifier
                             .width(320.dp)
                             .height(64.dp)
-                            .clip(CircleShape)
+                            .clip(RoundedCornerShape(28.dp))
                             .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                            .padding(horizontal = 8.dp),
+                            .padding(horizontal = 20.dp),
                         verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Box(
                             modifier = Modifier.weight(1f).width(16.dp),
