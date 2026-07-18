@@ -418,8 +418,9 @@ private fun MainNav(
                         onLogClick = {
                             cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
                         },
+                        isHistorySelected = isHistoryActive,
                         onHistoryClick = {
-                            isHistoryActive = true
+                            isHistoryActive = !isHistoryActive
                         },
                         onNavigate = { dest ->
                             if (isCameraActive) clearCapture()

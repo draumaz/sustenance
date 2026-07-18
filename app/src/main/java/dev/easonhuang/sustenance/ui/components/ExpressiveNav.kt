@@ -122,6 +122,7 @@ fun ExpressiveNavigationBar(
     onCapture: () -> Unit = {},
     onCaptureBatch: () -> Unit = {},
     onFinishBatch: () -> Unit = {},
+    isHistorySelected: Boolean = false,
     onHistoryClick: () -> Unit = {},
     onNavigate: (dev.easonhuang.sustenance.ui.Dest) -> Unit,
     onLogClick: () -> Unit = {}
@@ -270,7 +271,7 @@ fun ExpressiveNavigationBar(
                             ExpressiveNavItem(
                                 label = stringResource(R.string.history),
                                 icon = Icons.Rounded.History,
-                                isSelected = false,
+                                isSelected = isHistorySelected,
                                 onClick = onHistoryClick
                             )
                         }
@@ -289,13 +290,23 @@ fun ExpressiveNavigationBar(
                                 onClick = onCaptureBatch
                             )
                         } else {
-                            ExpressiveNavItem(
-                                label = stringResource(R.string.analyze),
-                                icon = Icons.Rounded.FileUpload,
-                                isSelected = true,//false,
-                                onClick = onCapture,
-                                onLongHold = onToggleTorch,
-                            )
+                            if (isHistorySelected) {
+                                ExpressiveNavItem(
+                                    label = stringResource(R.string.analyze),
+                                    icon = Icons.Rounded.Add,
+                                    isSelected = false,
+                                    onClick = onHistoryClick,
+                                    onLongHold = onToggleTorch,
+                                )
+                            } else {
+                                ExpressiveNavItem(
+                                    label = stringResource(R.string.analyze),
+                                    icon = Icons.Rounded.FileUpload,
+                                    isSelected = true,
+                                    onClick = onCapture,
+                                    onLongHold = onToggleTorch,
+                                )
+                            }
                             ExpressiveNavItem(
                                 label = stringResource(R.string.details),
                                 icon = Icons.Rounded.AddToPhotos,
