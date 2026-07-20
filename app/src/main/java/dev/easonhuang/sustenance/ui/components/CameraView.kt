@@ -14,12 +14,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.BlendMode
@@ -49,6 +44,16 @@ fun CameraPreview(
     var frozenBitmap by remember { mutableStateOf<Bitmap?>(null) }
     var camera by remember { mutableStateOf<androidx.camera.core.Camera?>(null) }
     val shutterProgress = remember { Animatable(0f) }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            try {
+                cameraProviderFuture.get().unbindAll()
+            } catch (e: Exception) {
+                // Ignore errors on release
+            }
+        }
+    }
 
     LaunchedEffect(isTorchOn) {
         camera?.cameraControl?.enableTorch(isTorchOn)

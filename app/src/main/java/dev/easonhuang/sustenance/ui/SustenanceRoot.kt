@@ -420,7 +420,21 @@ private fun MainNav(
                         },
                         isHistorySelected = isHistoryActive,
                         onHistoryClick = {
-                            isHistoryActive = !isHistoryActive
+                            if (isHistoryActive) {
+                                isHistoryActive = false
+                                isCameraActive = false
+                                if (currentRoute != Dest.TODAY.route) {
+                                    navController.navigate(Dest.TODAY.route) {
+                                        popUpTo(navController.graph.findStartDestination().id) {
+                                            saveState = true
+                                        }
+                                        launchSingleTop = true
+                                        restoreState = true
+                                    }
+                                }
+                            } else {
+                                isHistoryActive = true
+                            }
                         },
                         onNavigate = { dest ->
                             if (isCameraActive) clearCapture()
@@ -543,7 +557,7 @@ private fun MainNav(
                 }
             }
 
-            if (isCameraActive) {
+            if (isCameraActive && !isHistoryActive && pendingNutrients == null) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     androidx.compose.animation.AnimatedVisibility(
                         visible = !isAnalyzing,

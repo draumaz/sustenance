@@ -46,7 +46,6 @@ fun FoodReviewDialog(
     onDismiss: () -> Unit,
     onLog: (FoodNutrients, Double, Instant) -> Unit,
 ) {
-    android.util.Log.d("FoodReviewDialog", "Dialog opened with nutrients: $nutrients")
     var foodItem by remember { mutableStateOf(nutrients.foodItem) }
     // Extract only the numeric part for the editable state. Favor numbers followed by "g".
     var servingSize by remember(nutrients) {
@@ -61,9 +60,7 @@ fun FoodReviewDialog(
     var showTimePicker by remember { mutableStateOf(false) }
 
     val baseGrams = remember(servingSize) {
-        val b = servingSize.replace(',', '.').toDoubleOrNull()?.takeIf { it > 0 } ?: 100.0
-        android.util.Log.d("FoodReviewDialog", "baseGrams: $b (from servingSize='$servingSize')")
-        b
+        servingSize.replace(',', '.').toDoubleOrNull()?.takeIf { it > 0 } ?: 100.0
     }
 
     fun safeParse(s: String): Double? = s.replace(',', '.').toDoubleOrNull()
@@ -97,21 +94,15 @@ fun FoodReviewDialog(
     fun scaleNutrients(newGrams: Double) {
         if (baseGrams <= 0) return
         val ratio = newGrams / baseGrams
-        android.util.Log.d("FoodReviewDialog", "scaleNutrients: newGrams=$newGrams, baseGrams=$baseGrams, ratio=$ratio")
-        val s = { label: String, base: Double -> 
-            val scaled = base * ratio
-            val formatted = format(scaled)
-            android.util.Log.d("FoodReviewDialog", "  $label: base=$base, scaled=$scaled, formatted=$formatted")
-            formatted
-        }
-        cal = s("Calories", calBase.doubleValue)
-        prot = s("Protein", protBase.doubleValue)
-        carb = s("Carbs", carbBase.doubleValue)
-        fat = s("Fat", fatBase.doubleValue)
-        satFat = s("SatFat", satFatBase.doubleValue)
-        fiber = s("Fiber", fiberBase.doubleValue)
-        sugar = s("Sugar", sugarBase.doubleValue)
-        sodium = s("Sodium", sodiumBase.doubleValue)
+        val s = { base: Double -> format(base * ratio) }
+        cal = s(calBase.doubleValue)
+        prot = s(protBase.doubleValue)
+        carb = s(carbBase.doubleValue)
+        fat = s(fatBase.doubleValue)
+        satFat = s(satFatBase.doubleValue)
+        fiber = s(fiberBase.doubleValue)
+        sugar = s(sugarBase.doubleValue)
+        sodium = s(sodiumBase.doubleValue)
     }
 
     // Keep quantityText in sync when currentGrams is changed via buttons, but don't stomp on decimal typing.
@@ -301,24 +292,22 @@ fun FoodReviewDialog(
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     val ratio = if (baseGrams > 0) currentGrams / baseGrams else 1.0
-                    val updateBase = { label: String, base: MutableDoubleState, newValue: String ->
+                    val updateBase = { base: MutableDoubleState, newValue: String ->
                         safeParse(newValue)?.let { num ->
-                            val oldBase = base.doubleValue
                             if (ratio > 0) base.doubleValue = num / ratio else base.doubleValue = num
-                            android.util.Log.d("FoodReviewDialog", "updateBase $label: newValue=$newValue, num=$num, ratio=$ratio, oldBase=$oldBase, newBase=${base.doubleValue}")
                         }
                         Unit
                     }
 
                     val items = listOf(
-                        Triple(stringResource(R.string.metric_total_calories), cal to { s: String -> cal = s; updateBase("Calories", calBase, s) }, stringResource(R.string.unit_kcal) to MaterialTheme.colorScheme.primaryContainer),
-                        Triple(stringResource(R.string.metric_protein), prot to { s: String -> prot = s; updateBase("Protein", protBase, s) }, stringResource(R.string.unit_g) to Color(0xFFE3F2FD)),
-                        Triple(stringResource(R.string.metric_carbs), carb to { s: String -> carb = s; updateBase("Carbs", carbBase, s) }, stringResource(R.string.unit_g) to Color(0xFFFFF3E0)),
-                        Triple(stringResource(R.string.metric_fat), fat to { s: String -> fat = s; updateBase("Fat", fatBase, s) }, stringResource(R.string.unit_g) to Color(0xFFFBE9E7)),
-                        Triple(stringResource(R.string.metric_saturated_fat), satFat to { s: String -> satFat = s; updateBase("SatFat", satFatBase, s) }, stringResource(R.string.unit_g) to Color(0xFFE0F2F1)),
-                        Triple(stringResource(R.string.metric_fiber), fiber to { s: String -> fiber = s; updateBase("Fiber", fiberBase, s) }, stringResource(R.string.unit_g) to Color(0xFFE8F5E9)),
-                        Triple(stringResource(R.string.metric_sugar), sugar to { s: String -> sugar = s; updateBase("Sugar", sugarBase, s) }, stringResource(R.string.unit_g) to Color(0xFFF3E5F5)),
-                        Triple(stringResource(R.string.metric_sodium), sodium to { s: String -> sodium = s; updateBase("Sodium", sodiumBase, s) }, stringResource(R.string.unit_mg) to Color(0xFFEEEEEE))
+                        Triple(stringResource(R.string.metric_total_calories), cal to { s: String -> cal = s; updateBase(calBase, s) }, stringResource(R.string.unit_kcal) to MaterialTheme.colorScheme.primaryContainer),
+                        Triple(stringResource(R.string.metric_protein), prot to { s: String -> prot = s; updateBase(protBase, s) }, stringResource(R.string.unit_g) to MaterialTheme.colorScheme.secondaryContainer),
+                        Triple(stringResource(R.string.metric_carbs), carb to { s: String -> carb = s; updateBase(carbBase, s) }, stringResource(R.string.unit_g) to MaterialTheme.colorScheme.tertiaryContainer),
+                        Triple(stringResource(R.string.metric_fat), fat to { s: String -> fat = s; updateBase(fatBase, s) }, stringResource(R.string.unit_g) to MaterialTheme.colorScheme.surfaceContainerHigh),
+                        Triple(stringResource(R.string.metric_saturated_fat), satFat to { s: String -> satFat = s; updateBase(satFatBase, s) }, stringResource(R.string.unit_g) to MaterialTheme.colorScheme.surfaceContainer),
+                        Triple(stringResource(R.string.metric_fiber), fiber to { s: String -> fiber = s; updateBase(fiberBase, s) }, stringResource(R.string.unit_g) to MaterialTheme.colorScheme.surfaceContainerLow),
+                        Triple(stringResource(R.string.metric_sugar), sugar to { s: String -> sugar = s; updateBase(sugarBase, s) }, stringResource(R.string.unit_g) to MaterialTheme.colorScheme.surfaceContainerLowest),
+                        Triple(stringResource(R.string.metric_sodium), sodium to { s: String -> sodium = s; updateBase(sodiumBase, s) }, stringResource(R.string.unit_mg) to MaterialTheme.colorScheme.surfaceVariant)
                     )
 
                     items.forEach { (label, state, meta) ->
@@ -381,13 +370,14 @@ private fun EditableNutrientChip(
     modifier: Modifier = Modifier
 ) {
     Surface(
-        color = containerColor.copy(alpha = 0.8f),
+        color = containerColor,
         shape = RoundedCornerShape(20.dp),
         modifier = modifier
     ) {
+        val contentColor = contentColorFor(containerColor)
         Row(
             modifier = Modifier
-                .padding(horizontal = 20.dp, vertical = 12.dp),
+                .padding(horizontal = 20.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
@@ -395,37 +385,38 @@ private fun EditableNutrientChip(
                 text = label,
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.Bold,
-                color = Color.Black.copy(alpha = 0.7f),
+                color = contentColor.copy(alpha = 0.6f),
                 modifier = Modifier.weight(1f)
             )
 
-            Column(horizontalAlignment = Alignment.End) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    BasicTextField(
-                        value = value,
-                        onValueChange = {
-                            val sanitized = it.replace(',', '.')
-                            if (it.isEmpty() || sanitized.toDoubleOrNull() != null || it == "." || it == ",") {
-                                onValueChange(it)
-                            }
-                        },
-                        textStyle = MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.Black,
-                            textAlign = TextAlign.End,
-                            color = Color.Black
-                        ),
-                        modifier = Modifier.widthIn(min = 60.dp),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        cursorBrush = SolidColor(Color.Black.copy(alpha = 0.4f)),
-                        singleLine = true
-                    )
-                    Text(
-                        text = " $unit",
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.Black.copy(alpha = 0.5f)
-                    )
-                }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.wrapContentWidth()
+            ) {
+                BasicTextField(
+                    value = value,
+                    onValueChange = {
+                        val sanitized = it.replace(',', '.')
+                        if (it.isEmpty() || sanitized.toDoubleOrNull() != null || it == "." || it == ",") {
+                            onValueChange(it)
+                        }
+                    },
+                    textStyle = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.Black,
+                        textAlign = TextAlign.End,
+                        color = contentColor
+                    ),
+                    modifier = Modifier.width(IntrinsicSize.Min).widthIn(min = 60.dp),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    cursorBrush = SolidColor(contentColor.copy(alpha = 0.4f)),
+                    singleLine = true
+                )
+                Text(
+                    text = " $unit",
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = contentColor.copy(alpha = 0.4f)
+                )
             }
         }
     }
