@@ -115,6 +115,7 @@ fun ExpressiveNavigationBar(
     dateOffset: Int = 0,
     hasApiKey: Boolean = false,
     isCameraMode: Boolean = false,
+    isBatchMode: Boolean = false,
     capturedBitmaps: List<Bitmap> = emptyList(),
     batchInfoText: String = "",
     onBatchInfoTextChange: (String) -> Unit = {},
@@ -199,7 +200,7 @@ fun ExpressiveNavigationBar(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                if (isCameraMode && batchCount > 0) {
+                if (isCameraMode && isBatchMode) {
                     Row(
                         modifier = Modifier
                             .width(320.dp)
@@ -268,52 +269,28 @@ fun ExpressiveNavigationBar(
                         //    isSelected = false,
                         //    onClick = { onNavigate(todayDest) },
                         //)
-                        if (batchCount == 0) {
+                        if (batchCount == 0 && !isBatchMode) {
                             ExpressiveNavItem(
                                 label = stringResource(R.string.history),
                                 icon = Icons.Rounded.History,
                                 isSelected = isHistorySelected,
-                                onClick = onHistoryClick
+                                onClick = { if (isHistorySelected) onNavigate(todayDest) else onHistoryClick() },
                             )
-                        }
-                        if (batchCount > 0) {
-                            //ExpressiveNavItem(
-                            //    label = stringResource(R.string.analyze_photos, batchCount),
-                            //    icon = Icons.Rounded.FileUpload,
-                            //    isSelected = false,//true,
-                            //    onClick = onFinishBatch,
-                            //    onLongHold = onToggleTorch,
-                            //)
-                            //ExpressiveNavItem(
-                            //    label = stringResource(R.string.capture_count, batchCount),
-                            //    icon = Icons.Rounded.Textsms,
-                            //    isSelected = true,//false,
-                            //    onClick = onCaptureBatch
-                            //)
-                        } else {
-                            if (isHistorySelected) {
-                                ExpressiveNavItem(
-                                    label = stringResource(R.string.analyze),
-                                    icon = Icons.Rounded.Add,
-                                    isSelected = false,
-                                    onClick = onHistoryClick,
-                                    onLongHold = onToggleTorch,
-                                )
-                            } else {
-                                ExpressiveNavItem(
-                                    label = stringResource(R.string.analyze),
-                                    icon = Icons.Rounded.FileUpload,
-                                    isSelected = true,
-                                    onClick = onCapture,
-                                    onLongHold = onToggleTorch,
-                                )
-                            }
+                            ExpressiveNavItem(
+                                label = if (isHistorySelected) stringResource(R.string.analyze) else stringResource(
+                                    R.string.analyze
+                                ),
+                                icon = if (isHistorySelected) Icons.Rounded.Add else Icons.Rounded.FileUpload,
+                                isSelected = !isHistorySelected,
+                                onClick = onHistoryClick,
+                                onLongHold = onToggleTorch,
+                            )
                         }
 
                         ExpressiveNavItem(
                             label = stringResource(R.string.add_label),
                             icon = Icons.Rounded.CameraAlt,
-                            isSelected = batchCount > 0,
+                            isSelected = isBatchMode,
                             onClick = onCaptureBatch,
                             onLongHold = onSelectGallery,
                         )
@@ -395,7 +372,7 @@ fun ExpressiveNavigationBar(
                                     onClick = {
                                         if (isLog) onLogClick() else onNavigate(todayDest)
                                     },
-                                    onLongHold = { if (isLog) { onLogClick(); onSelectGallery() } },
+                                    onLongHold = { if (isLog) {  onSelectGallery(); onLogClick(); } },
 
                                 )
                             }

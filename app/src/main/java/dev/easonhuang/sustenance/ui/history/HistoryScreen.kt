@@ -27,6 +27,7 @@ import java.time.format.FormatStyle
 @Composable
 fun HistoryScreen(
     manager: HealthConnectManager,
+    bottomInset: androidx.compose.ui.unit.Dp = 0.dp,
     onItemSelected: (HistoryItem) -> Unit,
     onBack: () -> Unit
 ) {
@@ -79,7 +80,12 @@ fun HistoryScreen(
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
+                    contentPadding = PaddingValues(
+                        start = 16.dp,
+                        top = 16.dp,
+                        end = 16.dp,
+                        bottom = 16.dp + bottomInset
+                    ),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(history) { item ->

@@ -313,14 +313,14 @@ private fun MainNav(
     val bottomBarHeightPx = with(LocalDensity.current) { bottomBarHeight.roundToPx().toFloat() }
     val bottomBarOffsetHeightPx = remember { mutableFloatStateOf(0f) }
 
-    LaunchedEffect(currentRoute) {
+    LaunchedEffect(currentRoute, isHistoryActive) {
         bottomBarOffsetHeightPx.floatValue = 0f
     }
 
-    val nestedScrollConnection = remember(isCameraActive) {
+    val nestedScrollConnection = remember(isCameraActive, isHistoryActive) {
         object : NestedScrollConnection {
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                if (isCameraActive) return Offset.Zero
+                if (isCameraActive && !isHistoryActive) return Offset.Zero
                 val delta = available.y
                 val newOffset = bottomBarOffsetHeightPx.floatValue + delta
                 bottomBarOffsetHeightPx.floatValue = newOffset.coerceIn(-bottomBarHeightPx, 0f)
@@ -371,6 +371,7 @@ private fun MainNav(
                         dateOffset = dashboardDateOffset,
                         hasApiKey = hasApiKey,
                         isCameraMode = isCameraActive && !isAnalyzing,
+                        isBatchMode = isBatchMode,
                         capturedBitmaps = capturedBitmaps,
                         batchInfoText = batchInfoText,
                         onBatchInfoTextChange = { batchInfoText = it },
@@ -382,8 +383,11 @@ private fun MainNav(
                             isCapturing = true
                         },
                         onCaptureBatch = {
-                            isBatchMode = true
-                            isCapturing = true
+                            if (!isBatchMode) {
+                                isBatchMode = true
+                            } else {
+                                isCapturing = true
+                            }
                         },
                         onFinishBatch = {
                             isTorchOn = false
@@ -420,21 +424,7 @@ private fun MainNav(
                         },
                         isHistorySelected = isHistoryActive,
                         onHistoryClick = {
-                            if (isHistoryActive) {
-                                isHistoryActive = false
-                                isCameraActive = false
-                                if (currentRoute != Dest.TODAY.route) {
-                                    navController.navigate(Dest.TODAY.route) {
-                                        popUpTo(navController.graph.findStartDestination().id) {
-                                            saveState = true
-                                        }
-                                        launchSingleTop = true
-                                        restoreState = true
-                                    }
-                                }
-                            } else {
-                                isHistoryActive = true
-                            }
+                            isHistoryActive = !isHistoryActive
                         },
                         onNavigate = { dest ->
                             if (isCameraActive) clearCapture()
@@ -651,6 +641,7 @@ private fun MainNav(
             ) {
                 HistoryScreen(
                     manager = manager,
+                    bottomInset = inner.calculateBottomPadding(),
                     onItemSelected = { item ->
                         pendingNutrients = item.nutrients
                     },
