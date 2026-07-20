@@ -252,14 +252,31 @@ class HealthConnectManager(private val context: Context) {
             val start = end.minus(java.time.Duration.ofDays(30))
             val records = read(NutritionRecord::class, start, end).filterIsInstance<NutritionRecord>()
                 .filter { it.metadata.dataOrigin.packageName == context.packageName }
-                .sortedByDescending { it.startTime }
 
-            records.map { r ->
+            val allHistory = records.map { r ->
                 HistoryItem(
                     nutrients = extractNutrients(r),
                     timestamp = r.startTime
                 )
             }
+
+            allHistory.groupBy { it.nutrients.foodItem }.map { (_, items) ->
+                // Pick the most representative serving size:
+                // 1. Most frequent serving size
+                // 2. Smallest calories (likely the base unit)
+                // 3. Most recent
+                val groupsByServing = items.groupBy { it.nutrients.servingSize }
+                val bestServingGroup = groupsByServing.values.maxWith(
+                    compareBy<List<HistoryItem>> { it.size }
+                        .thenByDescending { -it.first().nutrients.calories }
+                        .thenBy { it.maxOf { i -> i.timestamp } }
+                )
+                
+                val representative = bestServingGroup.maxBy { it.timestamp }
+                // For the history list, we use the latest timestamp of ANY variation 
+                // to keep the food at the top if recently eaten.
+                representative.copy(timestamp = items.maxOf { it.timestamp })
+            }.sortedByDescending { it.timestamp }
         }.getOrElse { emptyList() }
     }
 
@@ -279,12 +296,13 @@ class HealthConnectManager(private val context: Context) {
     }
 
     private fun extractNutrients(r: NutritionRecord): FoodNutrients {
-        val name = r.name ?: context.getString(R.string.unknown_food)
-        val gramsMatch = "\\((\\d+)g\\)".toRegex().find(name)
+        val rawName = r.name ?: context.getString(R.string.unknown_food)
+        val gramsMatch = "\\((\\d+)g\\)".toRegex().find(rawName)
         val servingSize = gramsMatch?.groupValues?.get(0)?.removeSurrounding("(", ")") ?: "1 serving"
+        val cleanName = rawName.replace("\\s*\\(\\d+g\\)".toRegex(), "").trim()
         
         return FoodNutrients(
-            foodItem = name,
+            foodItem = cleanName,
             servingSize = servingSize,
             calories = r.energy?.inKilocalories ?: 0.0,
             protein = r.protein?.inGrams ?: 0.0,
