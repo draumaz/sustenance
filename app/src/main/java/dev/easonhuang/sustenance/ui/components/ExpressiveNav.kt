@@ -262,12 +262,6 @@ fun ExpressiveNavigationBar(
                 ) {
                     if (isCameraMode) {
                         val todayDest = destinations.first { it.route == "today" }
-                        //ExpressiveNavItem(
-                        //    label = stringResource(todayDest.labelRes),
-                        //    icon = Icons.Rounded.ArrowBackIosNew,
-                        //    isSelected = false,
-                        //    onClick = { onNavigate(todayDest) },
-                        //)
                         if (batchCount == 0 && !isBatchMode) {
                             ExpressiveNavItem(
                                 label = stringResource(R.string.history),
@@ -290,7 +284,7 @@ fun ExpressiveNavigationBar(
                             label = stringResource(R.string.add_label),
                             icon = Icons.Rounded.CameraAlt,
                             isSelected = isBatchMode,
-                            onClick = onCaptureBatch,
+                            onClick = { if (isHistorySelected) { onHistoryClick() }; onCaptureBatch(); },
                             onLongHold = onSelectGallery,
                         )
                         
