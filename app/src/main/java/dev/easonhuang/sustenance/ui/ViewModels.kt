@@ -36,6 +36,9 @@ class DashboardViewModel(
     val lastLogTimerEnabled = settingsRepo.lastLogTimerEnabled
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
+    val fastBreakingCalories = settingsRepo.fastBreakingCalories
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
+
     val summaries = combine(_summariesMap, _dateOffset) { map, offset ->
         map[offset]
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
@@ -100,7 +103,8 @@ class DashboardViewModel(
         }
         val data = manager.readDashboard(finalGoals, isKeto, offset)
         if (offset == 0) {
-            _lastLogTime.value = manager.readLastFoodLogTime()
+            val threshold = settingsRepo.fastBreakingCalories.first().toDouble()
+            _lastLogTime.value = manager.readLastFoodLogTime(threshold)
         }
         _summariesMap.value = _summariesMap.value + (offset to data)
     }
@@ -191,6 +195,7 @@ class SettingsViewModel(
     val dynamicColor = repository.dynamicColor
     val ketoMode = repository.ketoMode
     val lastLogTimerEnabled = repository.lastLogTimerEnabled
+    val fastBreakingCalories = repository.fastBreakingCalories
     val apiKeyEnabled = repository.apiKeyEnabled
     val apiKey = repository.apiKey
 
@@ -204,6 +209,10 @@ class SettingsViewModel(
 
     fun setLastLogTimerEnabled(enabled: Boolean) {
         viewModelScope.launch { repository.setLastLogTimerEnabled(enabled) }
+    }
+
+    fun setFastBreakingCalories(calories: Int) {
+        viewModelScope.launch { repository.setFastBreakingCalories(calories) }
     }
 
     fun setApiKeyEnabled(enabled: Boolean) {

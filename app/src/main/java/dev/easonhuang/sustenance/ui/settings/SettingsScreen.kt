@@ -50,6 +50,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -67,6 +68,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.withLink
@@ -182,6 +184,36 @@ fun SettingsScreen(
                         onClick = { vm.setLastLogTimerEnabled(!lastLogTimerEnabled) }
                     ) {
                         Switch(checked = lastLogTimerEnabled, onCheckedChange = null)
+                    }
+
+                    if (lastLogTimerEnabled) {
+                        val fastBreakingCalories by vm.fastBreakingCalories.collectAsState(initial = 0)
+                        var tempCalories by remember(fastBreakingCalories) { mutableStateOf(fastBreakingCalories.toString()) }
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            OutlinedTextField(
+                                value = tempCalories,
+                                onValueChange = { newValue ->
+                                    if (newValue.isEmpty() || newValue.all { it.isDigit() }) {
+                                        tempCalories = newValue
+                                        newValue.toIntOrNull()?.let { vm.setFastBreakingCalories(it) }
+                                    }
+                                },
+                                modifier = Modifier.weight(1f),
+                                singleLine = true,
+                                label = { Text(stringResource(R.string.fast_breaking_calories)) },
+                                placeholder = { Text("0") },
+                                suffix = { Text(stringResource(R.string.unit_kcal)) },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                supportingText = { Text(stringResource(R.string.fast_breaking_calories_summary)) }
+                            )
+                            Spacer(Modifier.size(8.dp))
+                        }
                     }
                 }
             }

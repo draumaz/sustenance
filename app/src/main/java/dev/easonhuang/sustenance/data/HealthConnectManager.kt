@@ -280,18 +280,24 @@ class HealthConnectManager(private val context: Context) {
         }.getOrElse { emptyList() }
     }
 
-    suspend fun readLastFoodLogTime(): Instant? {
+    suspend fun readLastFoodLogTime(threshold: Double = 0.0): Instant? {
         return runCatching {
             val end = Instant.now()
             val start = end.minus(java.time.Duration.ofDays(30))
-            client.readRecords(
+            val records = client.readRecords(
                 ReadRecordsRequest(
                     recordType = NutritionRecord::class,
                     timeRangeFilter = TimeRangeFilter.between(start, end),
                     ascendingOrder = false,
-                    pageSize = 1
+                    pageSize = 100
                 )
-            ).records.firstOrNull()?.startTime
+            ).records
+            
+            if (threshold <= 0.0) {
+                records.firstOrNull()?.startTime
+            } else {
+                records.firstOrNull { (it.energy?.inKilocalories ?: 0.0) >= threshold }?.startTime
+            }
         }.getOrNull()
     }
 

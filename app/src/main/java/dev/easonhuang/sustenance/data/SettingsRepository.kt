@@ -14,6 +14,7 @@ class SettingsRepository(private val context: Context) {
     private val dynamicColorKey = booleanPreferencesKey("dynamic_color")
     private val ketoModeKey = booleanPreferencesKey("keto_mode")
     private val lastLogTimerEnabledKey = booleanPreferencesKey("last_log_timer_enabled")
+    private val fastBreakingCaloriesKey = androidx.datastore.preferences.core.intPreferencesKey("fast_breaking_calories")
     private val apiKeyEnabledKey = booleanPreferencesKey("api_key_enabled")
     private val apiKeyKey = stringPreferencesKey("api_key")
 
@@ -27,6 +28,10 @@ class SettingsRepository(private val context: Context) {
 
     val lastLogTimerEnabled: Flow<Boolean> = context.settingsDataStore.data.map { prefs ->
         prefs[lastLogTimerEnabledKey] ?: false
+    }
+
+    val fastBreakingCalories: Flow<Int> = context.settingsDataStore.data.map { prefs ->
+        prefs[fastBreakingCaloriesKey] ?: 0
     }
 
     val apiKeyEnabled: Flow<Boolean> = context.settingsDataStore.data.map { prefs ->
@@ -52,6 +57,12 @@ class SettingsRepository(private val context: Context) {
     suspend fun setLastLogTimerEnabled(enabled: Boolean) {
         context.settingsDataStore.edit { prefs ->
             prefs[lastLogTimerEnabledKey] = enabled
+        }
+    }
+
+    suspend fun setFastBreakingCalories(calories: Int) {
+        context.settingsDataStore.edit { prefs ->
+            prefs[fastBreakingCaloriesKey] = calories
         }
     }
 
