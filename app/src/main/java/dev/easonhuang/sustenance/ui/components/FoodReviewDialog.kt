@@ -37,10 +37,13 @@ fun FoodReviewDialog(
     onLog: (FoodNutrients, Double) -> Unit,
 ) {
     var foodItem by remember { mutableStateOf(nutrients.foodItem) }
-    var servingSize by remember { mutableStateOf(nutrients.servingSize) }
+    // Extract only the numeric part for the editable state to avoid "100g g"
+    var servingSize by remember {
+        mutableStateOf("(\\d+)".toRegex().find(nutrients.servingSize)?.groupValues?.get(1) ?: nutrients.servingSize)
+    }
 
     val baseGrams = remember(servingSize) {
-        "(\\d+)".toRegex().find(servingSize)?.groupValues?.get(1)?.toDoubleOrNull() ?: 100.0
+        servingSize.replace(',', '.').toDoubleOrNull()?.takeIf { it > 0 } ?: 100.0
     }
 
     fun format(d: Double): String = if (d % 1.0 == 0.0) d.toInt().toString() else String.format("%.1f", d)
@@ -88,26 +91,29 @@ fun FoodReviewDialog(
                     cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                     modifier = Modifier.fillMaxWidth()
                 )
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = stringResource(R.string.base_serving),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    BasicTextField(
-                        value = servingSize,
-                        onValueChange = { servingSize = it },
-                        textStyle = MaterialTheme.typography.bodySmall.copy(
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center
-                        ),
-                        cursorBrush = SolidColor(MaterialTheme.colorScheme.onSurfaceVariant)
-                    )
-                }
+//                Row(
+//                    verticalAlignment = Alignment.CenterVertically,
+//                    horizontalArrangement = Arrangement.Center,
+//                    modifier = Modifier.fillMaxWidth()
+//                ) {
+//                    Text(
+//                        text = stringResource(R.string.base_serving),
+//                        style = MaterialTheme.typography.bodySmall,
+//                        textAlign = TextAlign.Center,
+//                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+//                        modifier = Modifier.offset(x = 30.dp)
+//                    )
+//                    BasicTextField(
+//                        value = servingSize,
+//                        modifier = Modifier.offset(x = 30.dp),
+//                        onValueChange = { servingSize = it },
+//                        textStyle = MaterialTheme.typography.bodySmall.copy(
+//                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+//                            textAlign = TextAlign.Start
+//                        ),
+//                        cursorBrush = SolidColor(MaterialTheme.colorScheme.onSurfaceVariant)
+//                    )
+//                }
             }
         },
         text = {
@@ -184,9 +190,10 @@ fun FoodReviewDialog(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    val m = currentGrams / baseGrams
+                    val m = if (baseGrams > 0) currentGrams / baseGrams else 1.0
                     
                     val items = listOf(
+                        Triple(stringResource(R.string.grams_label), servingSize to { s: String -> servingSize = s }, stringResource(R.string.unit_g) to MaterialTheme.colorScheme.primaryContainer),
                         Triple(stringResource(R.string.metric_total_calories), cal to { s: String -> cal = s }, stringResource(R.string.unit_kcal) to MaterialTheme.colorScheme.primaryContainer),
                         Triple(stringResource(R.string.metric_protein), prot to { s: String -> prot = s }, stringResource(R.string.unit_g) to Color(0xFFE3F2FD)),
                         Triple(stringResource(R.string.metric_carbs), carb to { s: String -> carb = s }, stringResource(R.string.unit_g) to Color(0xFFFFF3E0)),
@@ -265,7 +272,7 @@ private fun EditableNutrientChip(
     containerColor: Color,
     modifier: Modifier = Modifier
 ) {
-    val displayValue = (value.replace(',', '.').toDoubleOrNull() ?: 0.0) * multiplier
+    val displayValue = (value.filter { it.isDigit() || it == '.' || it == ',' }.replace(',', '.').toDoubleOrNull() ?: 0.0) * multiplier
     
     Surface(
         color = containerColor,

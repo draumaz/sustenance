@@ -1,0 +1,7 @@
+- [x] Create task artifact
+- [x] Fix FoodReviewDialog serving size logic
+    - [x] Sanitize initial `servingSize` state in `FoodReviewDialog`
+    - [x] Improve numeric extraction in `EditableNutrientChip`
+    - [x] Ensure `currentGrams` stays in sync with `baseGrams`
+- [x] Verify changes
+- [x] Create walkthrough artifact
