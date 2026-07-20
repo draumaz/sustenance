@@ -639,8 +639,6 @@ private fun MainNav(
                     manager = manager,
                     onItemSelected = { item ->
                         pendingNutrients = item.nutrients
-                        isHistoryActive = false
-                        isCameraActive = false
                     },
                     onBack = { isHistoryActive = false }
                 )
@@ -650,10 +648,10 @@ private fun MainNav(
                 FoodReviewDialog(
                     nutrients = nutrients,
                     onDismiss = { pendingNutrients = null },
-                    onLog = { nuts, count ->
+                    onLog = { nuts, count, timestamp ->
                         scope.launch {
                             try {
-                                manager.writeNutrition(nuts, count)
+                                manager.writeNutrition(nuts, count, timestamp)
                                 pendingNutrients = null
                                 //Toast.makeText(currentContext, "Food logged successfully", Toast.LENGTH_SHORT).show()
                             } catch (e: Exception) {

@@ -79,9 +79,9 @@ class HealthConnectManager(private val context: Context) {
         }
     }
 
-    suspend fun writeNutrition(nutrients: FoodNutrients, servingCount: Double) {
+    suspend fun writeNutrition(nutrients: FoodNutrients, servingCount: Double, timestamp: Instant = Instant.now()) {
         val multiplier = servingCount
-        val now = Instant.now()
+        val now = timestamp
         
         val baseGrams = "(\\d+)".toRegex().find(nutrients.servingSize)?.groupValues?.get(1)?.toDoubleOrNull() ?: 100.0
         val totalGrams = Math.round(baseGrams * multiplier).toInt()
