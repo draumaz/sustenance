@@ -3,7 +3,9 @@ package dev.easonhuang.sustenance.ui
 import android.content.Intent
 import android.Manifest
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Matrix
+import android.net.Uri
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -97,6 +99,31 @@ private const val HEALTH_CONNECT_PACKAGE = "com.google.android.apps.healthdata"
 private const val ACTION_HC_SETTINGS = "androidx.health.connect.action.HEALTH_CONNECT_SETTINGS"
 private const val ACTION_MANAGE_HEALTH_PERMISSIONS = "androidx.health.connect.action.MANAGE_HEALTH_PERMISSIONS"
 
+private fun decodeDownsampledBitmap(context: android.content.Context, uri: Uri, maxDim: Int = 1024): Bitmap? {
+    return try {
+        context.contentResolver.openInputStream(uri)?.use { input ->
+            val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            BitmapFactory.decodeStream(input, null, options)
+            
+            var inSampleSize = 1
+            if (options.outHeight > maxDim || options.outWidth > maxDim) {
+                val halfHeight = options.outHeight / 2
+                val halfWidth = options.outWidth / 2
+                while (halfHeight / inSampleSize >= maxDim && halfWidth / inSampleSize >= maxDim) {
+                    inSampleSize *= 2
+                }
+            }
+            
+            context.contentResolver.openInputStream(uri)?.use { finalInput ->
+                val finalOptions = BitmapFactory.Options().apply { this.inSampleSize = inSampleSize }
+                BitmapFactory.decodeStream(finalInput, null, finalOptions)
+            }
+        }
+    } catch (e: Exception) {
+        null
+    }
+}
+
 enum class Dest(val route: String, @StringRes val labelRes: Int, val icon: ImageVector) {
     TODAY("today", R.string.today_label, Icons.Rounded.Today),
     SUMMARY("summary", R.string.summary_title, Icons.Rounded.Insights),
@@ -110,7 +137,9 @@ fun SustenanceRoot(
     settingsRepo: SettingsRepository,
     exporter: ExportManager,
     deepLinkMetric: String? = null,
+    sharedImageUris: List<Uri>? = null,
     onDeepLinkConsumed: () -> Unit = {},
+    onSharedImagesConsumed: () -> Unit = {}
 ) {
     val currentContext = LocalContext.current
 
@@ -213,7 +242,9 @@ fun SustenanceRoot(
                 granted = granted ?: emptySet(),
                 onManagePermissions = ::manageAccess,
                 deepLinkMetric = deepLinkMetric,
+                sharedImageUris = sharedImageUris,
                 onDeepLinkConsumed = onDeepLinkConsumed,
+                onSharedImagesConsumed = onSharedImagesConsumed
             )
         }
     }
@@ -228,7 +259,9 @@ private fun MainNav(
     granted: Set<String>,
     onManagePermissions: () -> Unit,
     deepLinkMetric: String? = null,
+    sharedImageUris: List<Uri>? = null,
     onDeepLinkConsumed: () -> Unit = {},
+    onSharedImagesConsumed: () -> Unit = {}
 ) {
     val currentContext = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -257,18 +290,12 @@ private fun MainNav(
     ) { uris ->
         scope.launch {
             uris.forEach { uri ->
-                runCatching {
-                    currentContext.contentResolver.openInputStream(uri)?.use { inputStream ->
-                        val bitmap = android.graphics.BitmapFactory.decodeStream(inputStream)
-                        if (bitmap != null) {
-                            capturedBitmaps = capturedBitmaps + bitmap
-                        }
-                    }
+                decodeDownsampledBitmap(currentContext, uri)?.let { bitmap ->
+                    capturedBitmaps = capturedBitmaps + bitmap
                 }
             }
             if (uris.isNotEmpty()) {
                 isBatchMode = true
-                //Toast.makeText(currentContext, "Added ${uris.size} photos to batch", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -326,6 +353,19 @@ private fun MainNav(
                 bottomBarOffsetHeightPx.floatValue = newOffset.coerceIn(-bottomBarHeightPx, 0f)
                 return Offset.Zero
             }
+        }
+    }
+
+    LaunchedEffect(sharedImageUris) {
+        sharedImageUris?.let { uris ->
+            isCameraActive = true
+            isBatchMode = true
+            uris.forEach { uri ->
+                decodeDownsampledBitmap(currentContext, uri)?.let { bitmap ->
+                    capturedBitmaps = capturedBitmaps + bitmap
+                }
+            }
+            onSharedImagesConsumed()
         }
     }
 

@@ -1,6 +1,7 @@
 package dev.easonhuang.sustenance
 
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -21,12 +22,13 @@ class MainActivity : ComponentActivity() {
 
     // Deep-link target from a metric widget tap; consumed once navigation happens.
     private var deepLinkMetric by mutableStateOf<String?>(null)
+    private var sharedImages by mutableStateOf<List<Uri>?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        deepLinkMetric = intent?.getStringExtra(EXTRA_METRIC)
+        handleIntent(intent)
         val app = application as SustenanceApp
         setContent {
             val dynamicColor by app.settings.dynamicColor.collectAsState(initial = true)
@@ -41,7 +43,9 @@ class MainActivity : ComponentActivity() {
                         settingsRepo = app.settings,
                         exporter = app.exporter,
                         deepLinkMetric = deepLinkMetric,
+                        sharedImageUris = sharedImages,
                         onDeepLinkConsumed = { deepLinkMetric = null },
+                        onSharedImagesConsumed = { sharedImages = null }
                     )
                 }
             }
@@ -51,7 +55,27 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        handleIntent(intent)
+    }
+
+    private fun handleIntent(intent: Intent?) {
+        if (intent == null) return
         deepLinkMetric = intent.getStringExtra(EXTRA_METRIC)
+
+        when (intent.action) {
+            Intent.ACTION_SEND -> {
+                if (intent.type?.startsWith("image/") == true) {
+                    (intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM))?.let {
+                        sharedImages = listOf(it)
+                    }
+                }
+            }
+            Intent.ACTION_SEND_MULTIPLE -> {
+                if (intent.type?.startsWith("image/") == true) {
+                    sharedImages = intent.getParcelableArrayListExtra<Uri>(Intent.EXTRA_STREAM)
+                }
+            }
+        }
     }
 
     companion object {

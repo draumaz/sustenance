@@ -146,10 +146,9 @@ fun ExpressiveNavigationBar(
         modifier = Modifier
             .fillMaxWidth()
             .imePadding()
-            .then(
-                if (isImeVisible) Modifier.graphicsLayer { translationY = 700f }
-                else Modifier
-            )
+            .graphicsLayer { 
+                translationY = if (isImeVisible) 700f else 0f 
+            }
             .padding(bottom = 36.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
