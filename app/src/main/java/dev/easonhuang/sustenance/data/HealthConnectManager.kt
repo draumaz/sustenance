@@ -370,7 +370,7 @@ class HealthConnectManager(private val context: Context) {
                 }
                 listOf(context.getString(R.string.morning), context.getString(R.string.day), context.getString(R.string.night)).mapNotNull { section ->
                     grouped[section]?.let { recs ->
-                        section to recs.sortedBy { it.startTime }.map { r ->
+                        section to recs.sortedByDescending { it.startTime }.map { r ->
                             val name = r.name ?: context.getString(R.string.unknown_food)
                             val kcal = r.energy?.inKilocalories ?: 0.0
                             val time = timeFmt.format(r.startTime.atZone(zone))

@@ -1,0 +1,3 @@
+- [ ] Reverse food item order in `HealthConnectManager.kt`
+- [ ] Verify build
+- [ ] Manual verification (summary of logic check)
