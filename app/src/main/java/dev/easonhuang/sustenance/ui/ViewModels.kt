@@ -30,6 +30,12 @@ class DashboardViewModel(
     private val _dateOffset = MutableStateFlow(0)
     val dateOffset = _dateOffset.asStateFlow()
 
+    private val _lastLogTime = MutableStateFlow<java.time.Instant?>(null)
+    val lastLogTime = _lastLogTime.asStateFlow()
+
+    val lastLogTimerEnabled = settingsRepo.lastLogTimerEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
     val summaries = combine(_summariesMap, _dateOffset) { map, offset ->
         map[offset]
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
@@ -93,6 +99,9 @@ class DashboardViewModel(
             }
         }
         val data = manager.readDashboard(finalGoals, isKeto, offset)
+        if (offset == 0) {
+            _lastLogTime.value = manager.readLastFoodLogTime()
+        }
         _summariesMap.value = _summariesMap.value + (offset to data)
     }
 
@@ -114,6 +123,7 @@ class DashboardViewModel(
 class DetailViewModel(
     private val manager: HealthConnectManager,
     private val goalsRepo: GoalsRepository,
+    private val settingsRepo: SettingsRepository,
     private val metric: Metric,
     private val dateOffset: Int = 0,
 ) : ViewModel() {
@@ -169,8 +179,8 @@ class DetailViewModel(
     }
 
     companion object {
-        fun factory(manager: HealthConnectManager, goalsRepo: GoalsRepository, metric: Metric, dateOffset: Int = 0) = viewModelFactory {
-            initializer { DetailViewModel(manager, goalsRepo, metric, dateOffset) }
+        fun factory(manager: HealthConnectManager, goalsRepo: GoalsRepository, settingsRepo: SettingsRepository, metric: Metric, dateOffset: Int = 0) = viewModelFactory {
+            initializer { DetailViewModel(manager, goalsRepo, settingsRepo, metric, dateOffset) }
         }
     }
 }
@@ -180,6 +190,7 @@ class SettingsViewModel(
 ) : ViewModel() {
     val dynamicColor = repository.dynamicColor
     val ketoMode = repository.ketoMode
+    val lastLogTimerEnabled = repository.lastLogTimerEnabled
     val apiKeyEnabled = repository.apiKeyEnabled
     val apiKey = repository.apiKey
 
@@ -189,6 +200,10 @@ class SettingsViewModel(
 
     fun setKetoMode(enabled: Boolean) {
         viewModelScope.launch { repository.setKetoMode(enabled) }
+    }
+
+    fun setLastLogTimerEnabled(enabled: Boolean) {
+        viewModelScope.launch { repository.setLastLogTimerEnabled(enabled) }
     }
 
     fun setApiKeyEnabled(enabled: Boolean) {

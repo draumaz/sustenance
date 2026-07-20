@@ -25,6 +25,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.History
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -73,6 +74,8 @@ import dev.easonhuang.sustenance.ui.components.MetricCard
 import dev.easonhuang.sustenance.ui.components.ScallopedLoadingAnimation
 import java.time.LocalDate
 import java.time.LocalTime
+import java.time.Duration
+import java.time.Instant
 import java.time.format.DateTimeFormatter
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
@@ -155,6 +158,8 @@ fun DashboardScreen(
     val summariesMap by vm.summariesMap.collectAsStateWithLifecycle()
     val refreshing by vm.refreshing.collectAsStateWithLifecycle()
     val dateOffset by vm.dateOffset.collectAsStateWithLifecycle()
+    val lastLogTime by vm.lastLogTime.collectAsStateWithLifecycle()
+    val lastLogTimerEnabled by vm.lastLogTimerEnabled.collectAsStateWithLifecycle()
     val topAppBarState = rememberTopAppBarState()
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(topAppBarState)
     val haptic = LocalHapticFeedback.current
@@ -361,9 +366,12 @@ fun DashboardScreen(
                                             MetricSection(
                                                 title = stringResource(R.string.section_food),
                                                 items = foodGroup,
-                                                columns = 1,
+                                                columns = if (lastLogTimerEnabled && targetOffset == 0) 2 else 1,
                                                 onOpenMetric = { onOpenMetric(it, targetOffset) },
-                                                onManagePermissions = onManagePermissions
+                                                onManagePermissions = onManagePermissions,
+                                                extraContent = if (lastLogTimerEnabled && targetOffset == 0) {
+                                                    { TimerChip(lastLogTime) }
+                                                } else null
                                             )
                                         }
                                     }
@@ -438,7 +446,8 @@ private fun MetricSection(
     items: List<MetricSummary>,
     columns: Int,
     onOpenMetric: (Metric) -> Unit,
-    onManagePermissions: () -> Unit
+    onManagePermissions: () -> Unit,
+    extraContent: (@Composable () -> Unit)? = null
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -473,13 +482,75 @@ private fun MetricSection(
                         )
                     }
                 }
+                extraContent?.let {
+                    Box(Modifier.weight(1f)) {
+                        it()
+                    }
+                }
                 // Fill remaining space in the last row if needed
-                val remainder = items.size % columns
+                val totalItems = items.size + (if (extraContent != null) 1 else 0)
+                val remainder = totalItems % columns
                 if (remainder != 0) {
                     repeat(columns - remainder) {
                         Spacer(Modifier.weight(1f))
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TimerChip(lastLogTime: Instant?) {
+    val now = Instant.now()
+    val duration = lastLogTime?.let { Duration.between(it, now) } ?: Duration.ZERO
+    val hours = duration.toHours()
+    val minutes = duration.toMinutes() % 60
+    val formatted = stringResource(R.string.hour_minute_format, hours, minutes)
+
+    Surface(
+        modifier = Modifier
+            .height(48.dp)
+            .fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                Modifier
+                    .size(28.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.History,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
+            Spacer(Modifier.width(8.dp))
+            Column {
+                Text(
+                    text = stringResource(R.string.time_since_last_ate),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                )
+                Text(
+                    text = formatted,
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                )
             }
         }
     }

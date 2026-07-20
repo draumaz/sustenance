@@ -13,6 +13,7 @@ private val Context.settingsDataStore by preferencesDataStore(name = "sustenance
 class SettingsRepository(private val context: Context) {
     private val dynamicColorKey = booleanPreferencesKey("dynamic_color")
     private val ketoModeKey = booleanPreferencesKey("keto_mode")
+    private val lastLogTimerEnabledKey = booleanPreferencesKey("last_log_timer_enabled")
     private val apiKeyEnabledKey = booleanPreferencesKey("api_key_enabled")
     private val apiKeyKey = stringPreferencesKey("api_key")
 
@@ -22,6 +23,10 @@ class SettingsRepository(private val context: Context) {
 
     val ketoMode: Flow<Boolean> = context.settingsDataStore.data.map { prefs ->
         prefs[ketoModeKey] ?: false
+    }
+
+    val lastLogTimerEnabled: Flow<Boolean> = context.settingsDataStore.data.map { prefs ->
+        prefs[lastLogTimerEnabledKey] ?: false
     }
 
     val apiKeyEnabled: Flow<Boolean> = context.settingsDataStore.data.map { prefs ->
@@ -41,6 +46,12 @@ class SettingsRepository(private val context: Context) {
     suspend fun setKetoMode(enabled: Boolean) {
         context.settingsDataStore.edit { prefs ->
             prefs[ketoModeKey] = enabled
+        }
+    }
+
+    suspend fun setLastLogTimerEnabled(enabled: Boolean) {
+        context.settingsDataStore.edit { prefs ->
+            prefs[lastLogTimerEnabledKey] = enabled
         }
     }
 

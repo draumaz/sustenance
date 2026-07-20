@@ -173,6 +173,16 @@ fun SettingsScreen(
                     ) {
                         Switch(checked = ketoMode, onCheckedChange = null)
                     }
+
+                    val lastLogTimerEnabled by vm.lastLogTimerEnabled.collectAsState(initial = false)
+                    SettingRow(
+                        icon = Icons.Rounded.History,
+                        title = stringResource(R.string.show_last_log_timer),
+                        subtitle = stringResource(R.string.show_last_log_timer_summary),
+                        onClick = { vm.setLastLogTimerEnabled(!lastLogTimerEnabled) }
+                    ) {
+                        Switch(checked = lastLogTimerEnabled, onCheckedChange = null)
+                    }
                 }
             }
             item { SectionLabel(stringResource(R.string.section_misc)) }

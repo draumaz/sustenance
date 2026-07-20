@@ -67,6 +67,10 @@
     <string name="dynamic_color_summary">Использовать цвета системных обоев (Android 12+)</string>
     <string name="keto_mode">Кето-режим</string>
     <string name="keto_mode_summary">Показывать чистые углеводы (Углеводы - Клетчатка)</string>
+    <string name="show_last_log_timer">Показывать таймер последнего приема пищи</string>
+    <string name="show_last_log_timer_summary">Отображать время, прошедшее с момента последней записи еды</string>
+    <string name="time_since_last_ate">Время голодания</string>
+    <string name="hour_minute_format">%1$dч %2$dмин</string>
     <string name="enable_food_logging">Включить запись еды</string>
     <string name="food_logging_summary">Требуется API-ключ AI Studio.\nSustenance использует gemini-3.1-flash-lite.</string>
     <string name="api_key">API-ключ</string>

@@ -67,6 +67,10 @@
     <string name="dynamic_color_summary">Use colors from your system wallpaper (Android 12+)</string>
     <string name="keto_mode">Keto Mode</string>
     <string name="keto_mode_summary">Display Net Carbs (Carbs - Fiber)</string>
+    <string name="show_last_log_timer">Show last log timer</string>
+    <string name="show_last_log_timer_summary">Display a card in Food view showing time since last log</string>
+    <string name="time_since_last_ate">Time fasting</string>
+    <string name="hour_minute_format">%1$dhr %2$dmin</string>
     <string name="enable_food_logging">Enable Food logging</string>
     <string name="food_logging_summary">AI Studio API key required.\nSustenance talks to gemini-3.1-flash-lite.</string>
     <string name="api_key">API Key</string>

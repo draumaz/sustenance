@@ -579,6 +579,7 @@ private fun MainNav(
                     DetailScreen(
                         manager = manager,
                         goalsRepo = goalsRepo,
+                        settingsRepo = settingsRepo,
                         metric = metric,
                         dateOffset = dashboardDateOffset,
                         pbState = pbState,

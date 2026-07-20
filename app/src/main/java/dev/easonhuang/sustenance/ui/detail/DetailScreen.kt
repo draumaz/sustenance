@@ -63,12 +63,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.res.stringResource
+import androidx.compose.material.icons.rounded.History
 import dev.easonhuang.sustenance.R
 import dev.easonhuang.sustenance.data.GoalsRepository
 import dev.easonhuang.sustenance.data.HealthConnectManager
 import dev.easonhuang.sustenance.data.Metric
 import dev.easonhuang.sustenance.data.MetricDetail
 import dev.easonhuang.sustenance.data.RecordRow
+import dev.easonhuang.sustenance.data.SettingsRepository
 import dev.easonhuang.sustenance.ui.DetailViewModel
 import dev.easonhuang.sustenance.ui.components.BarChart
 import dev.easonhuang.sustenance.ui.components.LineChart
@@ -80,6 +82,7 @@ import dev.easonhuang.sustenance.data.formatValue
 fun DetailScreen(
     manager: HealthConnectManager,
     goalsRepo: GoalsRepository,
+    settingsRepo: SettingsRepository,
     metric: Metric,
     dateOffset: Int = 0,
     pbState: PredictiveBackState,
@@ -87,7 +90,7 @@ fun DetailScreen(
 ) {
     val vm: DetailViewModel = viewModel(
         key = "${metric.key}_$dateOffset",
-        factory = DetailViewModel.factory(manager, goalsRepo, metric, dateOffset),
+        factory = DetailViewModel.factory(manager, goalsRepo, settingsRepo, metric, dateOffset),
     )
     val detail by vm.detail.collectAsStateWithLifecycle()
     val refreshing by vm.refreshing.collectAsStateWithLifecycle()
