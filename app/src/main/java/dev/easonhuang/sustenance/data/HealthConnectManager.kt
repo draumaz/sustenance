@@ -384,15 +384,34 @@ class HealthConnectManager(private val context: Context) {
                 val start = baseDate.atStartOfDay(zone).toInstant()
                 val end = if (dateOffset == 0) Instant.now() else baseDate.atTime(LocalTime.MAX).atZone(zone).toInstant()
                 val records = read(NutritionRecord::class, start, end).filterIsInstance<NutritionRecord>()
+                val morning = context.getString(R.string.morning)
+                val day = context.getString(R.string.day)
+                val night = context.getString(R.string.night)
+
                 val grouped = records.groupBy { r ->
                     val hour = r.startTime.atZone(zone).hour
                     when (hour) {
-                        in 5..11 -> context.getString(R.string.morning)
-                        in 12..17 -> context.getString(R.string.day)
-                        else -> context.getString(R.string.night)
+                        in 5..11 -> morning
+                        in 12..17 -> day
+                        else -> night
                     }
                 }
-                listOf(context.getString(R.string.morning), context.getString(R.string.day), context.getString(R.string.night)).mapNotNull { section ->
+
+                val defaultOrder = listOf(morning, day, night)
+                val sortedOrder = if (dateOffset == 0) {
+                    val currentHour = LocalTime.now(zone).hour
+                    val currentCategory = when (currentHour) {
+                        in 5..11 -> morning
+                        in 12..17 -> day
+                        else -> night
+                    }
+                    val idx = defaultOrder.indexOf(currentCategory)
+                    if (idx != -1) defaultOrder.drop(idx) + defaultOrder.take(idx) else defaultOrder
+                } else {
+                    defaultOrder
+                }
+
+                sortedOrder.mapNotNull { section ->
                     grouped[section]?.let { recs ->
                         section to recs.sortedByDescending { it.startTime }.map { r ->
                             val name = r.name ?: context.getString(R.string.unknown_food)

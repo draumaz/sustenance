@@ -1,0 +1,6 @@
+- `[ ]` Sort Morning/Day/Night cards in Food metric detail view
+    - `[/]` Identify current time category in `HealthConnectManager.readDetail`
+    - `[ ]` Rotate category list based on current time
+    - `[ ]` Update `todaySections` logic to use rotated list
+- `[ ]` Verification
+    - `[ ]` Manual verification of section order
