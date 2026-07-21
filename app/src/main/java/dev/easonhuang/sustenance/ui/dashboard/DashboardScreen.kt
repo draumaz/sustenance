@@ -7,6 +7,7 @@ import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
@@ -353,28 +354,27 @@ fun DashboardScreen(
                                     ),
                                     verticalArrangement = Arrangement.spacedBy(16.dp),
                                 ) {
-                                    if (energyGroup.isNotEmpty()) {
+                                    if (energyGroup.isNotEmpty() || foodGroup.isNotEmpty() || (lastLogTimerEnabled && targetOffset == 0)) {
                                         item {
                                             MetricSection(
                                                 title = stringResource(R.string.section_energy),
                                                 items = energyGroup,
                                                 columns = 2,
                                                 onOpenMetric = { onOpenMetric(it, targetOffset) },
-                                                onManagePermissions = onManagePermissions
-                                            )
-                                        }
-                                    }
-                                    if (foodGroup.isNotEmpty()) {
-                                        item {
-                                            MetricSection(
-                                                title = stringResource(R.string.section_food),
-                                                items = foodGroup,
-                                                columns = if (lastLogTimerEnabled && targetOffset == 0) 2 else 1,
-                                                onOpenMetric = { onOpenMetric(it, targetOffset) },
                                                 onManagePermissions = onManagePermissions,
-                                                extraContent = if (lastLogTimerEnabled && targetOffset == 0) {
-                                                    { TimerChip(lastLogTime, fastingGoalHours, onClick = onTimerClick) }
-                                                } else null
+                                                bottomContent = {
+                                                    foodGroup.forEach { summary ->
+                                                        MetricCard(
+                                                            summary = summary,
+                                                            onClick = {
+                                                                if (summary.granted) onOpenMetric(summary.metric, targetOffset) else onManagePermissions()
+                                                            }
+                                                        )
+                                                    }
+                                                    if (lastLogTimerEnabled && targetOffset == 0) {
+                                                        TimerChip(lastLogTime, fastingGoalHours, onClick = onTimerClick)
+                                                    }
+                                                }
                                             )
                                         }
                                     }
@@ -450,7 +450,8 @@ private fun MetricSection(
     columns: Int,
     onOpenMetric: (Metric) -> Unit,
     onManagePermissions: () -> Unit,
-    extraContent: (@Composable () -> Unit)? = null
+    extraContent: (@Composable () -> Unit)? = null,
+    bottomContent: (@Composable ColumnScope.() -> Unit)? = null
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -469,34 +470,48 @@ private fun MetricSection(
                 letterSpacing = 1.sp,
                 modifier = Modifier.padding(bottom = 12.dp, start = 8.dp)
             )
-            FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                maxItemsInEachRow = columns
-            ) {
-                items.forEach { summary ->
-                    Box(Modifier.weight(1f)) {
-                        MetricCard(
-                            summary = summary,
-                            onClick = {
-                                if (summary.granted) onOpenMetric(summary.metric) else onManagePermissions()
-                            }
-                        )
+            if (items.isNotEmpty() || extraContent != null) {
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    maxItemsInEachRow = columns
+                ) {
+                    items.forEach { summary ->
+                        Box(Modifier.weight(1f)) {
+                            MetricCard(
+                                summary = summary,
+                                onClick = {
+                                    if (summary.granted) onOpenMetric(summary.metric) else onManagePermissions()
+                                }
+                            )
+                        }
+                    }
+                    extraContent?.let {
+                        Box(Modifier.weight(1f)) {
+                            it()
+                        }
+                    }
+                    // Fill remaining space in the last row if needed
+                    val totalItems = items.size + (if (extraContent != null) 1 else 0)
+                    val remainder = totalItems % columns
+                    if (remainder != 0) {
+                        repeat(columns - remainder) {
+                            Spacer(Modifier.weight(1f))
+                        }
                     }
                 }
-                extraContent?.let {
-                    Box(Modifier.weight(1f)) {
-                        it()
-                    }
+            }
+
+            if (bottomContent != null) {
+                if (items.isNotEmpty() || extraContent != null) {
+                    Spacer(Modifier.height(8.dp))
                 }
-                // Fill remaining space in the last row if needed
-                val totalItems = items.size + (if (extraContent != null) 1 else 0)
-                val remainder = totalItems % columns
-                if (remainder != 0) {
-                    repeat(columns - remainder) {
-                        Spacer(Modifier.weight(1f))
-                    }
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    bottomContent()
                 }
             }
         }
