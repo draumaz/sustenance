@@ -261,13 +261,12 @@ fun ExpressiveNavigationBar(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     if (isCameraMode) {
-                        val todayDest = destinations.first { it.route == "today" }
                         if (batchCount == 0 && !isBatchMode) {
                             ExpressiveNavItem(
                                 label = stringResource(R.string.history),
                                 icon = Icons.Rounded.History,
                                 isSelected = isHistorySelected,
-                                onClick = { if (isHistorySelected) onNavigate(todayDest) else onHistoryClick() },
+                                onClick = { if (!isHistorySelected) onHistoryClick() },
                             )
                             ExpressiveNavItem(
                                 label = if (isHistorySelected) stringResource(R.string.analyze) else stringResource(
