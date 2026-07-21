@@ -38,6 +38,7 @@
     <string name="unit_kcal">ккал</string>
     <string name="unit_g">г</string>
     <string name="unit_mg">мг</string>
+    <string name="unit_hr">ч</string>
 
     <string name="base_serving">Базовая порция: </string>
     <string name="grams_label">ГРАММ</string>

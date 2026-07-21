@@ -38,6 +38,7 @@
     <string name="unit_kcal">kcal</string>
     <string name="unit_g">g</string>
     <string name="unit_mg">mg</string>
+    <string name="unit_hr">hr</string>
 
     <string name="base_serving">Base Serving: </string>
     <string name="grams_label">GRAMS</string>

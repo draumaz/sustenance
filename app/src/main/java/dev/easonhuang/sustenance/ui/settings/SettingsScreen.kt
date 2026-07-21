@@ -235,8 +235,8 @@ fun SettingsScreen(
                                 modifier = Modifier.weight(1f),
                                 singleLine = true,
                                 label = { Text(stringResource(R.string.fasting_goal)) },
-                                placeholder = { Text("16") },
-                                suffix = { Text("hr") },
+                                placeholder = { Text("8") },
+                                suffix = { Text(stringResource(R.string.unit_hr)) },
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                 supportingText = { Text(stringResource(R.string.fasting_goal_summary)) }
                             )
