@@ -270,7 +270,10 @@ private fun MainNav(
     val currentRoute = backStack?.destination?.route
     val topLevel = remember { Dest.entries.toList() }
     val showBar =
-        currentRoute in topLevel.map { it.route } || currentRoute?.startsWith("detail/") == true
+        currentRoute == Dest.TODAY.route || 
+        currentRoute == Dest.SUMMARY.route || 
+        currentRoute?.startsWith(Dest.SETTINGS.route) == true || 
+        currentRoute?.startsWith("detail/") == true
 
     val pbState = remember { PredictiveBackState() }
     var todayClickCount by remember { mutableIntStateOf(0) }
@@ -522,6 +525,9 @@ private fun MainNav(
                         onOpenMetric = { metric, _ ->
                             navController.navigate("detail/${metric.key}")
                         },
+                        onTimerClick = {
+                            navController.navigate("settings?scrollTo=fasting")
+                        },
                         onManagePermissions = onManagePermissions,
                         onDateChanged = { 
                             dashboardDateOffset = it
@@ -544,17 +550,23 @@ private fun MainNav(
                 }
 
                 composable(
-                    Dest.SETTINGS.route,
+                    Dest.SETTINGS.route + "?scrollTo={scrollTo}",
+                    arguments = listOf(navArgument("scrollTo") { 
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    }),
                     enterTransition = { fadeIn(tween(200)) },
                     exitTransition = { fadeOut(tween(200)) }
-                ) {
+                ) { entry ->
                     SettingsScreen(
                         manager = manager,
                         exporter = exporter,
                         settingsRepo = settingsRepo,
                         bottomInset = inner.calculateBottomPadding(),
                         onManagePermissions = onManagePermissions,
-                        onBack = { navController.popBackStack() }
+                        onBack = { navController.popBackStack() },
+                        scrollTo = entry.arguments?.getString("scrollTo")
                     )
                 }
 

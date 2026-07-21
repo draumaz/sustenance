@@ -15,7 +15,8 @@ class SettingsRepository(private val context: Context) {
     private val ketoModeKey = booleanPreferencesKey("keto_mode")
     private val lastLogTimerEnabledKey = booleanPreferencesKey("last_log_timer_enabled")
     private val fastBreakingCaloriesKey = androidx.datastore.preferences.core.intPreferencesKey("fast_breaking_calories")
-    private val fastingGoalHoursKey = androidx.datastore.preferences.core.intPreferencesKey("fasting_goal_hours")
+    private val fastingGoalHoursKey = androidx.datastore.preferences.core.floatPreferencesKey("fasting_goal_hours_v2")
+    private val fastingGoalHoursOldKey = androidx.datastore.preferences.core.intPreferencesKey("fasting_goal_hours")
     private val apiKeyEnabledKey = booleanPreferencesKey("api_key_enabled")
     private val apiKeyKey = stringPreferencesKey("api_key")
 
@@ -35,8 +36,8 @@ class SettingsRepository(private val context: Context) {
         prefs[fastBreakingCaloriesKey] ?: 0
     }
 
-    val fastingGoalHours: Flow<Int> = context.settingsDataStore.data.map { prefs ->
-        prefs[fastingGoalHoursKey] ?: 16
+    val fastingGoalHours: Flow<Float> = context.settingsDataStore.data.map { prefs ->
+        prefs[fastingGoalHoursKey] ?: (prefs[fastingGoalHoursOldKey]?.toFloat() ?: 16f)
     }
 
     val apiKeyEnabled: Flow<Boolean> = context.settingsDataStore.data.map { prefs ->
@@ -71,7 +72,7 @@ class SettingsRepository(private val context: Context) {
         }
     }
 
-    suspend fun setFastingGoalHours(hours: Int) {
+    suspend fun setFastingGoalHours(hours: Float) {
         context.settingsDataStore.edit { prefs ->
             prefs[fastingGoalHoursKey] = hours
         }

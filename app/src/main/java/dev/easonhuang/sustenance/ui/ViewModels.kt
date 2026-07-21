@@ -40,7 +40,7 @@ class DashboardViewModel(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
     val fastingGoalHours = settingsRepo.fastingGoalHours
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 16)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 16f)
 
     val summaries = combine(_summariesMap, _dateOffset) { map, offset ->
         map[offset]
@@ -219,7 +219,7 @@ class SettingsViewModel(
         viewModelScope.launch { repository.setFastBreakingCalories(calories) }
     }
 
-    fun setFastingGoalHours(hours: Int) {
+    fun setFastingGoalHours(hours: Float) {
         viewModelScope.launch { repository.setFastingGoalHours(hours) }
     }
 

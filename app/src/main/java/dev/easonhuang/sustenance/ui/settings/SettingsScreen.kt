@@ -50,9 +50,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -100,6 +102,7 @@ fun SettingsScreen(
     bottomInset: Dp,
     onManagePermissions: () -> Unit,
     onBack: () -> Unit = {},
+    scrollTo: String? = null,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -108,7 +111,14 @@ fun SettingsScreen(
 
     val snackbar = remember { SnackbarHostState() }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
+    val listState = rememberLazyListState()
     var showFormatDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(scrollTo) {
+        if (scrollTo == "fasting") {
+            listState.animateScrollToItem(2)
+        }
+    }
 
     suspend fun runExport(uri: Uri, format: ExportFormat) {
         val granted = runCatching { manager.grantedPermissions() }.getOrDefault(emptySet())
@@ -146,6 +156,7 @@ fun SettingsScreen(
         snackbarHost = { SnackbarHost(snackbar) },
     ) { inner ->
         LazyColumn(
+            state = listState,
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(top = inner.calculateTopPadding(), bottom = bottomInset + 24.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
@@ -215,8 +226,8 @@ fun SettingsScreen(
                             Spacer(Modifier.size(8.dp))
                         }
 
-                        val fastingGoalHours by vm.fastingGoalHours.collectAsState(initial = 16)
-                        var tempGoal by remember(fastingGoalHours) { mutableStateOf(fastingGoalHours.toString()) }
+                        val fastingGoalHours by vm.fastingGoalHours.collectAsState(initial = 16f)
+                        var tempGoal by remember(fastingGoalHours) { mutableStateOf(if (fastingGoalHours % 1f == 0f) fastingGoalHours.toInt().toString() else fastingGoalHours.toString()) }
 
                         Row(
                             modifier = Modifier
@@ -227,17 +238,17 @@ fun SettingsScreen(
                             OutlinedTextField(
                                 value = tempGoal,
                                 onValueChange = { newValue ->
-                                    if (newValue.isEmpty() || newValue.all { it.isDigit() }) {
+                                    if (newValue.isEmpty() || newValue.toDoubleOrNull() != null || newValue == ".") {
                                         tempGoal = newValue
-                                        newValue.toIntOrNull()?.let { vm.setFastingGoalHours(it) }
+                                        newValue.toFloatOrNull()?.let { vm.setFastingGoalHours(it) }
                                     }
                                 },
                                 modifier = Modifier.weight(1f),
                                 singleLine = true,
                                 label = { Text(stringResource(R.string.fasting_goal)) },
-                                placeholder = { Text("8") },
+                                placeholder = { Text("16") },
                                 suffix = { Text(stringResource(R.string.unit_hr)) },
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                 supportingText = { Text(stringResource(R.string.fasting_goal_summary)) }
                             )
                             Spacer(Modifier.size(8.dp))

@@ -153,6 +153,7 @@ fun DashboardScreen(
     todayClickCount: Int = 0,
     onOpenMetric: (Metric, Int) -> Unit,
     onManagePermissions: () -> Unit,
+    onTimerClick: () -> Unit = {},
     onDateChanged: (Int) -> Unit = {},
 ) {
     val vm: DashboardViewModel = viewModel(factory = DashboardViewModel.factory(manager, goalsRepo, settingsRepo))
@@ -372,7 +373,7 @@ fun DashboardScreen(
                                                 onOpenMetric = { onOpenMetric(it, targetOffset) },
                                                 onManagePermissions = onManagePermissions,
                                                 extraContent = if (lastLogTimerEnabled && targetOffset == 0) {
-                                                    { TimerChip(lastLogTime, fastingGoalHours) }
+                                                    { TimerChip(lastLogTime, fastingGoalHours, onClick = onTimerClick) }
                                                 } else null
                                             )
                                         }
@@ -503,14 +504,14 @@ private fun MetricSection(
 }
 
 @Composable
-private fun TimerChip(lastLogTime: Instant?, goalHours: Int) {
+private fun TimerChip(lastLogTime: Instant?, goalHours: Float, onClick: () -> Unit = {}) {
     val now = Instant.now()
     val duration = lastLogTime?.let { Duration.between(it, now) } ?: Duration.ZERO
     val hours = duration.toHours()
     val minutes = duration.toMinutes() % 60
     val formatted = stringResource(R.string.hour_minute_format, hours, minutes)
 
-    val progress = if (goalHours > 0) (duration.toMinutes().toFloat() / (goalHours * 60f)).coerceIn(0f, 1f) else 0f
+    val progress = if (goalHours > 0f) (duration.toMinutes().toFloat() / (goalHours * 60f)).coerceIn(0f, 1f) else 0f
     
     val accent = MaterialTheme.colorScheme.primary
     val progressColor = accent.copy(alpha = 0.7f)
@@ -521,6 +522,7 @@ private fun TimerChip(lastLogTime: Instant?, goalHours: Int) {
     )
 
     Surface(
+        onClick = onClick,
         modifier = Modifier
             .height(48.dp)
             .fillMaxWidth(),

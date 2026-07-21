@@ -290,7 +290,9 @@ fun ExpressiveNavigationBar(
                         
                     } else {
                         val renderItem = @Composable { dest: dev.easonhuang.sustenance.ui.Dest ->
-                            val isSelected = currentDestination?.hierarchy?.any { it.route == dest.route } == true
+                            val isSelected = currentDestination?.hierarchy?.any { 
+                                it.route == dest.route || it.route?.startsWith("${dest.route}?") == true 
+                            } == true
 
                             var selectionAlphaOverride: Float? = null
                             if (predictiveBackState.isSwipeActive) {
