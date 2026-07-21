@@ -333,6 +333,7 @@ private fun MainNav(
 
     BackHandler(enabled = isHistoryActive) {
         isHistoryActive = false
+        clearCapture()
     }
 
     val apiKeyEnabled by settingsRepo.apiKeyEnabled.collectAsStateWithLifecycle(initialValue = false)
@@ -692,7 +693,10 @@ private fun MainNav(
                     onItemSelected = { item ->
                         pendingNutrients = item.nutrients
                     },
-                    onBack = { isHistoryActive = false }
+                    onBack = { 
+                        isHistoryActive = false 
+                        clearCapture()
+                    }
                 )
             }
 
