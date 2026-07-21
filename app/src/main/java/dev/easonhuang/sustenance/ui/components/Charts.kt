@@ -34,6 +34,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -72,18 +73,34 @@ import dev.easonhuang.sustenance.data.formatNumber
 
 /** Tiny inline trend line for dashboard cards. */
 @Composable
-fun Sparkline(values: List<Float>, color: Color, modifier: Modifier = Modifier) {
+fun Sparkline(values: List<Float>, color: Color, modifier: Modifier = Modifier, goal: Float? = null) {
     if (values.size < 2) {
         Spacer(modifier)
         return
     }
     Canvas(modifier) {
-        val min = values.min()
-        val max = values.max()
+        val minVal = values.min()
+        val maxVal = values.max()
+        val min = if (goal != null) minOf(minVal, goal) else minVal
+        val max = if (goal != null) maxOf(maxVal, goal) else maxVal
+        
         val range = (max - min).takeIf { it > 0f } ?: 1f
         val stepX = size.width / (values.size - 1)
         val line = Path()
         val fill = Path()
+
+        // Goal line
+        goal?.let { g ->
+            val gy = size.height - ((g - min) / range) * size.height * 0.8f - size.height * 0.1f
+            drawLine(
+                color = color.copy(alpha = 0.3f),
+                start = Offset(0f, gy),
+                end = Offset(size.width, gy),
+                strokeWidth = 1.dp.toPx(),
+                pathEffect = PathEffect.dashPathEffect(floatArrayOf(5f, 5f), 0f)
+            )
+        }
+
         values.forEachIndexed { i, v ->
             val x = i * stepX
             val y = size.height - ((v - min) / range) * size.height * 0.8f - size.height * 0.1f
@@ -105,15 +122,29 @@ fun Sparkline(values: List<Float>, color: Color, modifier: Modifier = Modifier) 
 
 /** 7/14-day bar chart with weekday labels for daily-total metrics. */
 @Composable
-fun BarChart(points: List<SeriesPoint>, color: Color, modifier: Modifier = Modifier) {
+fun BarChart(points: List<SeriesPoint>, color: Color, modifier: Modifier = Modifier, goal: Float? = null) {
     Column(modifier) {
-        val max = points.maxOfOrNull { it.value }?.takeIf { it > 0f } ?: 1f
+        val maxVal = points.maxOfOrNull { it.value } ?: 0f
+        val max = maxOf(maxVal, goal ?: 0f).takeIf { it > 0f } ?: 1f
         Canvas(Modifier.fillMaxWidth().weight(1f)) {
             val n = points.size
             if (n == 0) return@Canvas
             val slot = size.width / n
             val barW = slot * 0.6f
             val radius = CornerRadius(barW / 2f, barW / 2f)
+
+            // Goal line
+            goal?.let { g ->
+                val gy = size.height - (g / max) * size.height
+                drawLine(
+                    color = color.copy(alpha = 0.4f),
+                    start = Offset(0f, gy),
+                    end = Offset(size.width, gy),
+                    strokeWidth = 2.dp.toPx(),
+                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
+                )
+            }
+
             points.forEachIndexed { i, p ->
                 val h = (p.value / max) * size.height
                 val left = i * slot + (slot - barW) / 2f
@@ -163,6 +194,7 @@ fun LineChart(
     color: Color,
     modifier: Modifier = Modifier,
     unit: String? = null,
+    goal: Float? = null,
     selectedIndex: Int? = null,
     onSelectedIndexChange: (Int?) -> Unit = {}
 ) {
@@ -174,8 +206,11 @@ fun LineChart(
         return
     }
     val values = points.map { it.value }
-    val min = values.min()
-    val max = values.max()
+    val minVal = values.min()
+    val maxVal = values.max()
+    
+    val min = if (goal != null) minOf(minVal, goal) else minVal
+    val max = if (goal != null) maxOf(maxVal, goal) else maxVal
 
     val view = LocalView.current
 
@@ -294,6 +329,18 @@ fun LineChart(
                 drawPath(fill, Brush.verticalGradient(listOf(color.copy(alpha = 0.3f), Color.Transparent)))
                 drawPath(line, color, style = Stroke(width = 8f, cap = StrokeCap.Round, join = StrokeJoin.Round))
                 
+                // Goal line
+                goal?.let { g ->
+                    val gy = size.height - ((g - min) / range) * size.height * 0.8f - size.height * 0.1f
+                    drawLine(
+                        color = color.copy(alpha = 0.4f),
+                        start = Offset(0f, gy),
+                        end = Offset(size.width, gy),
+                        strokeWidth = 2.dp.toPx(),
+                        pathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
+                    )
+                }
+
                 // Draw points for each day
                 points.forEachIndexed { i, p ->
                     val x = i * stepX

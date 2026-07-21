@@ -428,6 +428,7 @@ private fun ChartCard(d: MetricDetail, selectedIndex: Int?, onSelectedIndexChang
                 color = d.metric.accent, 
                 modifier = Modifier.fillMaxSize(), 
                 unit = stringResource(d.metric.unitRes),
+                goal = d.goal,
                 selectedIndex = selectedIndex,
                 onSelectedIndexChange = onSelectedIndexChange
             )
