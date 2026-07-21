@@ -75,6 +75,9 @@ import dev.easonhuang.sustenance.ui.DetailViewModel
 import dev.easonhuang.sustenance.ui.components.BarChart
 import dev.easonhuang.sustenance.ui.components.LineChart
 import dev.easonhuang.sustenance.ui.components.PredictiveBackState
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.text.style.TextOverflow
+import dev.easonhuang.sustenance.ui.components.NutrientIconList
 import dev.easonhuang.sustenance.data.formatValue
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -276,58 +279,70 @@ private fun FoodItemsCard(
                         val secondaryParts = item.secondary.split(" • ")
                         val kcal = secondaryParts.getOrNull(0) ?: ""
                         val time = secondaryParts.getOrNull(1) ?: ""
+                        val kcalColor = item.accentColor ?: MaterialTheme.colorScheme.primary
+                        
                         val rowModifier = if (item.accentColor != null) {
                             Modifier
                                 .padding(horizontal = 8.dp, vertical = 2.dp)
-                                .clip(RoundedCornerShape(16.dp))
+                                .clip(RoundedCornerShape(12.dp))
                                 .background(item.accentColor.copy(alpha = 0.25f))
-                                .padding(horizontal = 8.dp, vertical = 8.dp)
+                                .padding(horizontal = 12.dp, vertical = 8.dp)
                         } else {
-                            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 6.dp)
                         }
-                        Row(
-                            rowModifier,
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(Modifier.weight(1f)) {
-                                Text(item.primary, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
-                                Text(time, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                item.tertiary?.let {
-                                    Text(
-                                        it,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                                        modifier = Modifier.padding(top = 2.dp)
-                                    )
-                                }
-                            }
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                val kcalColor = if (item.accentColor != null) {
-                                    // Make the text pop more by mixing with white/primary in a subtle way
-                                    item.accentColor
-                                } else {
-                                    MaterialTheme.colorScheme.primary
-                                }
-                                Text(kcal, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Black, color = kcalColor)
+
+                        Column(rowModifier) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    item.primary,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    kcal,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Black,
+                                    color = kcalColor
+                                )
                                 if (item.isEditable && item.id != null) {
-                                    Spacer(Modifier.padding(horizontal = 4.dp))
                                     IconButton(
                                         onClick = { onDelete(item.id) },
-                                        modifier = Modifier.size(24.dp)
+                                        modifier = Modifier.size(24.dp).padding(start = 4.dp)
                                     ) {
                                         Icon(
                                             Icons.Rounded.Delete,
                                             contentDescription = stringResource(R.string.delete),
                                             tint = MaterialTheme.colorScheme.error.copy(alpha = 0.6f),
-                                            modifier = Modifier.size(18.dp)
+                                            modifier = Modifier.size(16.dp)
                                         )
                                     }
                                 }
                             }
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    time,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                )
+                                item.nutrients?.let { NutrientIconList(it) }
+                            }
                         }
                         if (i < items.lastIndex && item.accentColor == null && items[i+1].accentColor == null) {
-                            HorizontalDivider(Modifier.padding(horizontal = 16.dp).alpha(0.5f))
+                            HorizontalDivider(Modifier.padding(horizontal = 16.dp).alpha(0.3f))
                         }
                     }
                 }
@@ -480,15 +495,46 @@ private fun RecordItem(row: RecordRow) {
     Card(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
         shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+        colors = CardDefaults.cardColors(containerColor = row.accentColor?.copy(alpha = 0.25f) ?: MaterialTheme.colorScheme.surfaceContainerLow)
     ) {
-        Row(
-            Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(row.primary, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Text(row.secondary, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Column(Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = row.primary,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+                Spacer(Modifier.width(8.dp))
+                if (row.nutrients == null) {
+                    Text(
+                        text = row.secondary,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+            if (row.nutrients != null) {
+                Spacer(Modifier.height(2.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = row.secondary,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    )
+                    NutrientIconList(row.nutrients)
+                }
+            }
         }
     }
 }

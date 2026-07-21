@@ -44,7 +44,8 @@ data class RecordRow(
     val id: String? = null,
     val isEditable: Boolean = false,
     val startTime: Instant? = null,
-    val accentColor: Color? = null
+    val accentColor: Color? = null,
+    val nutrients: FoodNutrients? = null
 )
 
 /** A history item representing a previously logged food. */

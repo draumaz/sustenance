@@ -433,13 +433,14 @@ class HealthConnectManager(private val context: Context) {
                             r.sodium?.let { macros.add("${context.getString(R.string.metric_sodium)}: ${formatNumber(it.inMilligrams)}${context.getString(R.string.unit_mg)}") }
                             val tertiary = macros.joinToString("\n• ").takeIf { it.isNotEmpty() }
 
+                            val nutrients = extractNutrients(r)
                             val accentColor = Metric.computeFoodAccentColor(
                                 kcal = kcal,
-                                protein = r.protein?.inGrams ?: 0.0,
-                                carbs = r.totalCarbohydrate?.inGrams ?: 0.0,
-                                fat = r.totalFat?.inGrams ?: 0.0,
-                                sugar = r.sugar?.inGrams ?: 0.0,
-                                sodium = r.sodium?.inMilligrams ?: 0.0
+                                protein = nutrients.protein,
+                                carbs = nutrients.carbs,
+                                fat = nutrients.fat,
+                                sugar = nutrients.sugar,
+                                sodium = nutrients.sodium
                             )
 
                             RecordRow(
@@ -449,7 +450,8 @@ class HealthConnectManager(private val context: Context) {
                                 id = r.metadata.id,
                                 isEditable = r.metadata.dataOrigin.packageName == context.packageName,
                                 startTime = r.startTime,
-                                accentColor = accentColor
+                                accentColor = accentColor,
+                                nutrients = nutrients
                             )
                         }
                     }

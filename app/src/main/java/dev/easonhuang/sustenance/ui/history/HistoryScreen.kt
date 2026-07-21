@@ -15,7 +15,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -28,6 +27,8 @@ import dev.easonhuang.sustenance.data.HealthConnectManager
 import dev.easonhuang.sustenance.data.HistoryItem
 import dev.easonhuang.sustenance.data.SettingsRepository
 import kotlinx.coroutines.launch
+import androidx.compose.ui.text.style.TextOverflow
+import dev.easonhuang.sustenance.ui.components.NutrientIconList
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
@@ -156,13 +157,13 @@ fun HistoryRow(
                 }
             )
     ) {
-        Box(modifier = Modifier.padding(16.dp)) {
+        Box(modifier = Modifier.padding(12.dp)) {
             if (item.isPinned) {
                 Icon(
                     Icons.Rounded.PushPin,
                     contentDescription = null,
                     modifier = Modifier
-                        .size(16.dp)
+                        .size(14.dp)
                         .align(Alignment.TopEnd),
                     tint = item.accentColor ?: MaterialTheme.colorScheme.primary
                 )
@@ -173,70 +174,42 @@ fun HistoryRow(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = item.nutrients.foodItem,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                        )
-                        Text(
-                            text = item.nutrients.servingSize,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
-                        )
-                    }
+                    Text(
+                        text = item.nutrients.foodItem,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Spacer(Modifier.width(8.dp))
                     Text(
                         text = "${item.nutrients.calories.toInt()} ${stringResource(R.string.unit_kcal)}",
-                        style = MaterialTheme.typography.titleMedium,
+                        style = MaterialTheme.typography.bodyMedium,
                         color = item.accentColor ?: MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.Black,
                         modifier = Modifier.padding(end = if (item.isPinned) 20.dp else 0.dp)
                     )
                 }
                 
-                Spacer(Modifier.height(4.dp))
-                
-                Text(
-                    text = timeText,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                
-                Spacer(Modifier.height(12.dp))
-                
+                Spacer(Modifier.height(2.dp))
+
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    MacroChip(stringResource(R.string.metric_protein), "${item.nutrients.protein.toInt()}g", Color(0xFFE3F2FD))
-                    MacroChip(stringResource(R.string.metric_carbs), "${item.nutrients.carbs.toInt()}g", Color(0xFFFFF3E0))
-                    MacroChip(stringResource(R.string.metric_fat), "${item.nutrients.fat.toInt()}g", Color(0xFFFBE9E7))
+                    Text(
+                        text = "${item.nutrients.servingSize} • $timeText",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
+                    )
+                    NutrientIconList(item.nutrients)
                 }
             }
-        }
-    }
-}
-
-@Composable
-fun MacroChip(label: String, value: String, color: Color) {
-    Surface(
-        color = color,
-        shape = RoundedCornerShape(8.dp)
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "$label: ",
-                style = MaterialTheme.typography.labelSmall,
-                color = Color.Black.copy(alpha = 0.6f)
-            )
-            Text(
-                text = value,
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Bold,
-                color = Color.Black.copy(alpha = 0.8f)
-            )
         }
     }
 }
