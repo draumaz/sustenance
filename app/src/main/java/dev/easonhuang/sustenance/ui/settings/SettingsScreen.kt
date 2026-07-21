@@ -214,6 +214,34 @@ fun SettingsScreen(
                             )
                             Spacer(Modifier.size(8.dp))
                         }
+
+                        val fastingGoalHours by vm.fastingGoalHours.collectAsState(initial = 16)
+                        var tempGoal by remember(fastingGoalHours) { mutableStateOf(fastingGoalHours.toString()) }
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            OutlinedTextField(
+                                value = tempGoal,
+                                onValueChange = { newValue ->
+                                    if (newValue.isEmpty() || newValue.all { it.isDigit() }) {
+                                        tempGoal = newValue
+                                        newValue.toIntOrNull()?.let { vm.setFastingGoalHours(it) }
+                                    }
+                                },
+                                modifier = Modifier.weight(1f),
+                                singleLine = true,
+                                label = { Text(stringResource(R.string.fasting_goal)) },
+                                placeholder = { Text("16") },
+                                suffix = { Text("hr") },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                supportingText = { Text(stringResource(R.string.fasting_goal_summary)) }
+                            )
+                            Spacer(Modifier.size(8.dp))
+                        }
                     }
                 }
             }

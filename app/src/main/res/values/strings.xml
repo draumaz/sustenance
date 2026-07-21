@@ -71,6 +71,8 @@
     <string name="show_last_log_timer_summary">Display a card in Food view showing time since last log</string>
     <string name="fast_breaking_calories">Fast-breaking calories</string>
     <string name="fast_breaking_calories_summary">Minimum calories required to reset the fasting timer</string>
+    <string name="fasting_goal">Fasting goal</string>
+    <string name="fasting_goal_summary">Target number of hours for your fast</string>
     <string name="time_since_last_ate">Time fasting</string>
     <string name="hour_minute_format">%1$dhr %2$dmin</string>
     <string name="enable_food_logging">Enable Food logging</string>

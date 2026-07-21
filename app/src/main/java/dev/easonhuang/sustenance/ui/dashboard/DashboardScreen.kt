@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -160,6 +161,7 @@ fun DashboardScreen(
     val dateOffset by vm.dateOffset.collectAsStateWithLifecycle()
     val lastLogTime by vm.lastLogTime.collectAsStateWithLifecycle()
     val lastLogTimerEnabled by vm.lastLogTimerEnabled.collectAsStateWithLifecycle()
+    val fastingGoalHours by vm.fastingGoalHours.collectAsStateWithLifecycle()
     val topAppBarState = rememberTopAppBarState()
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(topAppBarState)
     val haptic = LocalHapticFeedback.current
@@ -370,7 +372,7 @@ fun DashboardScreen(
                                                 onOpenMetric = { onOpenMetric(it, targetOffset) },
                                                 onManagePermissions = onManagePermissions,
                                                 extraContent = if (lastLogTimerEnabled && targetOffset == 0) {
-                                                    { TimerChip(lastLogTime) }
+                                                    { TimerChip(lastLogTime, fastingGoalHours) }
                                                 } else null
                                             )
                                         }
@@ -501,12 +503,22 @@ private fun MetricSection(
 }
 
 @Composable
-private fun TimerChip(lastLogTime: Instant?) {
+private fun TimerChip(lastLogTime: Instant?, goalHours: Int) {
     val now = Instant.now()
     val duration = lastLogTime?.let { Duration.between(it, now) } ?: Duration.ZERO
     val hours = duration.toHours()
     val minutes = duration.toMinutes() % 60
     val formatted = stringResource(R.string.hour_minute_format, hours, minutes)
+
+    val progress = if (goalHours > 0) (duration.toMinutes().toFloat() / (goalHours * 60f)).coerceIn(0f, 1f) else 0f
+    
+    val accent = MaterialTheme.colorScheme.primary
+    val progressColor = accent.copy(alpha = 0.7f)
+    val textShadow = androidx.compose.ui.graphics.Shadow(
+        color = Color.Black.copy(alpha = 0.4f),
+        offset = androidx.compose.ui.geometry.Offset(0f, 1f),
+        blurRadius = 4f
+    )
 
     Surface(
         modifier = Modifier
@@ -515,42 +527,58 @@ private fun TimerChip(lastLogTime: Instant?) {
         shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surfaceContainerLow,
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Box(
-                Modifier
-                    .size(28.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.History,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(16.dp),
+        Box(Modifier.fillMaxSize().clip(RoundedCornerShape(16.dp))) {
+            if (progress > 0.01f) {
+                Box(
+                    Modifier
+                        .fillMaxWidth(progress)
+                        .fillMaxHeight()
+                        .background(progressColor)
+                        .clip(RoundedCornerShape(topEnd = 12.dp, bottomEnd = 12.dp))
                 )
             }
-            Spacer(Modifier.width(8.dp))
-            Column {
-                Text(
-                    text = stringResource(R.string.time_since_last_ate),
-                    style = MaterialTheme.typography.labelSmall,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                )
-                Text(
-                    text = formatted,
-                    style = MaterialTheme.typography.labelMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                )
+
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(
+                    Modifier
+                        .size(28.dp)
+                        .clip(CircleShape)
+                        .background(if (progress > 0.05f) Color.Black.copy(alpha = 0.25f) else accent.copy(alpha = 0.2f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.History,
+                        contentDescription = null,
+                        tint = if (progress > 0.05f) Color.White else accent,
+                        modifier = Modifier.size(16.dp),
+                    )
+                }
+                Spacer(Modifier.width(8.dp))
+                Column {
+                    Text(
+                        text = stringResource(R.string.time_since_last_ate),
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            shadow = if (progress > 0.05f) textShadow else null
+                        ),
+                        fontWeight = FontWeight.Medium,
+                        color = if (progress > 0.05f) Color.White.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                    )
+                    Text(
+                        text = formatted,
+                        style = MaterialTheme.typography.labelMedium.copy(
+                            shadow = if (progress > 0.05f) textShadow else null
+                        ),
+                        fontWeight = FontWeight.Bold,
+                        color = if (progress > 0.05f) Color.White else MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                    )
+                }
             }
         }
     }

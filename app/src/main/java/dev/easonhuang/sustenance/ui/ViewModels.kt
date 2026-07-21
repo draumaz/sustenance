@@ -39,6 +39,9 @@ class DashboardViewModel(
     val fastBreakingCalories = settingsRepo.fastBreakingCalories
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0)
 
+    val fastingGoalHours = settingsRepo.fastingGoalHours
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 16)
+
     val summaries = combine(_summariesMap, _dateOffset) { map, offset ->
         map[offset]
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
@@ -196,6 +199,7 @@ class SettingsViewModel(
     val ketoMode = repository.ketoMode
     val lastLogTimerEnabled = repository.lastLogTimerEnabled
     val fastBreakingCalories = repository.fastBreakingCalories
+    val fastingGoalHours = repository.fastingGoalHours
     val apiKeyEnabled = repository.apiKeyEnabled
     val apiKey = repository.apiKey
 
@@ -213,6 +217,10 @@ class SettingsViewModel(
 
     fun setFastBreakingCalories(calories: Int) {
         viewModelScope.launch { repository.setFastBreakingCalories(calories) }
+    }
+
+    fun setFastingGoalHours(hours: Int) {
+        viewModelScope.launch { repository.setFastingGoalHours(hours) }
     }
 
     fun setApiKeyEnabled(enabled: Boolean) {
