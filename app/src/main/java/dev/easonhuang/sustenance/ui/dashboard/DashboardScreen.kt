@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.BorderStroke
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -43,6 +44,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
@@ -164,6 +167,7 @@ fun DashboardScreen(
     val lastLogTime by vm.lastLogTime.collectAsStateWithLifecycle()
     val lastLogTimerEnabled by vm.lastLogTimerEnabled.collectAsStateWithLifecycle()
     val fastingGoalHours by vm.fastingGoalHours.collectAsStateWithLifecycle()
+    var currentTime by remember { mutableStateOf(Instant.now()) }
     val topAppBarState = rememberTopAppBarState()
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(topAppBarState)
     val haptic = LocalHapticFeedback.current
@@ -195,7 +199,16 @@ fun DashboardScreen(
     androidx.compose.runtime.LaunchedEffect(granted, dateOffset) {
         vm.refresh(showIndicator = false)
     }
+
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        while(true) {
+            delay(60000)
+            currentTime = Instant.now()
+        }
+    }
+
     androidx.lifecycle.compose.LifecycleResumeEffect(Unit) {
+        currentTime = Instant.now()
         vm.refresh(showIndicator = false)
         onPauseOrDispose { }
     }
@@ -372,7 +385,7 @@ fun DashboardScreen(
                                                         )
                                                     }
                                                     if (lastLogTimerEnabled && targetOffset == 0) {
-                                                        TimerChip(lastLogTime, fastingGoalHours, onClick = onTimerClick)
+                                                        TimerChip(lastLogTime, fastingGoalHours, currentTime, onClick = onTimerClick)
                                                     }
                                                 }
                                             )
@@ -519,9 +532,8 @@ private fun MetricSection(
 }
 
 @Composable
-private fun TimerChip(lastLogTime: Instant?, goalHours: Float, onClick: () -> Unit = {}) {
-    val now = Instant.now()
-    val duration = lastLogTime?.let { Duration.between(it, now) } ?: Duration.ZERO
+private fun TimerChip(lastLogTime: Instant?, goalHours: Float, currentTime: Instant, onClick: () -> Unit = {}) {
+    val duration = lastLogTime?.let { Duration.between(it, currentTime) } ?: Duration.ZERO
     val hours = duration.toHours()
     val minutes = duration.toMinutes() % 60
     val formatted = stringResource(R.string.hour_minute_format, hours, minutes)
