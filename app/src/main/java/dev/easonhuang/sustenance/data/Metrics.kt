@@ -49,5 +49,47 @@ enum class Metric(
 
     companion object {
         fun fromKey(key: String): Metric? = entries.firstOrNull { it.key == key }
+
+        /**
+         * Returns a color association for a food item based on its nutrient density.
+         * Combines absolute "High In" thresholds with relative "Dominant Nutrient" logic.
+         */
+        fun computeFoodAccentColor(
+            kcal: Double,
+            protein: Double,
+            carbs: Double,
+            fat: Double,
+            sugar: Double,
+            sodium: Double
+        ): Color? {
+            if (kcal < 5.0) return null
+
+            // 1. High-priority Watch Nutrients (Absolute)
+            if (sugar >= 5.0) return SUGAR.accent
+            if (sodium >= 300.0) return SODIUM.accent
+
+            // 2. High-priority Macronutrients (Absolute)
+            if (protein >= 8.0) return PROTEIN.accent
+            if (fat >= 12.0) return FAT.accent
+            if (carbs >= 30.0) return CARBS.accent
+
+            // 3. Dominant Macronutrient (Relative > 40% of energy)
+            val pKcal = protein * 4.0
+            val cKcal = carbs * 4.0
+            val fKcal = fat * 9.0
+            val total = pKcal + cKcal + fKcal
+            if (total < 1.0) return null
+
+            val pPct = pKcal / total
+            val cPct = cKcal / total
+            val fPct = fKcal / total
+
+            return when {
+                pPct >= 0.4 -> PROTEIN.accent
+                fPct >= 0.4 -> FAT.accent
+                cPct >= 0.4 -> if (carbs > 0 && sugar / carbs >= 0.3) SUGAR.accent else CARBS.accent
+                else -> null
+            }
+        }
     }
 }

@@ -145,7 +145,7 @@ fun HistoryRow(
     val haptic = LocalHapticFeedback.current
     Surface(
         shape = RoundedCornerShape(20.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        color = item.accentColor?.copy(alpha = 0.25f) ?: MaterialTheme.colorScheme.surfaceContainerLow,
         modifier = modifier
             .fillMaxWidth()
             .combinedClickable(
@@ -164,7 +164,7 @@ fun HistoryRow(
                     modifier = Modifier
                         .size(16.dp)
                         .align(Alignment.TopEnd),
-                    tint = MaterialTheme.colorScheme.primary
+                    tint = item.accentColor ?: MaterialTheme.colorScheme.primary
                 )
             }
             Column {
@@ -188,7 +188,7 @@ fun HistoryRow(
                     Text(
                         text = "${item.nutrients.calories.toInt()} ${stringResource(R.string.unit_kcal)}",
                         style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary,
+                        color = item.accentColor ?: MaterialTheme.colorScheme.primary,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(end = if (item.isPinned) 20.dp else 0.dp)
                     )

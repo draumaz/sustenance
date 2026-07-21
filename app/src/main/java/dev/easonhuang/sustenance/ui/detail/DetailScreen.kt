@@ -276,8 +276,17 @@ private fun FoodItemsCard(
                         val secondaryParts = item.secondary.split(" • ")
                         val kcal = secondaryParts.getOrNull(0) ?: ""
                         val time = secondaryParts.getOrNull(1) ?: ""
+                        val rowModifier = if (item.accentColor != null) {
+                            Modifier
+                                .padding(horizontal = 8.dp, vertical = 2.dp)
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(item.accentColor.copy(alpha = 0.25f))
+                                .padding(horizontal = 8.dp, vertical = 8.dp)
+                        } else {
+                            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)
+                        }
                         Row(
-                            Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                            rowModifier,
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
@@ -294,7 +303,13 @@ private fun FoodItemsCard(
                                 }
                             }
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(kcal, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
+                                val kcalColor = if (item.accentColor != null) {
+                                    // Make the text pop more by mixing with white/primary in a subtle way
+                                    item.accentColor
+                                } else {
+                                    MaterialTheme.colorScheme.primary
+                                }
+                                Text(kcal, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Black, color = kcalColor)
                                 if (item.isEditable && item.id != null) {
                                     Spacer(Modifier.padding(horizontal = 4.dp))
                                     IconButton(
@@ -311,7 +326,9 @@ private fun FoodItemsCard(
                                 }
                             }
                         }
-                        if (i < items.lastIndex) HorizontalDivider(Modifier.padding(horizontal = 16.dp).alpha(0.5f))
+                        if (i < items.lastIndex && item.accentColor == null && items[i+1].accentColor == null) {
+                            HorizontalDivider(Modifier.padding(horizontal = 16.dp).alpha(0.5f))
+                        }
                     }
                 }
             }

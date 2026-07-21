@@ -254,9 +254,14 @@ class HealthConnectManager(private val context: Context) {
                 .filter { it.metadata.dataOrigin.packageName == context.packageName }
 
             val allHistory = records.map { r ->
+                val nutrients = extractNutrients(r)
                 HistoryItem(
-                    nutrients = extractNutrients(r),
-                    timestamp = r.startTime
+                    nutrients = nutrients,
+                    timestamp = r.startTime,
+                    accentColor = Metric.computeFoodAccentColor(
+                        nutrients.calories, nutrients.protein, nutrients.carbs,
+                        nutrients.fat, nutrients.sugar, nutrients.sodium
+                    )
                 )
             }
 
@@ -428,13 +433,23 @@ class HealthConnectManager(private val context: Context) {
                             r.sodium?.let { macros.add("${context.getString(R.string.metric_sodium)}: ${formatNumber(it.inMilligrams)}${context.getString(R.string.unit_mg)}") }
                             val tertiary = macros.joinToString("\n• ").takeIf { it.isNotEmpty() }
 
+                            val accentColor = Metric.computeFoodAccentColor(
+                                kcal = kcal,
+                                protein = r.protein?.inGrams ?: 0.0,
+                                carbs = r.totalCarbohydrate?.inGrams ?: 0.0,
+                                fat = r.totalFat?.inGrams ?: 0.0,
+                                sugar = r.sugar?.inGrams ?: 0.0,
+                                sodium = r.sodium?.inMilligrams ?: 0.0
+                            )
+
                             RecordRow(
                                 primary = name,
                                 secondary = "${formatNumber(kcal)} ${context.getString(R.string.unit_kcal)} • $time",
                                 tertiary = tertiary,
                                 id = r.metadata.id,
                                 isEditable = r.metadata.dataOrigin.packageName == context.packageName,
-                                startTime = r.startTime
+                                startTime = r.startTime,
+                                accentColor = accentColor
                             )
                         }
                     }

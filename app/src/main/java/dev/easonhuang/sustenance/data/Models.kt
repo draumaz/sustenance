@@ -1,5 +1,6 @@
 package dev.easonhuang.sustenance.data
 
+import androidx.compose.ui.graphics.Color
 import dev.easonhuang.sustenance.util.FoodNutrients
 import java.time.Instant
 
@@ -42,12 +43,14 @@ data class RecordRow(
     val tertiary: String? = null,
     val id: String? = null,
     val isEditable: Boolean = false,
-    val startTime: Instant? = null
+    val startTime: Instant? = null,
+    val accentColor: Color? = null
 )
 
 /** A history item representing a previously logged food. */
 data class HistoryItem(
     val nutrients: FoodNutrients,
     val timestamp: Instant,
-    val isPinned: Boolean = false
+    val isPinned: Boolean = false,
+    val accentColor: Color? = null
 )
