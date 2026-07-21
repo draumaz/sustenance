@@ -21,7 +21,7 @@
     <string name="section_energy">Энергия</string>
     <string name="section_food">Еда</string>
     <string name="section_macros">Макросы</string>
-    <string name="section_micros">Микроэлементы</string>
+    <string name="section_micros">Микросы</string>
 
     <string name="metric_total_calories">Всего энергии</string>
     <string name="metric_food">Еда</string>

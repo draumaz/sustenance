@@ -476,16 +476,10 @@ private fun MainNav(
                                 if (currentRoute == Dest.TODAY.route) {
                                     todayClickCount++
                                     bottomBarOffsetHeightPx.floatValue = 0f
-                                } else if (currentRoute?.startsWith("detail/") == true) {
-                                    navController.popBackStack(Dest.TODAY.route, inclusive = false)
                                 } else {
-                                    navController.navigate(dest.route) {
-                                        popUpTo(navController.graph.findStartDestination().id) {
-                                            saveState = true
-                                        }
-                                        launchSingleTop = true
-                                        restoreState = true
-                                    }
+                                    // Use popBackStack for consistent return to the root 'Today' screen.
+                                    // This handles detail screens and settings regardless of parameters.
+                                    navController.popBackStack(Dest.TODAY.route, inclusive = false)
                                 }
                             } else {
                                 navController.navigate(dest.route) {
