@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -19,6 +20,7 @@ class SettingsRepository(private val context: Context) {
     private val fastingGoalHoursOldKey = androidx.datastore.preferences.core.intPreferencesKey("fasting_goal_hours")
     private val apiKeyEnabledKey = booleanPreferencesKey("api_key_enabled")
     private val apiKeyKey = stringPreferencesKey("api_key")
+    private val pinnedHistoryItemsKey = stringSetPreferencesKey("pinned_history_items")
 
     val dynamicColor: Flow<Boolean> = context.settingsDataStore.data.map { prefs ->
         prefs[dynamicColorKey] ?: true
@@ -46,6 +48,10 @@ class SettingsRepository(private val context: Context) {
 
     val apiKey: Flow<String> = context.settingsDataStore.data.map { prefs ->
         prefs[apiKeyKey] ?: ""
+    }
+
+    val pinnedHistoryItems: Flow<Set<String>> = context.settingsDataStore.data.map { prefs ->
+        prefs[pinnedHistoryItemsKey] ?: emptySet()
     }
 
     suspend fun setDynamicColor(enabled: Boolean) {
@@ -87,6 +93,17 @@ class SettingsRepository(private val context: Context) {
     suspend fun setApiKey(key: String) {
         context.settingsDataStore.edit { prefs ->
             prefs[apiKeyKey] = key
+        }
+    }
+
+    suspend fun togglePinnedHistoryItem(foodName: String) {
+        context.settingsDataStore.edit { prefs ->
+            val current = prefs[pinnedHistoryItemsKey] ?: emptySet()
+            if (current.contains(foodName)) {
+                prefs[pinnedHistoryItemsKey] = current - foodName
+            } else {
+                prefs[pinnedHistoryItemsKey] = current + foodName
+            }
         }
     }
 }

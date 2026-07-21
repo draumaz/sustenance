@@ -48,5 +48,6 @@ data class RecordRow(
 /** A history item representing a previously logged food. */
 data class HistoryItem(
     val nutrients: FoodNutrients,
-    val timestamp: Instant
+    val timestamp: Instant,
+    val isPinned: Boolean = false
 )

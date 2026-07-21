@@ -689,6 +689,7 @@ private fun MainNav(
             ) {
                 HistoryScreen(
                     manager = manager,
+                    settingsRepo = settingsRepo,
                     bottomInset = inner.calculateBottomPadding(),
                     onItemSelected = { item ->
                         pendingNutrients = item.nutrients

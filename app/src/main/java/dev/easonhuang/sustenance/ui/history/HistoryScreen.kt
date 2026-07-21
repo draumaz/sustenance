@@ -1,6 +1,8 @@
 package dev.easonhuang.sustenance.ui.history
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -8,17 +10,23 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.History
+import androidx.compose.material.icons.rounded.PushPin
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.easonhuang.sustenance.R
 import dev.easonhuang.sustenance.data.HealthConnectManager
 import dev.easonhuang.sustenance.data.HistoryItem
+import dev.easonhuang.sustenance.data.SettingsRepository
+import kotlinx.coroutines.launch
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
@@ -27,19 +35,32 @@ import java.time.format.FormatStyle
 @Composable
 fun HistoryScreen(
     manager: HealthConnectManager,
+    settingsRepo: SettingsRepository,
     bottomInset: androidx.compose.ui.unit.Dp = 0.dp,
     onItemSelected: (HistoryItem) -> Unit,
     onBack: () -> Unit
 ) {
     BackHandler(onBack = onBack)
-    var history by remember { mutableStateOf<List<HistoryItem>>(emptyList()) }
+    val scope = rememberCoroutineScope()
+    var rawHistory by remember { mutableStateOf<List<HistoryItem>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
+    
+    val pinnedNames by settingsRepo.pinnedHistoryItems.collectAsStateWithLifecycle(initialValue = emptySet())
+
+    val history = remember(rawHistory, pinnedNames) {
+        rawHistory.map { item ->
+            item.copy(isPinned = pinnedNames.contains(item.nutrients.foodItem))
+        }.sortedWith(
+            compareByDescending<HistoryItem> { it.isPinned }
+                .thenByDescending { it.timestamp }
+        )
+    }
     
     val timeFmt = remember { DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT) }
     val zone = remember { ZoneId.systemDefault() }
 
     LaunchedEffect(Unit) {
-        history = manager.readHistory()
+        rawHistory = manager.readHistory()
         isLoading = false
     }
 
@@ -88,11 +109,17 @@ fun HistoryScreen(
                     ),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(history) { item ->
+                    items(history, key = { it.nutrients.foodItem }) { item ->
                         HistoryRow(
                             item = item,
                             timeText = timeFmt.format(item.timestamp.atZone(zone)),
-                            onClick = { onItemSelected(item) }
+                            modifier = Modifier.animateItem(),
+                            onClick = { onItemSelected(item) },
+                            onLongClick = {
+                                scope.launch {
+                                    settingsRepo.togglePinnedHistoryItem(item.nutrients.foodItem)
+                                }
+                            }
                         )
                     }
                 }
@@ -101,60 +128,84 @@ fun HistoryScreen(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun HistoryRow(
     item: HistoryItem,
     timeText: String,
-    onClick: () -> Unit
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit
 ) {
+    val haptic = LocalHapticFeedback.current
     Surface(
-        onClick = onClick,
         shape = RoundedCornerShape(20.dp),
         color = MaterialTheme.colorScheme.surfaceContainerLow,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = item.nutrients.foodItem,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                    )
-                    Text(
-                        text = item.nutrients.servingSize,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
-                    )
+        modifier = modifier
+            .fillMaxWidth()
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    onLongClick()
                 }
-                Text(
-                    text = "${item.nutrients.calories.toInt()} ${stringResource(R.string.unit_kcal)}",
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Bold
+            )
+    ) {
+        Box(modifier = Modifier.padding(16.dp)) {
+            if (item.isPinned) {
+                Icon(
+                    Icons.Rounded.PushPin,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .size(16.dp)
+                        .align(Alignment.TopEnd),
+                    tint = MaterialTheme.colorScheme.primary
                 )
             }
-            
-            Spacer(Modifier.height(4.dp))
-            
-            Text(
-                text = timeText,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            
-            Spacer(Modifier.height(12.dp))
-            
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                MacroChip(stringResource(R.string.metric_protein), "${item.nutrients.protein.toInt()}g", Color(0xFFE3F2FD))
-                MacroChip(stringResource(R.string.metric_carbs), "${item.nutrients.carbs.toInt()}g", Color(0xFFFFF3E0))
-                MacroChip(stringResource(R.string.metric_fat), "${item.nutrients.fat.toInt()}g", Color(0xFFFBE9E7))
+            Column {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = item.nutrients.foodItem,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        Text(
+                            text = item.nutrients.servingSize,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                        )
+                    }
+                    Text(
+                        text = "${item.nutrients.calories.toInt()} ${stringResource(R.string.unit_kcal)}",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(end = if (item.isPinned) 20.dp else 0.dp)
+                    )
+                }
+                
+                Spacer(Modifier.height(4.dp))
+                
+                Text(
+                    text = timeText,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                
+                Spacer(Modifier.height(12.dp))
+                
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    MacroChip(stringResource(R.string.metric_protein), "${item.nutrients.protein.toInt()}g", Color(0xFFE3F2FD))
+                    MacroChip(stringResource(R.string.metric_carbs), "${item.nutrients.carbs.toInt()}g", Color(0xFFFFF3E0))
+                    MacroChip(stringResource(R.string.metric_fat), "${item.nutrients.fat.toInt()}g", Color(0xFFFBE9E7))
+                }
             }
         }
     }
