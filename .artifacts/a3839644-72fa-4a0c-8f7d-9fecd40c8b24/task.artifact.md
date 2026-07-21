@@ -1,0 +1,6 @@
+- `[ ]` Update `DetailScreen.kt` to simplify predictive back animation to a soft fade
+- `[ ]` Update `SettingsScreen.kt` to support predictive back fade
+- `[ ]` Update `SummaryScreen.kt` to support predictive back fade
+- `[ ]` Update `HistoryScreen.kt` to support alpha animation from progress
+- `[ ]` Update `SustenanceRoot.kt` to orchestrate predictive back for all screens and overlays
+- `[ ]` Verify animations app-wide

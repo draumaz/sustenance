@@ -39,6 +39,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -323,17 +324,31 @@ private fun MainNav(
 
     if (isCameraActive) {
         PredictiveBackHandler(enabled = !isHistoryActive) { progress ->
+            pbState.isSwipeActive = true
             try {
-                progress.collect { }
-            } finally {
+                progress.collect { event -> pbState.progress = event.progress }
                 clearCapture()
+            } catch (e: Exception) {
+                // Cancelled
+            } finally {
+                pbState.isSwipeActive = false
+                pbState.progress = 0f
             }
         }
     }
 
-    BackHandler(enabled = isHistoryActive) {
-        isHistoryActive = false
-        clearCapture()
+    PredictiveBackHandler(enabled = isHistoryActive) { progress ->
+        pbState.isSwipeActive = true
+        try {
+            progress.collect { event -> pbState.progress = event.progress }
+            isHistoryActive = false
+            clearCapture()
+        } catch (e: Exception) {
+            // Cancelled
+        } finally {
+            pbState.isSwipeActive = false
+            pbState.progress = 0f
+        }
     }
 
     val apiKeyEnabled by settingsRepo.apiKeyEnabled.collectAsStateWithLifecycle(initialValue = false)
@@ -568,18 +583,8 @@ private fun MainNav(
                 composable(
                     "detail/{metricKey}",
                     arguments = listOf(navArgument("metricKey") { type = NavType.StringType }),
-                    enterTransition = {
-                        scaleIn(
-                            initialScale = 0.9f,
-                            animationSpec = tween(250)
-                        ) + fadeIn(tween(200))
-                    },
-                    exitTransition = {
-                        scaleOut(
-                            targetScale = 0.9f,
-                            animationSpec = tween(250)
-                        ) + fadeOut(tween(200))
-                    }
+                    enterTransition = { fadeIn(tween(200)) },
+                    exitTransition = { fadeOut(tween(200)) }
                 ) { entry ->
                     val key = entry.arguments?.getString("metricKey") ?: ""
                     val metric = Metric.fromKey(key) ?: Metric.TOTAL_CALORIES
@@ -589,14 +594,20 @@ private fun MainNav(
                         settingsRepo = settingsRepo,
                         metric = metric,
                         dateOffset = dashboardDateOffset,
-                        pbState = pbState,
                         onBack = { navController.popBackStack() }
                     )
                 }
             }
 
             if (isCameraActive && !isHistoryActive && pendingNutrients == null) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer {
+                            alpha = 1f - pbState.progress
+                        },
+                    contentAlignment = Alignment.Center
+                ) {
                     androidx.compose.animation.AnimatedVisibility(
                         visible = !isAnalyzing,
                         enter = fadeIn(),
@@ -691,6 +702,7 @@ private fun MainNav(
                     manager = manager,
                     settingsRepo = settingsRepo,
                     bottomInset = inner.calculateBottomPadding(),
+                    predictiveBackProgress = if (isHistoryActive) pbState.progress else 0f,
                     onItemSelected = { item ->
                         pendingNutrients = item.nutrients
                     },

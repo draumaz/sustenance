@@ -1,5 +1,6 @@
 package dev.easonhuang.sustenance.ui.summary
 
+import androidx.activity.compose.PredictiveBackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
@@ -65,6 +66,7 @@ import dev.easonhuang.sustenance.data.Metric
 import dev.easonhuang.sustenance.data.WeeklyStat
 import dev.easonhuang.sustenance.data.formatValue
 import dev.easonhuang.sustenance.ui.components.GoalRing
+import dev.easonhuang.sustenance.ui.components.PredictiveBackState
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -89,8 +91,7 @@ fun SummaryScreen(
     }
 
     Scaffold(
-        modifier = Modifier
-            .fillMaxSize(),
+        modifier = Modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
                 title = {

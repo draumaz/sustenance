@@ -85,7 +85,6 @@ fun DetailScreen(
     settingsRepo: SettingsRepository,
     metric: Metric,
     dateOffset: Int = 0,
-    pbState: PredictiveBackState,
     onBack: () -> Unit,
 ) {
     val vm: DetailViewModel = viewModel(
@@ -101,19 +100,6 @@ fun DetailScreen(
     LifecycleResumeEffect(metric.key) {
         vm.refresh(showIndicator = false)
         onPauseOrDispose { }
-    }
-
-    PredictiveBackHandler(enabled = true) { progress ->
-        pbState.isSwipeActive = true
-        try {
-            progress.collect { event -> pbState.progress = event.progress }
-            onBack()
-        } catch (e: Exception) {
-            // Cancelled or error
-        } finally {
-            pbState.isSwipeActive = false
-            pbState.progress = 0f
-        }
     }
 
     if (showGoalDialog) {
@@ -174,18 +160,9 @@ fun DetailScreen(
         )
     }
 
-    val progress = pbState.progress
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .graphicsLayer {
-                scaleX = 1f - (progress * 0.08f)
-                scaleY = 1f - (progress * 0.08f)
-                translationX = progress * 400f
-                alpha = 1f - (progress * 0.2f)
-                clip = true
-                shape = RoundedCornerShape(28.dp * progress)
-            }
             .pointerInput(Unit) {
                 detectTapGestures { selectedChartPoint = null }
             }

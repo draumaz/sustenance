@@ -4,6 +4,7 @@ import android.content.Intent
 import android.content.Context
 import android.os.Build
 import android.net.Uri
+import androidx.activity.compose.PredictiveBackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -65,6 +66,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.LinkAnnotation
@@ -86,6 +88,7 @@ import dev.easonhuang.sustenance.data.ExportManager
 import dev.easonhuang.sustenance.data.HealthConnectManager
 import dev.easonhuang.sustenance.data.Metric
 import dev.easonhuang.sustenance.data.SettingsRepository
+import dev.easonhuang.sustenance.ui.components.PredictiveBackState
 import dev.easonhuang.sustenance.ui.SettingsViewModel
 import kotlinx.coroutines.launch
 import androidx.core.net.toUri
