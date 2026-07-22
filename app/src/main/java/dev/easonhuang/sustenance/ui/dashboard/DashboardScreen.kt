@@ -1,5 +1,6 @@
 package dev.easonhuang.sustenance.ui.dashboard
 
+import android.view.HapticFeedbackConstants
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.BorderStroke
@@ -54,8 +55,7 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -108,7 +108,7 @@ fun SquishyIconButton(
     contentDescription: String?,
     icon: @Composable () -> Unit,
 ) {
-    val haptic = LocalHapticFeedback.current
+    val view = LocalView.current
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     
@@ -136,7 +136,7 @@ fun SquishyIconButton(
                 interactionSource = interactionSource,
                 indication = null,
                 onClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                     onClick()
                 }
             ),
@@ -170,7 +170,7 @@ fun DashboardScreen(
     var currentTime by remember { mutableStateOf(Instant.now()) }
     val topAppBarState = rememberTopAppBarState()
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(topAppBarState)
-    val haptic = LocalHapticFeedback.current
+    val view = LocalView.current
     val pullToRefreshState = rememberPullToRefreshState()
 
     LaunchedEffect(dateOffset) {
@@ -241,7 +241,7 @@ fun DashboardScreen(
 
             override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
                 if (pullDistance.value >= pullThreshold) {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                    view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
                     vm.moveBack()
                 }
                 pullDistance.animateTo(0f, spring(Spring.DampingRatioLowBouncy, Spring.StiffnessMediumLow))
@@ -533,6 +533,7 @@ private fun MetricSection(
 
 @Composable
 private fun TimerChip(lastLogTime: Instant?, goalHours: Float, currentTime: Instant, onClick: () -> Unit = {}) {
+    val view = LocalView.current
     val duration = lastLogTime?.let { Duration.between(it, currentTime) } ?: Duration.ZERO
     val hours = duration.toHours()
     val minutes = duration.toMinutes() % 60
@@ -549,7 +550,10 @@ private fun TimerChip(lastLogTime: Instant?, goalHours: Float, currentTime: Inst
     )
 
     Surface(
-        onClick = onClick,
+        onClick = {
+            view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+            onClick()
+        },
         modifier = Modifier
             .height(48.dp)
             .fillMaxWidth(),

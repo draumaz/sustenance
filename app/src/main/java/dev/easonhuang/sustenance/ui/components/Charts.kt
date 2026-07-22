@@ -265,7 +265,7 @@ fun LineChart(
                                 // Only trigger if tap is within 48dp of the point vertically
                                 if (dy < 48.dp.toPx()) {
                                     if (selectedIndex != i) {
-                                    view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                                    view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                                     onSelectedIndexChange(i)
                                 } else {
                                         onSelectedIndexChange(null)
@@ -288,7 +288,7 @@ fun LineChart(
                             onDrag = { change, _ ->
                                 val i = (change.position.x / stepX).roundToInt().coerceIn(0, points.size - 1)
                                 if (selectedIndex != i) {
-                                    view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                                    view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                                     onSelectedIndexChange(i)
                                 }
                                 change.consume()
@@ -300,14 +300,14 @@ fun LineChart(
                             onDragStart = { offset ->
                                 val i = (offset.x / stepX).roundToInt().coerceIn(0, points.size - 1)
                                 if (selectedIndex != i) {
-                                    view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                                    view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                                     onSelectedIndexChange(i)
                                 }
                             },
                             onHorizontalDrag = { change, _ ->
                                 val i = (change.position.x / stepX).roundToInt().coerceIn(0, points.size - 1)
                                 if (selectedIndex != i) {
-                                    view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                                    view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                                     onSelectedIndexChange(i)
                                 }
                             }
@@ -531,7 +531,7 @@ fun LineChart(
                             onDrag = { change, _ ->
                                 val i = (change.position.x / stepX).roundToInt().coerceIn(0, points.size - 1)
                                 if (selectedIndex != i) {
-                                    view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                                    view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                                     onSelectedIndexChange(i)
                                 }
                                 change.consume()
@@ -543,14 +543,14 @@ fun LineChart(
                             onDragStart = { offset ->
                                 val i = (offset.x / stepX).roundToInt().coerceIn(0, points.size - 1)
                                 if (selectedIndex != i) {
-                                    view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                                    view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                                     onSelectedIndexChange(i)
                                 }
                             },
                             onHorizontalDrag = { change, _ ->
                                 val i = (change.position.x / stepX).roundToInt().coerceIn(0, points.size - 1)
                                 if (selectedIndex != i) {
-                                    view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                                    view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                                     onSelectedIndexChange(i)
                                 }
                             }

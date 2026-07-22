@@ -1,6 +1,7 @@
 package dev.easonhuang.sustenance.ui.components
 
 import android.graphics.Bitmap
+import android.view.HapticFeedbackConstants
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.animateContentSize
@@ -76,10 +77,9 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Density
@@ -393,7 +393,7 @@ fun ExpressiveNavItem(
     onLongHold: () -> Unit = {},
     onClick: () -> Unit
 ) {
-    val haptic = LocalHapticFeedback.current
+    val view = LocalView.current
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
     val scale = remember { Animatable(1f) }
@@ -404,7 +404,7 @@ fun ExpressiveNavItem(
             isLongPressed = false
             val job = launch {
                 delay(500.milliseconds)
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
                 isLongPressed = true
                 onLongHold()
             }
@@ -454,7 +454,7 @@ fun ExpressiveNavItem(
                 indication = null,
                 onClick = {
                     if (!isLongPressed) {
-                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                         onClick()
                     }
                 }

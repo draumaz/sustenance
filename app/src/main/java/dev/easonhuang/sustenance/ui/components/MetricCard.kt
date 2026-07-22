@@ -1,5 +1,6 @@
 package dev.easonhuang.sustenance.ui.components
 
+import android.view.HapticFeedbackConstants
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -36,6 +37,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import dev.easonhuang.sustenance.R
 import dev.easonhuang.sustenance.data.MetricSummary
@@ -47,6 +49,7 @@ fun MetricCard(
     modifier: Modifier = Modifier,
     containerColor: Color = MaterialTheme.colorScheme.surfaceContainerLow
 ) {
+    val view = LocalView.current
     val accent = summary.metric.accent
     val today = summary.spark.lastOrNull() ?: 0f
     val goal = summary.goal
@@ -65,7 +68,10 @@ fun MetricCard(
     }
 
     Surface(
-        onClick = onClick,
+        onClick = {
+            view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+            onClick()
+        },
         modifier = modifier.height(48.dp).fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         color = containerColor,
