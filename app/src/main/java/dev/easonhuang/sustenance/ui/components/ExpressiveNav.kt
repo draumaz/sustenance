@@ -232,28 +232,6 @@ fun ExpressiveNavigationBar(
                                 singleLine = true
                             )
                         }
-                        IconButton(
-                            onClick = onSelectGallery,
-                            modifier = Modifier.size(32.dp)
-                        )
-                        {
-                            Icon(
-                                imageVector = Icons.Rounded.Image,
-                                contentDescription = stringResource(R.string.select_from_gallery),
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                        IconButton(
-                            onClick = onFinishBatch,
-                            modifier = Modifier.size(32.dp)
-                        )
-                        {
-                            Icon(
-                                imageVector = Icons.Rounded.FileUpload,
-                                contentDescription = stringResource(R.string.analyze_photos, batchCount),
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        }
                     }
                 }
                 Row(
@@ -274,18 +252,41 @@ fun ExpressiveNavigationBar(
                                 ),
                                 icon = if (isHistorySelected) Icons.Rounded.Add else Icons.Rounded.FileUpload,
                                 isSelected = !isHistorySelected,
-                                onClick = onHistoryClick,
+                                onClick = { if (isHistorySelected) { onHistoryClick() }; onLogClick(); },
                                 onLongHold = onToggleTorch,
                             )
                         }
 
-                        ExpressiveNavItem(
-                            label = stringResource(R.string.add_label),
-                            icon = Icons.Rounded.CameraAlt,
-                            isSelected = isBatchMode,
-                            onClick = { if (isHistorySelected) { onHistoryClick() }; onCaptureBatch(); },
-                            onLongHold = onSelectGallery,
-                        )
+                        if (isBatchMode) {
+                            ExpressiveNavItem(
+                                label = stringResource(R.string.select_from_gallery),
+                                icon = Icons.Rounded.Image,
+                                isSelected = false,
+                                onClick = onSelectGallery
+                            )
+                            ExpressiveNavItem(
+                                label = stringResource(R.string.add_label),
+                                icon = Icons.Rounded.CameraAlt,
+                                isSelected = true,
+                                onClick = onCaptureBatch,
+                                onLongHold = onToggleTorch
+                            )
+                            ExpressiveNavItem(
+                                label = stringResource(R.string.analyze_photos),
+                                icon = Icons.Rounded.FileUpload,
+                                isSelected = false,
+                                onClick = onFinishBatch,
+                                onLongHold = onToggleTorch,
+                            )
+                        } else {
+                            ExpressiveNavItem(
+                                label = stringResource(R.string.add_label),
+                                icon = Icons.Rounded.CameraAlt,
+                                isSelected = false,
+                                onClick = { if (isHistorySelected) { onHistoryClick() }; onCaptureBatch(); },
+                                onLongHold = onToggleTorch,
+                            )
+                        }
                         
                     } else {
                         val renderItem = @Composable { dest: dev.easonhuang.sustenance.ui.Dest ->
@@ -310,6 +311,7 @@ fun ExpressiveNavigationBar(
                                 selectionAlphaOverride = selectionAlphaOverride,
                                 onClick = { onNavigate(dest) }
                             )
+
                         }
 
                         val others = destinations.filter { it.route != "today" }
