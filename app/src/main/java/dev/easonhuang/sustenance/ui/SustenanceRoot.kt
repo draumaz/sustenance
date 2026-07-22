@@ -64,7 +64,12 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.tween
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -402,9 +407,14 @@ private fun MainNav(
         }
     }
 
-    val blurRadius by animateDpAsState(
-        targetValue = if (pendingNutrients != null || isAnalyzing) 16.dp else 0.dp,
-        label = "blur_radius"
+    val dashboardBlur by animateDpAsState(
+        targetValue = if (isCameraActive || isAnalyzing || pendingNutrients != null) 16.dp else 0.dp,
+        label = "dashboard_blur"
+    )
+
+    val cameraBlur by animateDpAsState(
+        targetValue = if (isAnalyzing || pendingNutrients != null) 16.dp else 0.dp,
+        label = "camera_blur"
     )
 
     Scaffold(
@@ -518,7 +528,7 @@ private fun MainNav(
                 startDestination = Dest.TODAY.route,
                 modifier = Modifier
                     .fillMaxSize()
-                    .blur(blurRadius),
+                    .blur(dashboardBlur),
             ) {
                 composable(
                     Dest.TODAY.route,
@@ -599,10 +609,22 @@ private fun MainNav(
                 }
             }
 
-            if (isCameraActive && !isHistoryActive && pendingNutrients == null) {
+            androidx.compose.animation.AnimatedVisibility(
+                visible = isCameraActive && !isHistoryActive && pendingNutrients == null,
+                enter = fadeIn(spring(stiffness = Spring.StiffnessMediumLow)) +
+                        slideInVertically(spring(stiffness = Spring.StiffnessMediumLow)) { (it * 0.4f).toInt() } +
+                        scaleIn(spring(stiffness = Spring.StiffnessMediumLow), initialScale = 0f, transformOrigin = TransformOrigin(0.5f, 0.9f)),
+                exit = fadeOut(spring(stiffness = Spring.StiffnessMediumLow)) +
+                        slideOutVertically(spring(stiffness = Spring.StiffnessMediumLow)) { (it * 0.4f).toInt() } +
+                        scaleOut(spring(stiffness = Spring.StiffnessMediumLow), targetScale = 0f, transformOrigin = TransformOrigin(0.5f, 0.9f))
+            ) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
+                        .padding(
+                            top = inner.calculateTopPadding(),
+                            bottom = bottomBarHeight
+                        )
                         .graphicsLayer {
                             alpha = 1f - pbState.progress
                         },
@@ -614,7 +636,7 @@ private fun MainNav(
                         exit = fadeOut()
                     ) {
                         CameraPreview(
-                            modifier = Modifier.blur(blurRadius),
+                            modifier = Modifier.blur(cameraBlur),
                             isCapturing = isCapturing,
                             isBatchMode = isBatchMode,
                             isTorchOn = isTorchOn,

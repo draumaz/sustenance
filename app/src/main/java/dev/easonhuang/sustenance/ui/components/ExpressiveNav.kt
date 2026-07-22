@@ -252,7 +252,7 @@ fun ExpressiveNavigationBar(
                                 ),
                                 icon = if (isHistorySelected) Icons.Rounded.Add else Icons.Rounded.FileUpload,
                                 isSelected = !isHistorySelected,
-                                onClick = { if (isHistorySelected) { onHistoryClick() }; onLogClick(); },
+                                onClick = { if (isHistorySelected) { onHistoryClick(); onLogClick() } else { onCaptureBatch(); onCaptureBatch() };  },
                                 onLongHold = onToggleTorch,
                             )
                         }
