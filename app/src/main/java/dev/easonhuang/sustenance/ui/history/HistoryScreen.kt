@@ -68,9 +68,12 @@ fun HistoryScreen(
     }
 
     Scaffold(
-        modifier = Modifier.graphicsLayer {
-            alpha = 1f - predictiveBackProgress
-        },
+        modifier = Modifier
+            .fillMaxSize()
+            .graphicsLayer {
+                alpha = 1f - predictiveBackProgress
+            },
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text(stringResource(R.string.history)) },
