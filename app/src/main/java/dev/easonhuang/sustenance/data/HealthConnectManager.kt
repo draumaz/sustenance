@@ -364,7 +364,7 @@ class HealthConnectManager(private val context: Context) {
                 }
                 stats = listOf(
                     context.getString(R.string.daily_avg) to "${metric.formatValue(values.average().toFloat())} $unit",
-                    context.getString(R.string.best_day) to "${metric.formatValue(values.max())} $unit",
+                    context.getString(R.string.highest_day) to "${metric.formatValue(values.max())} $unit",
                     context.getString(R.string.fourteen_day_total) to "${metric.formatValue(values.sum())} $unit",
                 )
             } else {

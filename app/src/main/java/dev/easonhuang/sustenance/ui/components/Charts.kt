@@ -237,24 +237,20 @@ fun LineChart(
             val stepX = chartWidth / (points.size - 1)
             val range = (max - min).takeIf { it > 0f } ?: 1f
 
-            val peakColor = lerp(color, Color(0xFF709E73), 0.4f)
-            val lowColor = lerp(color, Color(0xFFAB6161), 0.4f)
+            val peakColor = Color(0xFFAB6161) // Red for peak
+            val lowColor = Color(0xFF709E73)  // Green for low
 
-            // Y-Axis Labels
-            Text(
-                text = formatNumber(ceil(max)),
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.ExtraBold,
-                color = peakColor,
-                modifier = Modifier.offset { IntOffset(0, (height * 0.1f - 7.dp.toPx()).roundToInt()) }
-            )
-            Text(
-                text = formatNumber(ceil(min)),
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Bold,
-                color = lowColor,
-                modifier = Modifier.offset { IntOffset(0, (height * 0.9f - 7.dp.toPx()).roundToInt()) }
-            )
+            // Y-Axis Goal Label
+            goal?.let { g ->
+                val gy = height - ((g - min) / range) * height * 0.8f - height * 0.1f
+                Text(
+                    text = formatNumber(ceil(g)),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = color.copy(alpha = 0.8f),
+                    modifier = Modifier.offset { IntOffset(0, (gy - 7.dp.toPx()).roundToInt()) }
+                )
+            }
 
             Canvas(
                 Modifier
