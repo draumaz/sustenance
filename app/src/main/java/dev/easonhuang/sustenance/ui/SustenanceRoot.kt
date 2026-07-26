@@ -70,6 +70,8 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.tween
 import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -609,6 +611,17 @@ private fun MainNav(
                 }
             }
 
+            // Interaction Shield for blurred background
+            if (dashboardBlur > 0.dp) {
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .pointerInput(Unit) {
+                            detectTapGestures { /* Block interactions */ }
+                        }
+                )
+            }
+
             androidx.compose.animation.AnimatedVisibility(
                 visible = isCameraActive && !isHistoryActive && pendingNutrients == null,
                 enter = fadeIn(spring(stiffness = Spring.StiffnessMediumLow)) +
@@ -635,69 +648,80 @@ private fun MainNav(
                         enter = fadeIn(),
                         exit = fadeOut()
                     ) {
-                        CameraPreview(
-                            modifier = Modifier.blur(cameraBlur),
-                            isCapturing = isCapturing,
-                            isBatchMode = isBatchMode,
-                            isTorchOn = isTorchOn,
-                            onImageCaptured = { imageProxy ->
-                                scope.launch {
-                                    val rotation = imageProxy.imageInfo.rotationDegrees
-                                    val bitmap = imageProxy.toBitmap()
-                                    imageProxy.close()
+                        Box {
+                            CameraPreview(
+                                modifier = Modifier.blur(cameraBlur),
+                                isCapturing = isCapturing,
+                                isBatchMode = isBatchMode,
+                                isTorchOn = isTorchOn,
+                                onImageCaptured = { imageProxy ->
+                                    scope.launch {
+                                        val rotation = imageProxy.imageInfo.rotationDegrees
+                                        val bitmap = imageProxy.toBitmap()
+                                        imageProxy.close()
 
-                                    val rotatedBitmap = if (rotation != 0) {
-                                        val matrix = Matrix().apply { postRotate(rotation.toFloat()) }
-                                        val rotated = Bitmap.createBitmap(
-                                            bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true
-                                        )
-                                        if (rotated != bitmap) bitmap.recycle()
-                                        rotated
-                                    } else {
-                                        bitmap
-                                    }
-
-                                    if (isBatchMode) {
-                                        capturedBitmaps = capturedBitmaps + rotatedBitmap
-                                        isCapturing = false
-                                    } else {
-                                        val trimmedKey = apiKey.trim()
-                                        if (trimmedKey.isBlank()) {
-                                            Toast.makeText(
-                                                currentContext,
-                                                R.string.api_key_invalid,
-                                                Toast.LENGTH_LONG
-                                            ).show()
-                                            isCapturing = false
-                                            isCameraActive = false
-                                            return@launch
+                                        val rotatedBitmap = if (rotation != 0) {
+                                            val matrix = Matrix().apply { postRotate(rotation.toFloat()) }
+                                            val rotated = Bitmap.createBitmap(
+                                                bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true
+                                            )
+                                            if (rotated != bitmap) bitmap.recycle()
+                                            rotated
+                                        } else {
+                                            bitmap
                                         }
 
-                                        isAnalyzing = true
-                                        val result = GeminiManager(trimmedKey).analyzeFoodImage(
-                                            rotatedBitmap,
-                                            batchInfoText
-                                        )
-                                        isAnalyzing = false
-
-                                        if (result.isSuccess) {
-                                            pendingNutrients = result.getOrNull()
-                                            clearCapture()
-                                        } else {
-                                            val errorMsg =
-                                                result.exceptionOrNull()?.localizedMessage
-                                                    ?: ""
-                                            Toast.makeText(
-                                                currentContext,
-                                                currentContext.getString(R.string.analysis_failed, errorMsg),
-                                                Toast.LENGTH_LONG
-                                            ).show()
+                                        if (isBatchMode) {
+                                            capturedBitmaps = capturedBitmaps + rotatedBitmap
                                             isCapturing = false
+                                        } else {
+                                            val trimmedKey = apiKey.trim()
+                                            if (trimmedKey.isBlank()) {
+                                                Toast.makeText(
+                                                    currentContext,
+                                                    R.string.api_key_invalid,
+                                                    Toast.LENGTH_LONG
+                                                ).show()
+                                                isCapturing = false
+                                                isCameraActive = false
+                                                return@launch
+                                            }
+
+                                            isAnalyzing = true
+                                            val result = GeminiManager(trimmedKey).analyzeFoodImage(
+                                                rotatedBitmap,
+                                                batchInfoText
+                                            )
+                                            isAnalyzing = false
+
+                                            if (result.isSuccess) {
+                                                pendingNutrients = result.getOrNull()
+                                                clearCapture()
+                                            } else {
+                                                val errorMsg =
+                                                    result.exceptionOrNull()?.localizedMessage
+                                                        ?: ""
+                                                Toast.makeText(
+                                                    currentContext,
+                                                    currentContext.getString(R.string.analysis_failed, errorMsg),
+                                                    Toast.LENGTH_LONG
+                                                ).show()
+                                                isCapturing = false
+                                            }
                                         }
                                     }
                                 }
+                            )
+                            if (cameraBlur > 0.dp) {
+                                Box(
+                                    Modifier
+                                        .matchParentSize()
+                                        .pointerInput(Unit) {
+                                            detectTapGestures { /* Block interactions */ }
+                                        }
+                                )
                             }
-                        )
+                        }
                     }
 
                     androidx.compose.animation.AnimatedVisibility(
