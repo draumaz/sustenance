@@ -213,6 +213,12 @@ fun LineChart(
     val max = if (goal != null) maxOf(maxVal, goal) else maxVal
 
     val view = LocalView.current
+    var lastHapticIndex by remember { mutableStateOf(-1) }
+
+    LaunchedEffect(selectedIndex) {
+        if (selectedIndex == null) lastHapticIndex = -1
+        else lastHapticIndex = selectedIndex
+    }
 
     Column(
         modifier
@@ -265,9 +271,9 @@ fun LineChart(
                                 // Only trigger if tap is within 48dp of the point vertically
                                 if (dy < 48.dp.toPx()) {
                                     if (selectedIndex != i) {
-                                    view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-                                    onSelectedIndexChange(i)
-                                } else {
+                                        view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                                        onSelectedIndexChange(i)
+                                    } else {
                                         onSelectedIndexChange(null)
                                     }
                                 } else {
@@ -283,12 +289,14 @@ fun LineChart(
                             onDragStart = { offset ->
                                 val i = (offset.x / stepX).roundToInt().coerceIn(0, points.size - 1)
                                 view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                                lastHapticIndex = i
                                 onSelectedIndexChange(i)
                             },
                             onDrag = { change, _ ->
                                 val i = (change.position.x / stepX).roundToInt().coerceIn(0, points.size - 1)
-                                if (selectedIndex != i) {
+                                if (i != lastHapticIndex) {
                                     view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                                    lastHapticIndex = i
                                     onSelectedIndexChange(i)
                                 }
                                 change.consume()
@@ -299,15 +307,17 @@ fun LineChart(
                         detectHorizontalDragGestures(
                             onDragStart = { offset ->
                                 val i = (offset.x / stepX).roundToInt().coerceIn(0, points.size - 1)
-                                if (selectedIndex != i) {
+                                if (i != lastHapticIndex) {
                                     view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                                    lastHapticIndex = i
                                     onSelectedIndexChange(i)
                                 }
                             },
                             onHorizontalDrag = { change, _ ->
                                 val i = (change.position.x / stepX).roundToInt().coerceIn(0, points.size - 1)
-                                if (selectedIndex != i) {
+                                if (i != lastHapticIndex) {
                                     view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                                    lastHapticIndex = i
                                     onSelectedIndexChange(i)
                                 }
                             }
@@ -514,7 +524,7 @@ fun LineChart(
                         detectTapGestures { offset ->
                             val i = (offset.x / stepX).roundToInt().coerceIn(0, points.size - 1)
                             if (selectedIndex != i) {
-                                view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
+                                view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                                 onSelectedIndexChange(i)
                             } else {
                                 onSelectedIndexChange(null)
@@ -526,12 +536,14 @@ fun LineChart(
                             onDragStart = { offset ->
                                 val i = (offset.x / stepX).roundToInt().coerceIn(0, points.size - 1)
                                 view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                                lastHapticIndex = i
                                 onSelectedIndexChange(i)
                             },
                             onDrag = { change, _ ->
                                 val i = (change.position.x / stepX).roundToInt().coerceIn(0, points.size - 1)
-                                if (selectedIndex != i) {
+                                if (i != lastHapticIndex) {
                                     view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                                    lastHapticIndex = i
                                     onSelectedIndexChange(i)
                                 }
                                 change.consume()
@@ -542,15 +554,17 @@ fun LineChart(
                         detectHorizontalDragGestures(
                             onDragStart = { offset ->
                                 val i = (offset.x / stepX).roundToInt().coerceIn(0, points.size - 1)
-                                if (selectedIndex != i) {
+                                if (i != lastHapticIndex) {
                                     view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                                    lastHapticIndex = i
                                     onSelectedIndexChange(i)
                                 }
                             },
                             onHorizontalDrag = { change, _ ->
                                 val i = (change.position.x / stepX).roundToInt().coerceIn(0, points.size - 1)
-                                if (selectedIndex != i) {
+                                if (i != lastHapticIndex) {
                                     view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                                    lastHapticIndex = i
                                     onSelectedIndexChange(i)
                                 }
                             }

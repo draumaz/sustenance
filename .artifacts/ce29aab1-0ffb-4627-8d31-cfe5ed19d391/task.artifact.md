@@ -1,0 +1,3 @@
+- [ ] Update `LineChart` haptic constants in `Charts.kt`
+- [ ] Implement `lastHapticIndex` guarding for scrub gestures
+- [ ] Verify build and logic
