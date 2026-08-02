@@ -19,11 +19,11 @@ fun signingValue(prop: String, env: String): String? =
 val hasSigning = signingValue("storeFile", "SUSTENANCE_STORE_FILE") != null
 
 android {
-    namespace = "dev.easonhuang.sustenance"
+    namespace = "io.github.draumaz.sustenance"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "dev.easonhuang.sustenance"
+        applicationId = "io.github.draumaz.sustenance"
         minSdk = 30
         targetSdk = 36
         versionCode = 3
