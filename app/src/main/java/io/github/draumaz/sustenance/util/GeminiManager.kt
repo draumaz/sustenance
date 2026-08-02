@@ -26,7 +26,7 @@ data class FoodNutrients(
 
 class GeminiManager(apiKey: String) {
     private val model = GenerativeModel(
-        modelName = "gemini-3.1-flash-lite", // Do not change this
+        modelName = "gemini-3.5-flash-lite", // Do not change this
         apiKey = apiKey
     )
 
