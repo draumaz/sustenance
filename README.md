@@ -34,7 +34,7 @@ relevant nutritional information to Health Connect.
 |:------------------------------:|:-------------------------------:|
 | ![Home](img/sust-itemscan.jpg) | ![Search](img/sust-itemlog.jpg) |
 
-It talks to [gemini-3.1-flash-lite](https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/gemini/3-1-flash-lite) for speed and efficiency.
+It talks to [gemini-3.5-flash-lite](https://docs.cloud.google.com/gemini-enterprise-agent-platform/models/gemini/3-5-flash-lite) for speed and efficiency.
 
 ---
 
