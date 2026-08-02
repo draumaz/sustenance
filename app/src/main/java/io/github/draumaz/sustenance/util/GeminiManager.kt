@@ -2,8 +2,8 @@ package io.github.draumaz.sustenance.util
 
 import android.graphics.Bitmap
 import android.util.Log
+import androidx.core.graphics.scale
 import com.google.ai.client.generativeai.GenerativeModel
-import com.google.ai.client.generativeai.type.BlockThreshold
 import com.google.ai.client.generativeai.type.HarmCategory
 import com.google.ai.client.generativeai.type.SafetySetting
 import com.google.ai.client.generativeai.type.content
@@ -34,10 +34,10 @@ class GeminiManager(apiKey: String) {
         try {
             val scaledBitmaps = bitmaps.map { bitmap ->
                 val maxDim = 1024
-                if (bitmap.width > maxDim || bitmap.height > maxDim) {
+                if ((bitmap.width > maxDim) || (bitmap.height > maxDim)) {
                     val ratio = bitmap.width.toFloat() / bitmap.height.toFloat()
                     val (w, h) = if (ratio > 1) maxDim to (maxDim / ratio).toInt() else (maxDim * ratio).toInt() to maxDim
-                    Bitmap.createScaledBitmap(bitmap, w, h, true)
+                    bitmap.scale(w, h, filter = true)
                 } else bitmap
             }
 
@@ -84,7 +84,7 @@ class GeminiManager(apiKey: String) {
                 fiber = json.optDouble("fiber", 0.0),
                 sugar = json.optDouble("sugar", 0.0),
                 saturatedFat = json.optDouble("saturated_fat", 0.0),
-                sodium = json.optDouble("sodium", 0.0)
+                sodium = json.optDouble("sodium", 0.0),
             ))
         } catch (e: Exception) {
             Log.e("GeminiManager", "Analysis failed", e)

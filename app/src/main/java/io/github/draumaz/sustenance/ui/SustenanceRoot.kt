@@ -22,7 +22,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.AlertDialog
 import androidx.compose.runtime.Composable
@@ -114,10 +113,10 @@ private fun decodeDownsampledBitmap(context: android.content.Context, uri: Uri, 
             BitmapFactory.decodeStream(input, null, options)
             
             var inSampleSize = 1
-            if (options.outHeight > maxDim || options.outWidth > maxDim) {
+            if (options.outHeight > maxDim || (options.outWidth > maxDim)) {
                 val halfHeight = options.outHeight / 2
                 val halfWidth = options.outWidth / 2
-                while (halfHeight / inSampleSize >= maxDim && halfWidth / inSampleSize >= maxDim) {
+                while ((halfHeight / inSampleSize >= maxDim) && (halfWidth / inSampleSize >= maxDim)) {
                     inSampleSize *= 2
                 }
             }
@@ -132,7 +131,7 @@ private fun decodeDownsampledBitmap(context: android.content.Context, uri: Uri, 
     }
 }
 
-enum class Dest(val route: String, @StringRes val labelRes: Int, val icon: ImageVector) {
+enum class Dest(val route: String, @param:StringRes val labelRes: Int, val icon: ImageVector) {
     TODAY("today", R.string.today_label, Icons.Rounded.Today),
     SUMMARY("summary", R.string.summary_title, Icons.Rounded.Insights),
     SETTINGS("settings", R.string.settings_title, Icons.Rounded.Settings),
@@ -152,20 +151,22 @@ fun SustenanceRoot(
     val currentContext = LocalContext.current
 
     if (!manager.isAvailable) {
-        UnavailableScreen(onInstall = {
-            runCatching {
-                currentContext.startActivity(
-                    Intent(Intent.ACTION_VIEW, "market://details?id=$HEALTH_CONNECT_PACKAGE".toUri())
-                        .setPackage("com.android.vending")
-                )
+        UnavailableScreen(
+            onInstall = {
+                runCatching {
+                    currentContext.startActivity(
+                        Intent(Intent.ACTION_VIEW, "market://details?id=$HEALTH_CONNECT_PACKAGE".toUri())
+                            .setPackage("com.android.vending")
+                    )
+                }
             }
-        })
+        )
         return
     }
 
     var granted by remember { mutableStateOf<Set<String>?>(null) }
     // True while the initial setup is chaining its permission requests (data → background).
-    var inSetup by remember { mutableStateOf(false) }
+    var inSetup by remember { mutableStateOf(value = false) }
     var requestedExtras by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
@@ -269,9 +270,10 @@ private fun MainNav(
     deepLinkMetric: String? = null,
     sharedImageUris: List<Uri>? = null,
     onDeepLinkConsumed: () -> Unit = {},
-    onSharedImagesConsumed: () -> Unit = {}
+    onSharedImagesConsumed: () -> Unit = {},
 ) {
     val currentContext = LocalContext.current
+    val appContext = currentContext.applicationContext
     val scope = rememberCoroutineScope()
     val navController = rememberNavController()
     val backStack by navController.currentBackStackEntryAsState()
@@ -482,9 +484,10 @@ private fun MainNav(
                                     pendingNutrients = result.getOrNull()
                                     clearCapture()
                                 } else {
+                                    val errorMsg = result.exceptionOrNull()?.message ?: ""
                                     Toast.makeText(
                                         currentContext,
-                                        currentContext.getString(R.string.analysis_failed, result.exceptionOrNull()?.message ?: ""),
+                                        appContext.getString(R.string.analysis_failed, errorMsg),
                                         Toast.LENGTH_LONG
                                     ).show()
                                 }
@@ -672,7 +675,7 @@ private fun MainNav(
                                         }
 
                                         if (isBatchMode) {
-                                            capturedBitmaps = capturedBitmaps + rotatedBitmap
+                                            capturedBitmaps += rotatedBitmap
                                             isCapturing = false
                                         } else {
                                             val trimmedKey = apiKey.trim()
@@ -703,7 +706,7 @@ private fun MainNav(
                                                         ?: ""
                                                 Toast.makeText(
                                                     currentContext,
-                                                    currentContext.getString(R.string.analysis_failed, errorMsg),
+                                                    appContext.getString(R.string.analysis_failed, errorMsg),
                                                     Toast.LENGTH_LONG
                                                 ).show()
                                                 isCapturing = false

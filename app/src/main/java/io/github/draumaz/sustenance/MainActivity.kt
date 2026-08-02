@@ -15,6 +15,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.core.content.IntentCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import io.github.draumaz.sustenance.ui.SustenanceRoot
 import io.github.draumaz.sustenance.ui.theme.SustenanceTheme
@@ -49,7 +50,7 @@ class MainActivity : ComponentActivity() {
                         deepLinkMetric = deepLinkMetric,
                         sharedImageUris = sharedImages,
                         onDeepLinkConsumed = { deepLinkMetric = null },
-                        onSharedImagesConsumed = { sharedImages = null }
+                        onSharedImagesConsumed = { sharedImages = null },
                     )
                 }
             }
@@ -69,14 +70,14 @@ class MainActivity : ComponentActivity() {
         when (intent.action) {
             Intent.ACTION_SEND -> {
                 if (intent.type?.startsWith("image/") == true) {
-                    (intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM))?.let {
+                    IntentCompat.getParcelableExtra(intent, Intent.EXTRA_STREAM, Uri::class.java)?.let {
                         sharedImages = listOf(it)
                     }
                 }
             }
             Intent.ACTION_SEND_MULTIPLE -> {
                 if (intent.type?.startsWith("image/") == true) {
-                    sharedImages = intent.getParcelableArrayListExtra<Uri>(Intent.EXTRA_STREAM)
+                    sharedImages = IntentCompat.getParcelableArrayListExtra(intent, Intent.EXTRA_STREAM, Uri::class.java)
                 }
             }
         }

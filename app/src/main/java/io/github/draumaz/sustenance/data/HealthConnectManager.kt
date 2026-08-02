@@ -6,7 +6,6 @@ import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.NutritionRecord
 import androidx.health.connect.client.records.Record
 import androidx.health.connect.client.records.TotalCaloriesBurnedRecord
-import androidx.health.connect.client.records.metadata.Device
 import androidx.health.connect.client.records.metadata.Metadata
 import androidx.health.connect.client.request.AggregateGroupByPeriodRequest
 import androidx.health.connect.client.request.ReadRecordsRequest
@@ -539,9 +538,6 @@ class HealthConnectManager(private val context: Context) {
         client.readRecords(
             ReadRecordsRequest(recordType = type, timeRangeFilter = TimeRangeFilter.between(start, end))
         ).records
-
-    private fun daysAgoStart(n: Int): Instant =
-        LocalDate.now().minusDays(n.toLong()).atStartOfDay(zone).toInstant()
 
     private fun recordTime(r: Record): Instant? = when (r) {
         is NutritionRecord -> r.startTime

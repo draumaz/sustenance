@@ -31,7 +31,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -40,20 +39,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.MenuBook
 import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.AddToPhotos
-import androidx.compose.material.icons.rounded.ArrowBackIosNew
-import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.CameraAlt
-import androidx.compose.material.icons.rounded.CameraEnhance
 import androidx.compose.material.icons.rounded.FileUpload
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Image
-import androidx.compose.material.icons.rounded.MultipleStop
-import androidx.compose.material.icons.rounded.Textsms
 import androidx.compose.material.icons.rounded.Today
-import androidx.compose.material.icons.rounded.UploadFile
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -102,7 +93,7 @@ import kotlin.time.Duration.Companion.milliseconds
 @Stable
 class PredictiveBackState {
     var progress by mutableFloatStateOf(0f)
-    var isSwipeActive by mutableStateOf(false)
+    var isSwipeActive by mutableStateOf(value = false)
 }
 
 
@@ -121,13 +112,13 @@ fun ExpressiveNavigationBar(
     onBatchInfoTextChange: (String) -> Unit = {},
     onSelectGallery: () -> Unit = {},
     onToggleTorch: () -> Unit = {},
-    onCapture: () -> Unit = {},
+    @Suppress("UNUSED_PARAMETER") onCapture: () -> Unit = {},
     onCaptureBatch: () -> Unit = {},
     onFinishBatch: () -> Unit = {},
     isHistorySelected: Boolean = false,
     onHistoryClick: () -> Unit = {},
     onNavigate: (io.github.draumaz.sustenance.ui.Dest) -> Unit,
-    onLogClick: () -> Unit = {}
+    onLogClick: () -> Unit = {},
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
@@ -239,20 +230,19 @@ fun ExpressiveNavigationBar(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     if (isCameraMode) {
-                        if (batchCount == 0 && !isBatchMode) {
+                        if ((batchCount == 0) && !isBatchMode) {
                             ExpressiveNavItem(
                                 label = stringResource(R.string.history),
                                 icon = Icons.Rounded.History,
                                 isSelected = isHistorySelected,
-                                onClick = { if (!isHistorySelected) onHistoryClick() },
-                            )
+                            ) { if (!isHistorySelected) onHistoryClick() }
                             ExpressiveNavItem(
                                 label = if (isHistorySelected) stringResource(R.string.analyze) else stringResource(
                                     R.string.analyze
                                 ),
                                 icon = if (isHistorySelected) Icons.Rounded.Add else Icons.Rounded.FileUpload,
                                 isSelected = !isHistorySelected,
-                                onClick = { if (isHistorySelected) { onHistoryClick(); onLogClick() } else { onCaptureBatch(); onCaptureBatch() };  },
+                                onClick = { if (isHistorySelected) { onHistoryClick(); onLogClick() } else { onCaptureBatch(); onCaptureBatch() } },
                                 onLongHold = onToggleTorch,
                             )
                         }
@@ -283,7 +273,7 @@ fun ExpressiveNavigationBar(
                                 label = stringResource(R.string.add_label),
                                 icon = Icons.Rounded.CameraAlt,
                                 isSelected = false,
-                                onClick = { if (isHistorySelected) { onHistoryClick() }; onCaptureBatch(); },
+                                onClick = { if (isHistorySelected) { onHistoryClick() }; onCaptureBatch() },
                                 onLongHold = onToggleTorch,
                             )
                         }
@@ -321,15 +311,13 @@ fun ExpressiveNavigationBar(
                         others.take(1).forEach { renderItem(it) }
 
                         // Today (Home) item - now transforms into detail metric
-                        val isTodaySelected = currentDestination?.hierarchy?.any { it.route == "today" } == true
+                        val isTodaySelected = (currentDestination?.hierarchy?.any { it.route == "today" } == true)
                         val isEffectivelySelected = isTodaySelected || isOnDetail
 
-                        val currentOffset = dateOffset
-
-                        val isLogState = currentOffset == 0 && hasApiKey && isTodaySelected && !isOnDetail
+                        val isLogState = (dateOffset == 0) && hasApiKey && isTodaySelected && !isOnDetail
 
                         AnimatedContent(
-                            targetState = Triple(if (isOnDetail) detailMetric else null, currentOffset, isLogState),
+                            targetState = Triple(if (isOnDetail) detailMetric else null, dateOffset, isLogState),
                             transitionSpec = {
                                 (fadeIn(animationSpec = tween(220)) + scaleIn(initialScale = 0.92f))
                                     .togetherWith(fadeOut(animationSpec = tween(160)) + scaleOut(targetScale = 0.92f))
@@ -347,31 +335,29 @@ fun ExpressiveNavigationBar(
                                 }
                             }
 
-                            val label = (when {
+                            val labelText = when {
                                 targetMetric != null -> stringResource(targetMetric.titleRes)
                                 isLog -> stringResource(R.string.log)
                                 offset == 0 -> stringResource(todayDest.labelRes)
                                 offset == 1 -> stringResource(R.string.yesterday)
                                 else -> LocalDate.now().minusDays(offset.toLong())
                                     .format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
-                            }).also {
-
-                                ExpressiveNavItem(
-                                    label = it,
-                                    icon = when {
-                                        targetMetric != null -> targetMetric.icon
-                                        isLog -> Icons.Rounded.Add
-                                        else -> todayDest.icon
-                                    },
-                                    isSelected = isEffectivelySelected,
-                                    selectionAlphaOverride = selectionAlphaOverride,
-                                    onClick = {
-                                        if (isLog) onLogClick() else onNavigate(todayDest)
-                                    },
-                                    onLongHold = { if (isLog) {  onSelectGallery(); onLogClick(); } },
-
-                                )
                             }
+
+                            ExpressiveNavItem(
+                                label = labelText,
+                                icon = when {
+                                    targetMetric != null -> targetMetric.icon
+                                    isLog -> Icons.Rounded.Add
+                                    else -> todayDest.icon
+                                },
+                                isSelected = isEffectivelySelected,
+                                selectionAlphaOverride = selectionAlphaOverride,
+                                onClick = {
+                                    if (isLog) onLogClick() else onNavigate(todayDest)
+                                },
+                                onLongHold = { if (isLog) {  onSelectGallery(); onLogClick() } },
+                            )
                         }
 
                         // Settings and others

@@ -1,6 +1,5 @@
 package io.github.draumaz.sustenance.ui.components
 
-import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -57,7 +56,7 @@ fun FoodReviewDialog(
 
     val now = remember { LocalDateTime.now() }
     var selectedTime by remember { mutableStateOf(now.toLocalTime()) }
-    var showTimePicker by remember { mutableStateOf(false) }
+    var showTimePicker by remember { mutableStateOf(value = false) }
 
     val baseGrams = remember(servingSize) {
         servingSize.replace(',', '.').toDoubleOrNull()?.takeIf { it > 0 } ?: 100.0
@@ -65,7 +64,7 @@ fun FoodReviewDialog(
 
     fun safeParse(s: String): Double? = s.replace(',', '.').toDoubleOrNull()
     fun format(d: Double): String {
-        val res = if (d % 1.0 == 0.0) d.toInt().toString() else String.format(Locale.US, "%.1f", d)
+        val res = if ((d % 1.0) == 0.0) d.toInt().toString() else String.format(Locale.US, "%.1f", d)
         if (res.isEmpty()) android.util.Log.e("FoodReviewDialog", "FORMAT PRODUCED EMPTY STRING FOR $d")
         return res
     }
@@ -166,7 +165,7 @@ fun FoodReviewDialog(
                 if (showTimePicker) {
                     val timePickerState = rememberTimePickerState(
                         initialHour = selectedTime.hour,
-                        initialMinute = selectedTime.minute
+                        initialMinute = selectedTime.minute,
                     )
                     Dialog(onDismissRequest = { showTimePicker = false }) {
                         Surface(

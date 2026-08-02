@@ -72,7 +72,6 @@ import io.github.draumaz.sustenance.data.MetricDetail
 import io.github.draumaz.sustenance.data.RecordRow
 import io.github.draumaz.sustenance.data.SettingsRepository
 import io.github.draumaz.sustenance.ui.DetailViewModel
-import io.github.draumaz.sustenance.ui.components.BarChart
 import io.github.draumaz.sustenance.ui.components.LineChart
 import io.github.draumaz.sustenance.ui.components.PredictiveBackState
 import androidx.compose.foundation.layout.width
@@ -120,7 +119,7 @@ fun DetailScreen(
                     label = { Text(labelText) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
                 )
             },
             confirmButton = {
@@ -217,7 +216,7 @@ fun DetailScreen(
                             FoodItemsCard(
                                 sections = d.todaySections,
                                 onDelete = { id ->
-                                    val row = d.todaySections.flatMap { it.second }.find { it.id == id }
+                                    val row = d.todaySections.asSequence().flatMap { it.second }.find { it.id == id }
                                     recordToDelete = row
                                 }
                             )

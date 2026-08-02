@@ -3,9 +3,9 @@ package io.github.draumaz.sustenance.ui.dashboard
 import android.view.HapticFeedbackConstants
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.BorderStroke
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.minutes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,7 +33,6 @@ import androidx.compose.material.icons.rounded.History
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -105,7 +104,7 @@ import androidx.compose.animation.SizeTransform
 @Composable
 fun SquishyIconButton(
     onClick: () -> Unit,
-    contentDescription: String?,
+    @Suppress("UNUSED_PARAMETER") contentDescription: String?,
     icon: @Composable () -> Unit,
 ) {
     val view = LocalView.current
@@ -135,11 +134,10 @@ fun SquishyIconButton(
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
-                onClick = {
-                    view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-                    onClick()
-                }
-            ),
+            ) {
+                view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                onClick()
+            },
         contentAlignment = Alignment.Center
     ) {
         icon()
@@ -202,7 +200,7 @@ fun DashboardScreen(
 
     androidx.compose.runtime.LaunchedEffect(Unit) {
         while(true) {
-            delay(60000)
+            delay(1.minutes)
             currentTime = Instant.now()
         }
     }
@@ -225,7 +223,7 @@ fun DashboardScreen(
                 source: NestedScrollSource
             ): androidx.compose.ui.geometry.Offset {
                 // If we are at the bottom and pulling UP (finger moves UP, available.y < 0)
-                if (source == NestedScrollSource.UserInput && available.y < 0) {
+                if ((source == NestedScrollSource.UserInput) && (available.y < 0)) {
                     val newPull = (pullDistance.value - available.y * 0.5f).coerceAtMost(pullThreshold * 1.5f)
                     scope.launch { pullDistance.snapTo(newPull) }
                     
@@ -334,11 +332,15 @@ fun DashboardScreen(
                             label = "data_loading_transition"
                         ) { isLoaded ->
                             if (!isLoaded) {
-                                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                    ScallopedLoadingAnimation(size = androidx.compose.ui.unit.DpSize(
-                                        150.dp,
-                                        150.dp
-                                    ), modifier = Modifier.offset(y = (-75).dp),)
+                                Column(
+                                    modifier = Modifier.fillMaxSize(),
+                                    verticalArrangement = Arrangement.Center,
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    ScallopedLoadingAnimation(
+                                        size = DpSize(150.dp, 150.dp),
+                                        modifier = Modifier.offset(y = (-75).dp),
+                                    )
                                 }
                             } else {
                                 val currentData = summariesMap[targetOffset] ?: emptyList()
@@ -380,7 +382,11 @@ fun DashboardScreen(
                                                         MetricCard(
                                                             summary = summary,
                                                             onClick = {
-                                                                if (summary.granted) onOpenMetric(summary.metric, targetOffset) else onManagePermissions()
+                                                                if (summary.granted) {
+                                                                    onOpenMetric(summary.metric, targetOffset)
+                                                                } else {
+                                                                    onManagePermissions()
+                                                                }
                                                             }
                                                         )
                                                     }

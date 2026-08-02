@@ -1,7 +1,6 @@
 package io.github.draumaz.sustenance.ui.settings
 
 import android.content.Intent
-import android.content.Context
 import android.os.Build
 import android.net.Uri
 import androidx.activity.compose.PredictiveBackHandler
@@ -108,6 +107,7 @@ fun SettingsScreen(
     scrollTo: String? = null,
 ) {
     val context = LocalContext.current
+    val appContext = context.applicationContext
     val scope = rememberCoroutineScope()
     val vm: SettingsViewModel = viewModel(factory = SettingsViewModel.factory(settingsRepo))
     val dynamicColor by vm.dynamicColor.collectAsState(initial = true)
@@ -127,11 +127,11 @@ fun SettingsScreen(
         val granted = runCatching { manager.grantedPermissions() }.getOrDefault(emptySet())
         val metrics = Metric.entries.filter { manager.permissionFor(it) in granted }
         if (metrics.isEmpty()) {
-            snackbar.showSnackbar(context.getString(R.string.export_no_data)); return
+            snackbar.showSnackbar(appContext.getString(R.string.export_no_data)); return
         }
         exporter.export(uri, metrics, format).fold(
-            onSuccess = { count -> snackbar.showSnackbar(context.getString(R.string.export_success, count, format.label)) },
-            onFailure = { snackbar.showSnackbar(context.getString(R.string.export_failed, it.message)) },
+            onSuccess = { count -> snackbar.showSnackbar(appContext.getString(R.string.export_success, count, format.label)) },
+            onFailure = { snackbar.showSnackbar(appContext.getString(R.string.export_failed, it.message)) },
         )
     }
 
