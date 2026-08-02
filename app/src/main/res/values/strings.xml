@@ -76,6 +76,11 @@
     <string name="fast_breaking_calories_summary">Minimum calories required to reset the fasting timer</string>
     <string name="fasting_goal">Fasting goal</string>
     <string name="fasting_goal_summary">Target number of hours for your fast</string>
+    <string name="fasting_notifications">Fasting notifications</string>
+    <string name="fasting_notifications_summary">Notify me when my fasting goal has been met</string>
+    <string name="fasting_goal_met_title">Fasting goal met!</string>
+    <string name="fasting_goal_met_body">You have reached your %s hour fasting goal. Great job!</string>
+    <string name="notification_channel_fasting">Fasting Notifications</string>
     <string name="time_since_last_ate">Time fasting</string>
     <string name="hour_minute_format">%1$dhr %2$dmin</string>
     <string name="enable_food_logging">Enable Food logging</string>

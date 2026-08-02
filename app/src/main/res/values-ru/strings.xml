@@ -76,6 +76,11 @@
     <string name="fast_breaking_calories_summary">Минимум калорий для сброса таймера голодания</string>
     <string name="fasting_goal">Цель голодания</string>
     <string name="fasting_goal_summary">Целевое количество часов для голодания</string>
+    <string name="fasting_notifications">Уведомления о голодании</string>
+    <string name="fasting_notifications_summary">Уведомлять меня по достижении цели голодания</string>
+    <string name="fasting_goal_met_title">Цель голодания достигнута!</string>
+    <string name="fasting_goal_met_body">Вы достигли цели голодания в %s ч. Отличная работа!</string>
+    <string name="notification_channel_fasting">Уведомления о голодании</string>
     <string name="time_since_last_ate">Время голодания</string>
     <string name="hour_minute_format">%1$dч %2$dмин</string>
     <string name="enable_food_logging">Включить запись еды</string>

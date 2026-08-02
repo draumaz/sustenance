@@ -19,6 +19,8 @@ class SettingsRepository(private val context: Context) {
     private val fastBreakingCaloriesKey = androidx.datastore.preferences.core.intPreferencesKey("fast_breaking_calories")
     private val fastingGoalHoursKey = androidx.datastore.preferences.core.floatPreferencesKey("fasting_goal_hours_v2")
     private val fastingGoalHoursOldKey = androidx.datastore.preferences.core.intPreferencesKey("fasting_goal_hours")
+    private val fastingNotificationsEnabledKey = booleanPreferencesKey("fasting_notifications_enabled")
+    private val lastFastingNotificationTimeKey = androidx.datastore.preferences.core.longPreferencesKey("last_fasting_notification_time")
     private val apiKeyEnabledKey = booleanPreferencesKey("api_key_enabled")
     private val apiKeyKey = stringPreferencesKey("api_key")
     private val pinnedHistoryItemsKey = stringSetPreferencesKey("pinned_history_items")
@@ -45,6 +47,14 @@ class SettingsRepository(private val context: Context) {
 
     val fastingGoalHours: Flow<Float> = context.settingsDataStore.data.map { prefs ->
         prefs[fastingGoalHoursKey] ?: (prefs[fastingGoalHoursOldKey]?.toFloat() ?: 16f)
+    }
+
+    val fastingNotificationsEnabled: Flow<Boolean> = context.settingsDataStore.data.map { prefs ->
+        prefs[fastingNotificationsEnabledKey] ?: false
+    }
+
+    val lastFastingNotificationTime: Flow<Long> = context.settingsDataStore.data.map { prefs ->
+        prefs[lastFastingNotificationTimeKey] ?: 0L
     }
 
     val apiKeyEnabled: Flow<Boolean> = context.settingsDataStore.data.map { prefs ->
@@ -92,6 +102,18 @@ class SettingsRepository(private val context: Context) {
     suspend fun setFastingGoalHours(hours: Float) {
         context.settingsDataStore.edit { prefs ->
             prefs[fastingGoalHoursKey] = hours
+        }
+    }
+
+    suspend fun setFastingNotificationsEnabled(enabled: Boolean) {
+        context.settingsDataStore.edit { prefs ->
+            prefs[fastingNotificationsEnabledKey] = enabled
+        }
+    }
+
+    suspend fun setLastFastingNotificationTime(time: Long) {
+        context.settingsDataStore.edit { prefs ->
+            prefs[lastFastingNotificationTimeKey] = time
         }
     }
 

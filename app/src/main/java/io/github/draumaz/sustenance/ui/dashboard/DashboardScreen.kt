@@ -54,6 +54,7 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -158,7 +159,9 @@ fun DashboardScreen(
     onTimerClick: () -> Unit = {},
     onDateChanged: (Int) -> Unit = {},
 ) {
-    val vm: DashboardViewModel = viewModel(factory = DashboardViewModel.factory(manager, goalsRepo, settingsRepo))
+    val context = LocalContext.current
+    val app = context.applicationContext as io.github.draumaz.sustenance.SustenanceApp
+    val vm: DashboardViewModel = viewModel(factory = DashboardViewModel.factory(app, manager, goalsRepo, settingsRepo))
     val summariesMap by vm.summariesMap.collectAsStateWithLifecycle()
     val refreshing by vm.refreshing.collectAsStateWithLifecycle()
     val dateOffset by vm.dateOffset.collectAsStateWithLifecycle()

@@ -10,6 +10,7 @@ import io.github.draumaz.sustenance.data.Metric
 import io.github.draumaz.sustenance.data.MetricDetail
 import io.github.draumaz.sustenance.data.MetricSummary
 import io.github.draumaz.sustenance.data.SettingsRepository
+import io.github.draumaz.sustenance.notifications.FastingNotificationScheduler
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,12 +19,15 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 
 class DashboardViewModel(
+    application: Application,
     private val manager: HealthConnectManager,
     private val goalsRepo: GoalsRepository,
     private val settingsRepo: SettingsRepository,
-) : ViewModel() {
+) : AndroidViewModel(application) {
     private val _summariesMap = MutableStateFlow<Map<Int, List<MetricSummary>>>(emptyMap())
     val summariesMap = _summariesMap.asStateFlow()
     
@@ -68,6 +72,21 @@ class DashboardViewModel(
                 _summariesMap.value = emptyMap()
                 refresh(showIndicator = false)
             }
+        }
+        viewModelScope.launch {
+            combine(
+                settingsRepo.fastingNotificationsEnabled,
+                _lastLogTime,
+                fastingGoalHours,
+                settingsRepo.lastFastingNotificationTime
+            ) { enabled, lastLog, goal, lastNotified ->
+                val alreadyNotifiedForThisFast = lastLog != null && lastLog.epochSecond <= lastNotified
+                if (enabled && lastLog != null && !alreadyNotifiedForThisFast) {
+                    FastingNotificationScheduler.schedule(getApplication(), lastLog, goal)
+                } else if (!enabled || alreadyNotifiedForThisFast) {
+                    FastingNotificationScheduler.cancel(getApplication())
+                }
+            }.collect { }
         }
     }
 
@@ -121,8 +140,8 @@ class DashboardViewModel(
     }
 
     companion object {
-        fun factory(manager: HealthConnectManager, goalsRepo: GoalsRepository, settingsRepo: SettingsRepository) = viewModelFactory {
-            initializer { DashboardViewModel(manager, goalsRepo, settingsRepo) }
+        fun factory(app: Application, manager: HealthConnectManager, goalsRepo: GoalsRepository, settingsRepo: SettingsRepository) = viewModelFactory {
+            initializer { DashboardViewModel(app, manager, goalsRepo, settingsRepo) }
         }
     }
 }
@@ -193,14 +212,16 @@ class DetailViewModel(
 }
 
 class SettingsViewModel(
+    application: Application,
     private val repository: SettingsRepository
-) : ViewModel() {
+) : AndroidViewModel(application) {
     val dynamicColor = repository.dynamicColor
     val ketoMode = repository.ketoMode
     val lastLogTimerEnabled = repository.lastLogTimerEnabled
     val judgementalMode = repository.judgementalMode
     val fastBreakingCalories = repository.fastBreakingCalories
     val fastingGoalHours = repository.fastingGoalHours
+    val fastingNotificationsEnabled = repository.fastingNotificationsEnabled
     val apiKeyEnabled = repository.apiKeyEnabled
     val apiKey = repository.apiKey
 
@@ -228,6 +249,10 @@ class SettingsViewModel(
         viewModelScope.launch { repository.setFastingGoalHours(hours) }
     }
 
+    fun setFastingNotificationsEnabled(enabled: Boolean) {
+        viewModelScope.launch { repository.setFastingNotificationsEnabled(enabled) }
+    }
+
     fun setApiKeyEnabled(enabled: Boolean) {
         viewModelScope.launch { repository.setApiKeyEnabled(enabled) }
     }
@@ -237,8 +262,8 @@ class SettingsViewModel(
     }
 
     companion object {
-        fun factory(repository: SettingsRepository) = viewModelFactory {
-            initializer { SettingsViewModel(repository) }
+        fun factory(app: Application, repository: SettingsRepository) = viewModelFactory {
+            initializer { SettingsViewModel(app, repository) }
         }
     }
 }

@@ -27,6 +27,7 @@ import androidx.compose.material.icons.rounded.HealthAndSafety
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Key
 import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Psychology
 import androidx.compose.material.icons.rounded.Visibility
@@ -108,9 +109,9 @@ fun SettingsScreen(
     scrollTo: String? = null,
 ) {
     val context = LocalContext.current
-    val appContext = context.applicationContext
+    val appContext = context.applicationContext as io.github.draumaz.sustenance.SustenanceApp
     val scope = rememberCoroutineScope()
-    val vm: SettingsViewModel = viewModel(factory = SettingsViewModel.factory(settingsRepo))
+    val vm: SettingsViewModel = viewModel(factory = SettingsViewModel.factory(appContext, settingsRepo))
     val dynamicColor by vm.dynamicColor.collectAsState(initial = true)
 
     val snackbar = remember { SnackbarHostState() }
@@ -256,6 +257,34 @@ fun SettingsScreen(
                                 supportingText = { Text(stringResource(R.string.fasting_goal_summary)) }
                             )
                             Spacer(Modifier.size(8.dp))
+                        }
+
+                        val fastingNotificationsEnabled by vm.fastingNotificationsEnabled.collectAsState(initial = false)
+                        val permissionLauncher = rememberLauncherForActivityResult(
+                            ActivityResultContracts.RequestPermission()
+                        ) { isGranted ->
+                            if (isGranted) {
+                                vm.setFastingNotificationsEnabled(true)
+                            }
+                        }
+
+                        SettingRow(
+                            icon = Icons.Rounded.Notifications,
+                            title = stringResource(R.string.fasting_notifications),
+                            subtitle = stringResource(R.string.fasting_notifications_summary),
+                            onClick = {
+                                if (!fastingNotificationsEnabled) {
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                        permissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                                    } else {
+                                        vm.setFastingNotificationsEnabled(true)
+                                    }
+                                } else {
+                                    vm.setFastingNotificationsEnabled(false)
+                                }
+                            }
+                        ) {
+                            Switch(checked = fastingNotificationsEnabled, onCheckedChange = null)
                         }
                     }
                 }

@@ -19,6 +19,7 @@ import androidx.core.content.IntentCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import io.github.draumaz.sustenance.ui.SustenanceRoot
 import io.github.draumaz.sustenance.ui.theme.SustenanceTheme
+import io.github.draumaz.sustenance.notifications.NotificationHelper
 
 class MainActivity : ComponentActivity() {
 
@@ -34,6 +35,7 @@ class MainActivity : ComponentActivity() {
             window.isNavigationBarContrastEnforced = false
         }
         handleIntent(intent)
+        NotificationHelper.createNotificationChannels(this)
         val app = application as SustenanceApp
         setContent {
             val dynamicColor by app.settings.dynamicColor.collectAsState(initial = true)
