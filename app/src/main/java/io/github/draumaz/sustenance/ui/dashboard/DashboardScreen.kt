@@ -174,6 +174,18 @@ fun DashboardScreen(
     val view = LocalView.current
     val pullToRefreshState = rememberPullToRefreshState()
 
+    var hapticTriggered by remember { mutableStateOf(false) }
+    LaunchedEffect(pullToRefreshState.distanceFraction) {
+        if (pullToRefreshState.distanceFraction >= 1f) {
+            if (!hapticTriggered) {
+                view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                hapticTriggered = true
+            }
+        } else {
+            hapticTriggered = false
+        }
+    }
+
     LaunchedEffect(dateOffset) {
         topAppBarState.heightOffset = 0f
         topAppBarState.contentOffset = 0f

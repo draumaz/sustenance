@@ -35,6 +35,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -48,6 +49,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -58,7 +60,9 @@ import androidx.compose.foundation.background
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.res.stringResource
+import android.view.HapticFeedbackConstants
 import io.github.draumaz.sustenance.R
 import io.github.draumaz.sustenance.data.GoalsRepository
 import io.github.draumaz.sustenance.data.HealthConnectManager
@@ -84,6 +88,20 @@ fun SummaryScreen(
     var editing by remember { mutableStateOf<WeeklyStat?>(null) }
     val goals by goalsRepo.goals.collectAsStateWithLifecycle(emptyMap())
     val programmedDeficit = (goals[Metric.CALORIC_BALANCE] ?: 0f) > 0
+    val view = LocalView.current
+    val pullToRefreshState = rememberPullToRefreshState()
+
+    var hapticTriggered by remember { mutableStateOf(false) }
+    LaunchedEffect(pullToRefreshState.distanceFraction) {
+        if (pullToRefreshState.distanceFraction >= 1f) {
+            if (!hapticTriggered) {
+                view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                hapticTriggered = true
+            }
+        } else {
+            hapticTriggered = false
+        }
+    }
 
     LifecycleResumeEffect(Unit) {
         vm.refresh(showIndicator = false)
@@ -114,6 +132,7 @@ fun SummaryScreen(
         },
     ) { inner ->
         PullToRefreshBox(
+            state = pullToRefreshState,
             isRefreshing = refreshing,
             onRefresh = vm::refresh,
             modifier = Modifier.padding(top = inner.calculateTopPadding())

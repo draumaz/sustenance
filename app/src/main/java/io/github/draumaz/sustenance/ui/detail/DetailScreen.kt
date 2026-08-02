@@ -31,8 +31,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -41,6 +43,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -64,6 +67,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.res.stringResource
 import androidx.compose.material.icons.rounded.History
+import android.view.HapticFeedbackConstants
 import io.github.draumaz.sustenance.R
 import io.github.draumaz.sustenance.data.GoalsRepository
 import io.github.draumaz.sustenance.data.HealthConnectManager
@@ -98,6 +102,20 @@ fun DetailScreen(
     var showGoalDialog by remember { mutableStateOf(false) }
     var recordToDelete by remember { mutableStateOf<RecordRow?>(null) }
     var selectedChartPoint by remember { mutableStateOf<Int?>(null) }
+    val view = LocalView.current
+    val pullToRefreshState = rememberPullToRefreshState()
+
+    var hapticTriggered by remember { mutableStateOf(false) }
+    LaunchedEffect(pullToRefreshState.distanceFraction) {
+        if (pullToRefreshState.distanceFraction >= 1f) {
+            if (!hapticTriggered) {
+                view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                hapticTriggered = true
+            }
+        } else {
+            hapticTriggered = false
+        }
+    }
 
     LifecycleResumeEffect(metric.key) {
         vm.refresh(showIndicator = false)
@@ -200,6 +218,7 @@ fun DetailScreen(
                 return@Scaffold
             }
             PullToRefreshBox(
+                state = pullToRefreshState,
                 isRefreshing = refreshing,
                 onRefresh = vm::refresh,
                 modifier = Modifier.padding(top = inner.calculateTopPadding())
