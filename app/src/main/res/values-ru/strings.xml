@@ -68,6 +68,8 @@
     <string name="dynamic_color_summary">Использовать цвета системных обоев (Android 12+)</string>
     <string name="keto_mode">Кето-режим</string>
     <string name="keto_mode_summary">Показывать чистые углеводы (Углеводы - Клетчатка)</string>
+    <string name="judgemental_mode">Осуждающий режим</string>
+    <string name="judgemental_mode_summary">Получайте мгновенную обратную связь по записанным продуктам относительно ваших целей</string>
     <string name="show_last_log_timer">Показывать таймер последнего приема пищи</string>
     <string name="show_last_log_timer_summary">Отображать время, прошедшее с момента последней записи еды</string>
     <string name="fast_breaking_calories">Калории для прерывания голодания</string>
@@ -144,6 +146,9 @@
     <string name="analysis_failed">Ошибка анализа: %s</string>
     <string name="write_permission_required">Требуется разрешение на запись. Пожалуйста, включите его.</string>
     <string name="failed_to_log_food">Не удалось записать еду</string>
+    <string name="are_you_sure">Вы уверены?</string>
+    <string name="judgement_negative_warning">Употребление этого продукта помешает вам остаться в рамках установленных целей.</string>
+    <string name="log_anyway">Все равно записать</string>
     <string name="pick_metric">Выберите метрику</string>
     <string name="onboarding_title">Добро пожаловать в Sustenance</string>
     <string name="onboarding_subtitle">Приватный и наглядный дневник вашего питания. Sustenance только читает данные — они никогда не покидают ваше устройство.</string>

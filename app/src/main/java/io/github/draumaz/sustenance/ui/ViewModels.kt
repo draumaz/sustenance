@@ -198,6 +198,7 @@ class SettingsViewModel(
     val dynamicColor = repository.dynamicColor
     val ketoMode = repository.ketoMode
     val lastLogTimerEnabled = repository.lastLogTimerEnabled
+    val judgementalMode = repository.judgementalMode
     val fastBreakingCalories = repository.fastBreakingCalories
     val fastingGoalHours = repository.fastingGoalHours
     val apiKeyEnabled = repository.apiKeyEnabled
@@ -213,6 +214,10 @@ class SettingsViewModel(
 
     fun setLastLogTimerEnabled(enabled: Boolean) {
         viewModelScope.launch { repository.setLastLogTimerEnabled(enabled) }
+    }
+
+    fun setJudgementalMode(enabled: Boolean) {
+        viewModelScope.launch { repository.setJudgementalMode(enabled) }
     }
 
     fun setFastBreakingCalories(calories: Int) {

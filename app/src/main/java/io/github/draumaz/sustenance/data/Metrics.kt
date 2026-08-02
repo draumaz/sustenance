@@ -15,6 +15,7 @@ import androidx.compose.material.icons.rounded.WaterDrop
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import io.github.draumaz.sustenance.R
+import io.github.draumaz.sustenance.util.FoodNutrients
 
 /** How a metric is summarised and charted. */
 enum class MetricKind {
@@ -47,8 +48,56 @@ enum class Metric(
     SUGAR("sugar", R.string.metric_sugar, R.string.unit_g, MetricKind.DAILY_TOTAL, Color(0xFFAB8A9B), Icons.Rounded.Cookie),
     FIBER("fiber", R.string.metric_fiber, R.string.unit_g, MetricKind.DAILY_TOTAL, Color(0xFF8F857E), Icons.Rounded.Eco);
 
+    sealed class Judgement {
+        object Positive : Judgement()
+        object Negative : Judgement()
+    }
+
     companion object {
         fun fromKey(key: String): Metric? = entries.firstOrNull { it.key == key }
+
+        fun judgeFoodItem(
+            nutrients: FoodNutrients,
+            currentTotals: Map<Metric, Float>,
+            goals: Map<Metric, Float>
+        ): Judgement {
+            val metricsToCheck = listOf(
+                Metric.TOTAL_CALORIES to nutrients.calories.toFloat(),
+                Metric.CARBS to nutrients.carbs.toFloat(),
+                Metric.FAT to nutrients.fat.toFloat(),
+                Metric.SATURATED_FAT to nutrients.saturatedFat.toFloat(),
+                Metric.SODIUM to nutrients.sodium.toFloat(),
+                Metric.SUGAR to nutrients.sugar.toFloat()
+            )
+
+            var isNegative = false
+            for ((metric, value) in metricsToCheck) {
+                val current = currentTotals[metric] ?: 0f
+                val goal = goals[metric] ?: continue
+                if (goal <= 0f) continue
+
+                // 1. Knocks you out of your limits
+                if (current + value > goal) {
+                    isNegative = true
+                    break
+                }
+
+                // 2. Low nutritional value and gets you close to the limit (90%)
+                val isLowNutritionalValue = when (metric) {
+                    Metric.SUGAR -> value > 5.0f && (value * 4.0f / (nutrients.calories.toFloat().coerceAtLeast(1.0f)) > 0.2f)
+                    Metric.SATURATED_FAT -> value > 2.0f && (value * 9.0f / (nutrients.calories.toFloat().coerceAtLeast(1.0f)) > 0.2f)
+                    Metric.SODIUM -> value > 400.0f
+                    else -> false
+                }
+
+                if (isLowNutritionalValue && (current + value) >= (goal * 0.9f)) {
+                    isNegative = true
+                    break
+                }
+            }
+
+            return if (isNegative) Judgement.Negative else Judgement.Positive
+        }
 
         /**
          * Returns a color association for a food item based on its nutrient density.

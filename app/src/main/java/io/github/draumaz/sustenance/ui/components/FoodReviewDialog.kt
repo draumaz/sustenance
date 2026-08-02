@@ -1,6 +1,7 @@
 package io.github.draumaz.sustenance.ui.components
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -11,6 +12,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.AccessTime
+import androidx.compose.material.icons.rounded.Cancel
+import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Done
 import androidx.compose.material.icons.rounded.Remove
 import androidx.compose.material.icons.rounded.Restaurant
@@ -18,6 +21,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
@@ -29,6 +33,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import io.github.draumaz.sustenance.R
+import io.github.draumaz.sustenance.data.Metric
 import io.github.draumaz.sustenance.util.FoodNutrients
 import java.time.Instant
 import java.util.Locale
@@ -44,6 +49,9 @@ fun FoodReviewDialog(
     nutrients: FoodNutrients,
     onDismiss: () -> Unit,
     onLog: (FoodNutrients, Double, Instant) -> Unit,
+    judgementalMode: Boolean = false,
+    currentTotals: Map<Metric, Float> = emptyMap(),
+    goals: Map<Metric, Float> = emptyMap(),
 ) {
     var foodItem by remember { mutableStateOf(nutrients.foodItem) }
     // Extract only the numeric part for the editable state. Favor numbers followed by "g".
@@ -90,6 +98,25 @@ fun FoodReviewDialog(
     var sugar by remember(nutrients) { mutableStateOf(format(nutrients.sugar)) }
     var sodium by remember(nutrients) { mutableStateOf(format(nutrients.sodium)) }
 
+    var showConfirmationDialog by remember { mutableStateOf(false) }
+
+    val currentNutrients = FoodNutrients(
+        foodItem = foodItem,
+        servingSize = "${currentGrams.toInt()}g",
+        calories = safeParse(cal) ?: 0.0,
+        protein = safeParse(prot) ?: 0.0,
+        carbs = safeParse(carb) ?: 0.0,
+        fat = safeParse(fat) ?: 0.0,
+        saturatedFat = safeParse(satFat) ?: 0.0,
+        fiber = safeParse(fiber) ?: 0.0,
+        sugar = safeParse(sugar) ?: 0.0,
+        sodium = safeParse(sodium) ?: 0.0
+    )
+
+    val judgement = remember(currentNutrients, currentTotals, goals) {
+        Metric.judgeFoodItem(currentNutrients, currentTotals, goals)
+    }
+
     fun scaleNutrients(newGrams: Double) {
         if (baseGrams <= 0) return
         val ratio = newGrams / baseGrams
@@ -135,32 +162,59 @@ fun FoodReviewDialog(
                         color = MaterialTheme.colorScheme.onSurface
                     ),
                     cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
                 )
 
                 Spacer(Modifier.height(8.dp))
 
-                val timeFormatter = remember { DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT) }
-                AssistChip(
-                    onClick = { showTimePicker = true },
-                    label = { Text(selectedTime.format(timeFormatter)) },
-                    leadingIcon = {
-                        Icon(
-                            Icons.Rounded.AccessTime,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    val timeFormatter = remember { DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT) }
+                    AssistChip(
+                        onClick = { showTimePicker = true },
+                        label = { Text(selectedTime.format(timeFormatter)) },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Rounded.AccessTime,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        },
+                        shape = CircleShape,
+                        colors = AssistChipDefaults.assistChipColors(
+                            labelColor = MaterialTheme.colorScheme.primary,
+                            leadingIconContentColor = MaterialTheme.colorScheme.primary
+                        ),
+                        border = BorderStroke(
+                            width = 1.dp,
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
                         )
-                    },
-                    shape = CircleShape,
-                    colors = AssistChipDefaults.assistChipColors(
-                        labelColor = MaterialTheme.colorScheme.primary,
-                        leadingIconContentColor = MaterialTheme.colorScheme.primary
-                    ),
-                    border = BorderStroke(
-                        width = 1.dp,
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
                     )
-                )
+
+                    if (judgementalMode) {
+                        Spacer(Modifier.width(8.dp))
+                        val isNegative = judgement is Metric.Judgement.Negative
+                        val color = if (isNegative) MaterialTheme.colorScheme.error else Color(0xFF4CAF50)
+                        
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(MorphingScallopedShape(0f, 1f, bumpsCount = 2f))
+                                .background(color.copy(alpha = 0.15f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = if (isNegative) Icons.Rounded.Cancel else Icons.Rounded.CheckCircle,
+                                contentDescription = null,
+                                tint = color,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+                }
 
                 if (showTimePicker) {
                     val timePickerState = rememberTimePickerState(
@@ -325,20 +379,12 @@ fun FoodReviewDialog(
         confirmButton = {
             Button(
                 onClick = {
-                    val edited = FoodNutrients(
-                        foodItem = foodItem,
-                        servingSize = "${currentGrams.toInt()}g",
-                        calories = safeParse(cal) ?: 0.0,
-                        protein = safeParse(prot) ?: 0.0,
-                        carbs = safeParse(carb) ?: 0.0,
-                        fat = safeParse(fat) ?: 0.0,
-                        saturatedFat = safeParse(satFat) ?: 0.0,
-                        fiber = safeParse(fiber) ?: 0.0,
-                        sugar = safeParse(sugar) ?: 0.0,
-                        sodium = safeParse(sodium) ?: 0.0
-                    )
-                    val combinedInstant = now.with(selectedTime).atZone(ZoneId.systemDefault()).toInstant()
-                    onLog(edited, 1.0, combinedInstant)
+                    if (judgementalMode && judgement is Metric.Judgement.Negative) {
+                        showConfirmationDialog = true
+                    } else {
+                        val combinedInstant = now.with(selectedTime).atZone(ZoneId.systemDefault()).toInstant()
+                        onLog(currentNutrients, 1.0, combinedInstant)
+                    }
                 },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp)
@@ -357,6 +403,30 @@ fun FoodReviewDialog(
             }
         }
     )
+
+    if (showConfirmationDialog) {
+        AlertDialog(
+            onDismissRequest = { showConfirmationDialog = false },
+            title = { Text(stringResource(R.string.are_you_sure)) },
+            text = { Text(stringResource(R.string.judgement_negative_warning)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val combinedInstant = now.with(selectedTime).atZone(ZoneId.systemDefault()).toInstant()
+                        onLog(currentNutrients, 1.0, combinedInstant)
+                        showConfirmationDialog = false
+                    }
+                ) {
+                    Text(stringResource(R.string.log_anyway), color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showConfirmationDialog = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
+    }
 }
 
 @Composable

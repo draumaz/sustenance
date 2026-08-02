@@ -28,6 +28,7 @@ import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Key
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Palette
+import androidx.compose.material.icons.rounded.Psychology
 import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material.icons.rounded.Whatshot
@@ -304,6 +305,16 @@ fun SettingsScreen(
                                 }
                             )
                             Spacer(Modifier.size(8.dp))
+                        }
+
+                        val judgementalMode by vm.judgementalMode.collectAsState(initial = false)
+                        SettingRow(
+                            icon = Icons.Rounded.Psychology,
+                            title = stringResource(R.string.judgemental_mode),
+                            subtitle = stringResource(R.string.judgemental_mode_summary),
+                            onClick = { vm.setJudgementalMode(!judgementalMode) }
+                        ) {
+                            Switch(checked = judgementalMode, onCheckedChange = null)
                         }
                     }
                 }

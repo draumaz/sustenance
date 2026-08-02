@@ -68,6 +68,8 @@
     <string name="dynamic_color_summary">Use colors from your system wallpaper (Android 12+)</string>
     <string name="keto_mode">Keto Mode</string>
     <string name="keto_mode_summary">Display Net Carbs (Carbs - Fiber)</string>
+    <string name="judgemental_mode">Judgemental Mode</string>
+    <string name="judgemental_mode_summary">Get immediate feedback on logged items relative to your goals</string>
     <string name="show_last_log_timer">Show last log timer</string>
     <string name="show_last_log_timer_summary">Display a card in Food view showing time since last log</string>
     <string name="fast_breaking_calories">Fast-breaking calories</string>
@@ -144,6 +146,9 @@
     <string name="analysis_failed">Analysis failed: %s</string>
     <string name="write_permission_required">Write permission required. Please enable it.</string>
     <string name="failed_to_log_food">Failed to log food</string>
+    <string name="are_you_sure">Are You Sure?</string>
+    <string name="judgement_negative_warning">Eating this will be detrimental to staying within your set goal values.</string>
+    <string name="log_anyway">Log Anyway</string>
     <string name="pick_metric">Choose a metric</string>
     <string name="onboarding_title">Welcome to Sustenance</string>
     <string name="onboarding_subtitle">A private, expressive viewer for your nutritional data. Sustenance only reads—nothing ever leaves your device.</string>

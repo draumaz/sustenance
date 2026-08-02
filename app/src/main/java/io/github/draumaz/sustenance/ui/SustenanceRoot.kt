@@ -24,15 +24,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.AlertDialog
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
@@ -297,6 +289,18 @@ private fun MainNav(
     var capturedBitmaps by remember { mutableStateOf<List<Bitmap>>(emptyList()) }
     var batchInfoText by remember { mutableStateOf("") }
     var pendingNutrients by remember { mutableStateOf<FoodNutrients?>(null) }
+
+    val goals by goalsRepo.goals.collectAsState(initial = emptyMap())
+    val judgementalMode by settingsRepo.judgementalMode.collectAsState(initial = false)
+    val ketoMode by settingsRepo.ketoMode.collectAsState(initial = false)
+    val currentTotals by produceState<Map<Metric, Float>>(initialValue = emptyMap(), goals, ketoMode, manager) {
+        suspend fun update() {
+            val dashboard = manager.readDashboard(goals, ketoMode, 0)
+            value = dashboard.associate { it.metric to (it.spark.lastOrNull() ?: 0f) }
+        }
+        update()
+        manager.changes.collect { update() }
+    }
 
     val galleryLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.GetMultipleContents()
@@ -766,6 +770,9 @@ private fun MainNav(
                 FoodReviewDialog(
                     nutrients = nutrients,
                     onDismiss = { pendingNutrients = null },
+                    judgementalMode = judgementalMode,
+                    currentTotals = currentTotals,
+                    goals = goals,
                     onLog = { nuts, count, timestamp ->
                         scope.launch {
                             try {
