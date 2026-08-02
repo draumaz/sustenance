@@ -29,6 +29,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
@@ -194,10 +195,10 @@ fun ExpressiveNavigationBar(
                     Row(
                         modifier = Modifier
                             .width(320.dp)
-                            .height(64.dp)
+                            .heightIn(min = 64.dp, max = 160.dp)
                             .clip(RoundedCornerShape(28.dp))
                             .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                            .padding(horizontal = 20.dp),
+                            .padding(horizontal = 20.dp, vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
@@ -220,7 +221,8 @@ fun ExpressiveNavigationBar(
                                     color = MaterialTheme.colorScheme.onSurface
                                 ),
                                 cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                                singleLine = true
+                                singleLine = false,
+                                maxLines = 5
                             )
                         }
                     }
