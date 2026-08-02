@@ -285,7 +285,10 @@ fun SettingsScreen(
                             var apiKeyVisible by remember { mutableStateOf(false) }
                             OutlinedTextField(
                                 value = tempApiKey,
-                                onValueChange = { tempApiKey = it },
+                                onValueChange = {
+                                    tempApiKey = it
+                                    vm.setApiKey(it)
+                                },
                                 modifier = Modifier.weight(1f),
                                 placeholder = { Text("AQ.", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)) },
                                 singleLine = true,
