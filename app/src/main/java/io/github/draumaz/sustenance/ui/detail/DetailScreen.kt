@@ -399,8 +399,14 @@ private fun HeaderCard(d: MetricDetail, onEditGoal: () -> Unit) {
     val isOver = goal > 0 && todayValue > goal
     
     val accent = when {
-        isOver -> Color(0xFFAB6161)
-        else -> lerp(d.metric.accent, Color(0xFFEF5350), progress)
+        d.metric.moreIsBetter -> {
+            if (isOver) d.metric.accent
+            else lerp(Color(0xFFEF5350), d.metric.accent, progress)
+        }
+        else -> {
+            if (isOver) Color(0xFFAB6161)
+            else lerp(d.metric.accent, Color(0xFFEF5350), progress)
+        }
     }
     Card(
         modifier = Modifier.fillMaxWidth().height(100.dp).padding(horizontal = 16.dp),

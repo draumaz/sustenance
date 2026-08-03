@@ -180,8 +180,14 @@ private fun InsightCard(stat: WeeklyStat, onEdit: () -> Unit, editEnabled: Boole
     val progress = stat.progress
     
     val accent = when {
-        isOver -> Color(0xFFAB6161)
-        else -> lerp(stat.metric.accent, Color(0xFFEF5350), progress)
+        stat.metric.moreIsBetter -> {
+            if (isOver) stat.metric.accent
+            else lerp(Color(0xFFEF5350), stat.metric.accent, progress)
+        }
+        else -> {
+            if (isOver) Color(0xFFAB6161)
+            else lerp(stat.metric.accent, Color(0xFFEF5350), progress)
+        }
     }
 
     Card(

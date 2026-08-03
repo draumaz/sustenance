@@ -63,7 +63,7 @@ fun MetricCard(
     val isOver = showProgress && today > (goal ?: Float.MAX_VALUE)
 
     val fillColor = when {
-        isOver -> Color(0xFFAB6161)
+        isOver -> if (summary.metric.moreIsBetter) accent else Color(0xFFAB6161)
         else -> accent
     }
 

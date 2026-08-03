@@ -36,17 +36,18 @@ enum class Metric(
     val kind: MetricKind,
     val accent: Color,
     val icon: ImageVector,
+    val moreIsBetter: Boolean = false,
 ) {
-    TOTAL_CALORIES("total_calories", R.string.metric_total_calories, R.string.unit_kcal, MetricKind.DAILY_TOTAL, Color(0xFFB37B7B), Icons.Rounded.Bolt),
+    TOTAL_CALORIES("total_calories", R.string.metric_total_calories, R.string.unit_kcal, MetricKind.DAILY_TOTAL, Color(0xFFB37B7B), Icons.Rounded.Bolt, moreIsBetter = true),
     FOOD("food", R.string.metric_food, R.string.unit_kcal, MetricKind.DAILY_TOTAL, Color(0xFFC49A6C), Icons.Rounded.Restaurant),
-    CALORIC_BALANCE("caloric_balance", R.string.metric_caloric_balance, R.string.unit_kcal, MetricKind.DAILY_TOTAL, Color(0xFF7B9E7B), Icons.Rounded.Balance),
-    PROTEIN("protein", R.string.metric_protein, R.string.unit_g, MetricKind.DAILY_TOTAL, Color(0xFFB38B7B), Icons.Rounded.FitnessCenter),
+    CALORIC_BALANCE("caloric_balance", R.string.metric_caloric_balance, R.string.unit_kcal, MetricKind.DAILY_TOTAL, Color(0xFF7B9E7B), Icons.Rounded.Balance, moreIsBetter = true),
+    PROTEIN("protein", R.string.metric_protein, R.string.unit_g, MetricKind.DAILY_TOTAL, Color(0xFFB38B7B), Icons.Rounded.FitnessCenter, moreIsBetter = true),
     CARBS("carbs", R.string.metric_carbs, R.string.unit_g, MetricKind.DAILY_TOTAL, Color(0xFFC4AB7B), Icons.Rounded.BakeryDining),
     FAT("fat", R.string.metric_fat, R.string.unit_g, MetricKind.DAILY_TOTAL, Color(0xFF7B99A3), Icons.Rounded.WaterDrop),
     SATURATED_FAT("saturated_fat", R.string.metric_saturated_fat, R.string.unit_g, MetricKind.DAILY_TOTAL, Color(0xFF8A9BA8), Icons.Rounded.Icecream),
     SODIUM("sodium", R.string.metric_sodium, R.string.unit_mg, MetricKind.DAILY_TOTAL, Color(0xFF8D8AAB), Icons.Rounded.Grain),
     SUGAR("sugar", R.string.metric_sugar, R.string.unit_g, MetricKind.DAILY_TOTAL, Color(0xFFAB8A9B), Icons.Rounded.Cookie),
-    FIBER("fiber", R.string.metric_fiber, R.string.unit_g, MetricKind.DAILY_TOTAL, Color(0xFF8F857E), Icons.Rounded.Eco);
+    FIBER("fiber", R.string.metric_fiber, R.string.unit_g, MetricKind.DAILY_TOTAL, Color(0xFF8F857E), Icons.Rounded.Eco, moreIsBetter = true);
 
     sealed class Judgement {
         object Positive : Judgement()
