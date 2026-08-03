@@ -613,6 +613,7 @@ private fun MainNav(
                         settingsRepo = settingsRepo,
                         metric = metric,
                         dateOffset = dashboardDateOffset,
+                        onReLog = { pendingNutrients = it },
                         onBack = { navController.popBackStack() }
                     )
                 }

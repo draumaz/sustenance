@@ -27,6 +27,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -54,6 +55,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.foundation.background
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material3.ButtonDefaults
@@ -76,6 +79,7 @@ import io.github.draumaz.sustenance.data.MetricDetail
 import io.github.draumaz.sustenance.data.RecordRow
 import io.github.draumaz.sustenance.data.SettingsRepository
 import io.github.draumaz.sustenance.ui.DetailViewModel
+import io.github.draumaz.sustenance.util.FoodNutrients
 import io.github.draumaz.sustenance.ui.components.LineChart
 import io.github.draumaz.sustenance.ui.components.PredictiveBackState
 import androidx.compose.foundation.layout.width
@@ -91,6 +95,7 @@ fun DetailScreen(
     settingsRepo: SettingsRepository,
     metric: Metric,
     dateOffset: Int = 0,
+    onReLog: (FoodNutrients) -> Unit = {},
     onBack: () -> Unit,
 ) {
     val vm: DetailViewModel = viewModel(
@@ -234,6 +239,7 @@ fun DetailScreen(
                         item {
                             FoodItemsCard(
                                 sections = d.todaySections,
+                                onReLog = onReLog,
                                 onDelete = { id ->
                                     val row = d.todaySections.asSequence().flatMap { it.second }.find { it.id == id }
                                     recordToDelete = row
@@ -260,9 +266,11 @@ fun DetailScreen(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun FoodItemsCard(
     sections: List<Pair<String, List<RecordRow>>>,
+    onReLog: (FoodNutrients) -> Unit,
     onDelete: (String) -> Unit
 ) {
     Card(
@@ -299,64 +307,78 @@ private fun FoodItemsCard(
                         val time = secondaryParts.getOrNull(1) ?: ""
                         val kcalColor = item.accentColor ?: MaterialTheme.colorScheme.primary
                         
-                        val rowModifier = if (item.accentColor != null) {
-                            Modifier
-                                .padding(horizontal = 8.dp, vertical = 2.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(item.accentColor.copy(alpha = 0.25f))
-                                .padding(horizontal = 12.dp, vertical = 8.dp)
-                        } else {
-                            Modifier
+                        val view = LocalView.current
+                        Surface(
+                            shape = RoundedCornerShape(if (item.accentColor != null) 12.dp else 0.dp),
+                            color = item.accentColor?.copy(alpha = 0.25f) ?: Color.Transparent,
+                            modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 6.dp)
-                        }
-
-                        Column(rowModifier) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+                                .padding(
+                                    horizontal = if (item.accentColor != null) 8.dp else 0.dp,
+                                    vertical = if (item.accentColor != null) 2.dp else 0.dp
+                                )
+                                .combinedClickable(
+                                    onClick = { },
+                                    onLongClick = {
+                                        item.nutrients?.let {
+                                            view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                                            onReLog(it)
+                                        }
+                                    }
+                                )
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(
+                                    horizontal = if (item.accentColor != null) 12.dp else 16.dp,
+                                    vertical = if (item.accentColor != null) 8.dp else 6.dp
+                                )
                             ) {
-                                Text(
-                                    item.primary,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.Bold,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                    modifier = Modifier.weight(1f)
-                                )
-                                Spacer(Modifier.width(8.dp))
-                                Text(
-                                    kcal,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.Black,
-                                    color = kcalColor
-                                )
-                                if (item.isEditable && item.id != null) {
-                                    IconButton(
-                                        onClick = { onDelete(item.id) },
-                                        modifier = Modifier.size(24.dp).padding(start = 4.dp)
-                                    ) {
-                                        Icon(
-                                            Icons.Rounded.Delete,
-                                            contentDescription = stringResource(R.string.delete),
-                                            tint = MaterialTheme.colorScheme.error.copy(alpha = 0.6f),
-                                            modifier = Modifier.size(16.dp)
-                                        )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        item.primary,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(
+                                        kcal,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        fontWeight = FontWeight.Black,
+                                        color = kcalColor
+                                    )
+                                    if (item.isEditable && item.id != null) {
+                                        IconButton(
+                                            onClick = { onDelete(item.id) },
+                                            modifier = Modifier.size(24.dp).padding(start = 4.dp)
+                                        ) {
+                                            Icon(
+                                                Icons.Rounded.Delete,
+                                                contentDescription = stringResource(R.string.delete),
+                                                tint = MaterialTheme.colorScheme.error.copy(alpha = 0.6f),
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
                                     }
                                 }
-                            }
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    time,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                                )
-                                item.nutrients?.let { NutrientIconList(it) }
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        time,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                    )
+                                    item.nutrients?.let { NutrientIconList(it) }
+                                }
                             }
                         }
                         if (i < items.lastIndex && item.accentColor == null && items[i+1].accentColor == null) {
