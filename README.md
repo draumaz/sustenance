@@ -1,3 +1,5 @@
+<div align="center"> <img src="app/src/main/res/mipmap-xxxhdpi/ic_launcher.webp" alt="Sustenance" /> </div>
+
 # Sustenance
 
 A private, local nutrition tracker for Android, powered by [Health Connect](https://developer.android.com/health-connect).
@@ -16,7 +18,6 @@ And if you supply an AI Studio API key, Sustenance can talk to Gemini to log dat
 |  ![Home](img/sust-today.jpg)  | ![Search](img/sust-summary.jpg) | ![List](img/sust-food.jpg) |
 
 ---
-
 
 ## Features
 - **Home**: view your daily progress with context-aware greetings and helpful chips.
