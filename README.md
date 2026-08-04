@@ -1,4 +1,4 @@
-<div align="center"> <img src="app/src/main/res/mipmap-xxxhdpi/ic_launcher.webp" alt="Sustenance" /> </div>
+<div align="center"> <img src="app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.webp" alt="Sustenance" /> </div>
 
 # Sustenance
 
