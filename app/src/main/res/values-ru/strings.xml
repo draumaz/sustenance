@@ -164,4 +164,8 @@
     <string name="widget_connect_prompt">Нажмите, чтобы подключить данные</string>
     <string name="tap_to_connect">Нажмите, чтобы подключить</string>
     <string name="no_recent_data">Нет последних данных</string>
+
+    <string name="about_credit_prefix">Sustenance основано на </string>
+    <string name="about_credit_heartwood">Heartwood</string>
+    <string name="about_credit_suffix">, приложении для просмотра данных Health Connect от Eason Huang.\n\nБольшая часть нового кода была написана с помощью gemini-3-flash-preview.</string>
 </resources>

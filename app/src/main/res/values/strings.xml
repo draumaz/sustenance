@@ -164,4 +164,8 @@
     <string name="widget_connect_prompt">Tap to connect your health data</string>
     <string name="tap_to_connect">Tap to connect</string>
     <string name="no_recent_data">No recent data</string>
+
+    <string name="about_credit_prefix">Sustenance is based on </string>
+    <string name="about_credit_heartwood">Heartwood</string>
+    <string name="about_credit_suffix">, a Health Connect viewer by Eason Huang.\n\nThe majority of new code was written with the help of gemini-3-flash-preview.</string>
 </resources>

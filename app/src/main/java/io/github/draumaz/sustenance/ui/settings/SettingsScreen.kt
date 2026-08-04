@@ -382,11 +382,11 @@ fun SettingsScreen(
             item {
                 Text(
                     text = buildAnnotatedString {
-                        append("Sustenance is based on ")
+                        append(stringResource(R.string.about_credit_prefix))
                         withLink(LinkAnnotation.Url("https://github.com/GuyOnWifi/heartwood")) {
-                            append("Heartwood")
+                            append(stringResource(R.string.about_credit_heartwood))
                         }
-                        append(", a Health Connect viewer by Eason Huang.\n\nThe majority of new code was written with the help of gemini-3-flash-preview.")
+                        append(stringResource(R.string.about_credit_suffix))
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
