@@ -69,6 +69,7 @@ import androidx.compose.ui.unit.DpSize
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.res.stringResource
+import io.github.draumaz.sustenance.BuildConfig
 import io.github.draumaz.sustenance.R
 import io.github.draumaz.sustenance.data.HealthConnectManager
 import io.github.draumaz.sustenance.data.Metric
@@ -199,10 +200,14 @@ fun DashboardScreen(
     }
 
     val greeting = when (dateOffset) {
-        0 -> when (LocalTime.now().hour) {
-            in 0..11 -> stringResource(R.string.greeting_morning)
-            in 12..16 -> stringResource(R.string.greeting_afternoon)
-            else -> stringResource(R.string.greeting_evening)
+        0 -> if (BuildConfig.DEBUG) {
+            "${BuildConfig.VERSION_NAME} (debug)"
+        } else {
+            when (LocalTime.now().hour) {
+                in 0..11 -> stringResource(R.string.greeting_morning)
+                in 12..16 -> stringResource(R.string.greeting_afternoon)
+                else -> stringResource(R.string.greeting_evening)
+            }
         }
         1 -> stringResource(R.string.yesterday)
         else -> LocalDate.now().minusDays(dateOffset.toLong()).format(DateTimeFormatter.ofPattern("EEEE, MMM d"))

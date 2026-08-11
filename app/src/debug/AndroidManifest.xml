@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- DEBUG-ONLY: write permissions + a seeder activity used to populate Health Connect with
      sample data for screenshots. None of this ships in the release build. -->
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.health.WRITE_STEPS" />
     <uses-permission android:name="android.permission.health.WRITE_DISTANCE" />
@@ -15,7 +16,10 @@
     <uses-permission android:name="android.permission.health.WRITE_SLEEP" />
     <uses-permission android:name="android.permission.health.WRITE_EXERCISE" />
 
-    <application>
+    <application
+        android:icon="@mipmap/ic_launcher_debug"
+        android:roundIcon="@mipmap/ic_launcher_debug_round"
+        tools:replace="android:icon,android:roundIcon">
         <activity
             android:name=".debug.SeedActivity"
             android:exported="true" />
