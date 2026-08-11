@@ -26,6 +26,7 @@ class MainActivity : ComponentActivity() {
     // Deep-link target from a metric widget tap; consumed once navigation happens.
     private var deepLinkMetric by mutableStateOf<String?>(null)
     private var sharedImages by mutableStateOf<List<Uri>?>(null)
+    private var shouldLog by mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
@@ -51,8 +52,10 @@ class MainActivity : ComponentActivity() {
                         exporter = app.exporter,
                         deepLinkMetric = deepLinkMetric,
                         sharedImageUris = sharedImages,
+                        launchLog = shouldLog,
                         onDeepLinkConsumed = { deepLinkMetric = null },
                         onSharedImagesConsumed = { sharedImages = null },
+                        onLogConsumed = { shouldLog = false },
                     )
                 }
             }
@@ -68,6 +71,10 @@ class MainActivity : ComponentActivity() {
     private fun handleIntent(intent: Intent?) {
         if (intent == null) return
         deepLinkMetric = intent.getStringExtra(EXTRA_METRIC)
+
+        if (intent.action == ACTION_LOG) {
+            shouldLog = true
+        }
 
         when (intent.action) {
             Intent.ACTION_SEND -> {
@@ -87,5 +94,6 @@ class MainActivity : ComponentActivity() {
 
     companion object {
         const val EXTRA_METRIC = "io.github.draumaz.sustenance.extra.METRIC"
+        const val ACTION_LOG = "io.github.draumaz.sustenance.action.LOG"
     }
 }

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="log_food"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_log"
+        android:shortcutShortLabel="@string/log_food"
+        android:shortcutLongLabel="@string/log_food">
+        <intent
+            android:action="io.github.draumaz.sustenance.action.LOG"
+            android:targetPackage="io.github.draumaz.sustenance"
+            android:targetClass="io.github.draumaz.sustenance.MainActivity" />
+    </shortcut>
+</shortcuts>

@@ -137,8 +137,10 @@ fun SustenanceRoot(
     exporter: ExportManager,
     deepLinkMetric: String? = null,
     sharedImageUris: List<Uri>? = null,
+    launchLog: Boolean = false,
     onDeepLinkConsumed: () -> Unit = {},
-    onSharedImagesConsumed: () -> Unit = {}
+    onSharedImagesConsumed: () -> Unit = {},
+    onLogConsumed: () -> Unit = {}
 ) {
     val currentContext = LocalContext.current
 
@@ -244,8 +246,10 @@ fun SustenanceRoot(
                 onManagePermissions = ::manageAccess,
                 deepLinkMetric = deepLinkMetric,
                 sharedImageUris = sharedImageUris,
+                launchLog = launchLog,
                 onDeepLinkConsumed = onDeepLinkConsumed,
-                onSharedImagesConsumed = onSharedImagesConsumed
+                onSharedImagesConsumed = onSharedImagesConsumed,
+                onLogConsumed = onLogConsumed
             )
         }
     }
@@ -261,8 +265,10 @@ private fun MainNav(
     onManagePermissions: () -> Unit,
     deepLinkMetric: String? = null,
     sharedImageUris: List<Uri>? = null,
+    launchLog: Boolean = false,
     onDeepLinkConsumed: () -> Unit = {},
     onSharedImagesConsumed: () -> Unit = {},
+    onLogConsumed: () -> Unit = {},
 ) {
     val currentContext = LocalContext.current
     val appContext = currentContext.applicationContext
@@ -412,6 +418,13 @@ private fun MainNav(
                 onManagePermissions()
             }
             onDeepLinkConsumed()
+        }
+    }
+
+    LaunchedEffect(launchLog) {
+        if (launchLog) {
+            cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+            onLogConsumed()
         }
     }
 
