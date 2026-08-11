@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -35,7 +36,7 @@ class InsightsViewModel(
     private val series = MutableStateFlow<Map<Metric, List<SeriesPoint>>?>(null)
     private val todayLogs = MutableStateFlow<List<NutritionRecord>>(emptyList())
 
-    private val _refreshing = MutableStateFlow(false)
+    private val _refreshing = MutableStateFlow(value = false)
     val refreshing = _refreshing.asStateFlow()
 
     val state = combine(series, todayLogs, goalsRepo.goals) { seriesByMetric, logs, goals ->
@@ -94,7 +95,7 @@ class InsightsViewModel(
                             manager.context.getString(
                                 R.string.insight_over_goal,
                                 foodName,
-                                "${metric.formatValue(offenderVal.toFloat())} $unit"
+                                "${metric.formatValue(offenderVal.toFloat())} $unit",
                             )
                         } else null
                     }
@@ -129,7 +130,7 @@ class InsightsViewModel(
                 todayLogs.value = runCatching { manager.readTodayNutrition() }.getOrDefault(emptyList())
             }
 
-            if (showIndicator) delay(500)
+            if (showIndicator) delay(500.milliseconds)
             _refreshing.value = false
         }
     }

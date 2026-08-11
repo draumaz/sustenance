@@ -58,7 +58,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -175,7 +174,7 @@ fun DashboardScreen(
     val view = LocalView.current
     val pullToRefreshState = rememberPullToRefreshState()
 
-    var hapticTriggered by remember { mutableStateOf(false) }
+    var hapticTriggered by remember { mutableStateOf(value = false) }
     LaunchedEffect(pullToRefreshState.distanceFraction) {
         if (pullToRefreshState.distanceFraction >= 1f) {
             if (!hapticTriggered) {
@@ -244,7 +243,7 @@ fun DashboardScreen(
             ): androidx.compose.ui.geometry.Offset {
                 // If we are at the bottom and pulling UP (finger moves UP, available.y < 0)
                 if ((source == NestedScrollSource.UserInput) && (available.y < 0)) {
-                    val newPull = (pullDistance.value - available.y * 0.5f).coerceAtMost(pullThreshold * 1.5f)
+                    val newPull = (pullDistance.value - (available.y * 0.5f)).coerceAtMost(pullThreshold * 1.5f)
                     scope.launch { pullDistance.snapTo(newPull) }
                     
                     // Preload yesterday's data as we pull up
@@ -311,7 +310,7 @@ fun DashboardScreen(
                 ) {
                     ScallopedLoadingAnimation(
                         size = DpSize(50.dp, 50.dp),
-                        bumpsCount = 3f
+                        bumpsCount = 3f,
                     )
                 }
             },

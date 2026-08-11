@@ -2,7 +2,6 @@ package io.github.draumaz.sustenance
 
 import android.content.Intent
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -26,15 +25,13 @@ class MainActivity : ComponentActivity() {
     // Deep-link target from a metric widget tap; consumed once navigation happens.
     private var deepLinkMetric by mutableStateOf<String?>(null)
     private var sharedImages by mutableStateOf<List<Uri>?>(null)
-    private var shouldLog by mutableStateOf(false)
+    private var shouldLog by mutableStateOf(value = false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            window.isNavigationBarContrastEnforced = false
-        }
+        window.isNavigationBarContrastEnforced = false
         handleIntent(intent)
         NotificationHelper.createNotificationChannels(this)
         val app = application as SustenanceApp
@@ -55,7 +52,7 @@ class MainActivity : ComponentActivity() {
                         launchLog = shouldLog,
                         onDeepLinkConsumed = { deepLinkMetric = null },
                         onSharedImagesConsumed = { sharedImages = null },
-                        onLogConsumed = { shouldLog = false },
+                        onLogConsumed = { shouldLog = false }
                     )
                 }
             }

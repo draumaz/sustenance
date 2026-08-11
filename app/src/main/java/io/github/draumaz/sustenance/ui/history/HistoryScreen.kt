@@ -42,22 +42,22 @@ fun HistoryScreen(
     bottomInset: androidx.compose.ui.unit.Dp = 0.dp,
     predictiveBackProgress: Float = 0f,
     onItemSelected: (HistoryItem) -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
 ) {
     BackHandler(onBack = onBack)
     val scope = rememberCoroutineScope()
     var rawHistory by remember { mutableStateOf<List<HistoryItem>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(true) }
+    var isLoading by remember { mutableStateOf(value = true) }
     
     val pinnedNames by settingsRepo.pinnedHistoryItems.collectAsStateWithLifecycle(initialValue = emptySet())
 
     val history = remember(rawHistory, pinnedNames) {
-        rawHistory.map { item ->
+        rawHistory.asSequence().map { item ->
             item.copy(isPinned = pinnedNames.contains(item.nutrients.foodItem))
         }.sortedWith(
             compareByDescending<HistoryItem> { it.isPinned }
                 .thenByDescending { it.timestamp }
-        )
+        ).toList()
     }
 
     val (pinned, unpinned) = remember(history) {
@@ -87,7 +87,7 @@ fun HistoryScreen(
                         Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors()
+                colors = TopAppBarDefaults.topAppBarColors()
             )
         }
     ) { inner ->
@@ -143,7 +143,7 @@ fun HistoryScreen(
                                                 scope.launch {
                                                     settingsRepo.togglePinnedHistoryItem(item.nutrients.foodItem)
                                                 }
-                                            }
+                                            },
                                         )
                                         if (index < pinned.lastIndex) {
                                             HorizontalDivider(

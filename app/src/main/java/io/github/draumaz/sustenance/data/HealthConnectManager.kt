@@ -44,7 +44,7 @@ class HealthConnectManager(internal val context: Context) {
 
     /** Per-metric data-type read permissions (used for the dashboard's per-tile lock state). */
     val metricPermissions: Set<String> =
-        Metric.entries.map { HealthPermission.getReadPermission(recordClass(it)) }.toSet()
+        Metric.entries.asSequence().map { HealthPermission.getReadPermission(recordClass(it)) }.toSet()
 
     /** Permissions required for logging food. */
     val writePermissions: Set<String> = setOf(HealthPermission.getWritePermission(NutritionRecord::class))
@@ -71,37 +71,34 @@ class HealthConnectManager(internal val context: Context) {
     suspend fun isGranted(metric: Metric): Boolean {
         val granted = runCatching { grantedPermissions() }.getOrDefault(emptySet())
         return if (metric == Metric.CALORIC_BALANCE) {
-            HealthPermission.getReadPermission(TotalCaloriesBurnedRecord::class) in granted &&
-                    HealthPermission.getReadPermission(NutritionRecord::class) in granted
+            (HealthPermission.getReadPermission(TotalCaloriesBurnedRecord::class) in granted) &&
+                    (HealthPermission.getReadPermission(NutritionRecord::class) in granted)
         } else {
             permissionFor(metric) in granted
         }
     }
 
     suspend fun writeNutrition(nutrients: FoodNutrients, servingCount: Double, timestamp: Instant = Instant.now()) {
-        val multiplier = servingCount
-        val now = timestamp
-        
         val baseGrams = "(\\d+)".toRegex().find(nutrients.servingSize)?.groupValues?.get(1)?.toDoubleOrNull() ?: 100.0
-        val totalGrams = Math.round(baseGrams * multiplier).toInt()
+        val totalGrams = kotlin.math.round(baseGrams * servingCount).toInt()
         val cleanName = nutrients.foodItem.replace("\\s*\\(\\d+g\\)".toRegex(), "").trim()
         val entryName = "$cleanName (${totalGrams}g)"
 
         val record = NutritionRecord(
-            startTime = now,
-            endTime = now.plusSeconds(1),
-            startZoneOffset = ZoneId.systemDefault().rules.getOffset(now),
-            endZoneOffset = ZoneId.systemDefault().rules.getOffset(now),
+            startTime = timestamp,
+            endTime = timestamp.plusSeconds(1),
+            startZoneOffset = ZoneId.systemDefault().rules.getOffset(timestamp),
+            endZoneOffset = ZoneId.systemDefault().rules.getOffset(timestamp),
             name = entryName,
-            energy = Energy.kilocalories((nutrients.calories * multiplier).coerceAtLeast(0.0)),
-            protein = Mass.grams((nutrients.protein * multiplier).coerceAtLeast(0.0)),
-            totalCarbohydrate = Mass.grams((nutrients.carbs * multiplier).coerceAtLeast(0.0)),
-            totalFat = Mass.grams((nutrients.fat * multiplier).coerceAtLeast(0.0)),
-            dietaryFiber = Mass.grams((nutrients.fiber * multiplier).coerceAtLeast(0.0)),
-            sugar = Mass.grams((nutrients.sugar * multiplier).coerceAtLeast(0.0)),
-            saturatedFat = Mass.grams((nutrients.saturatedFat * multiplier).coerceAtLeast(0.0)),
-            sodium = Mass.milligrams((nutrients.sodium * multiplier).coerceAtLeast(0.0)),
-            metadata = Metadata.manualEntry()
+            energy = Energy.kilocalories((nutrients.calories * servingCount).coerceAtLeast(0.0)),
+            protein = Mass.grams((nutrients.protein * servingCount).coerceAtLeast(0.0)),
+            totalCarbohydrate = Mass.grams((nutrients.carbs * servingCount).coerceAtLeast(0.0)),
+            totalFat = Mass.grams((nutrients.fat * servingCount).coerceAtLeast(0.0)),
+            dietaryFiber = Mass.grams((nutrients.fiber * servingCount).coerceAtLeast(0.0)),
+            sugar = Mass.grams((nutrients.sugar * servingCount).coerceAtLeast(0.0)),
+            saturatedFat = Mass.grams((nutrients.saturatedFat * servingCount).coerceAtLeast(0.0)),
+            sodium = Mass.milligrams((nutrients.sodium * servingCount).coerceAtLeast(0.0)),
+            metadata = Metadata.manualEntry(),
         )
         try {
             client.insertRecords(listOf(record))
@@ -248,7 +245,7 @@ class HealthConnectManager(internal val context: Context) {
     suspend fun readHistory(): List<HistoryItem> {
         return runCatching {
             val end = Instant.now()
-            val start = end.minus(java.time.Duration.ofDays(30))
+            val start = end - java.time.Duration.ofDays(30)
             val records = read(NutritionRecord::class, start, end).filterIsInstance<NutritionRecord>()
                 .filter { it.metadata.dataOrigin.packageName == context.packageName }
 
@@ -345,21 +342,25 @@ class HealthConnectManager(internal val context: Context) {
             val caption: String?
             val stats: List<Pair<String, String>>
             if (metric.kind == MetricKind.DAILY_TOTAL) {
-                if (metric == Metric.FOOD && isCaloricBalanceActive && goal != null) {
-                    headline = "${metric.formatValue(points.last().value)}/${metric.formatValue(goal)} $unit"
-                    caption = null
-                } else if (metric == Metric.CALORIC_BALANCE && goal != null && goal > 0) {
-                    val absVal = if (points.last().value < 0) -points.last().value else points.last().value
-                    val diff = goal - absVal
-                    headline = when {
-                        diff > 0 -> context.getString(R.string.to_goal, "${metric.formatValue(diff)}$unit")
-                        diff < 0 -> context.getString(R.string.over_goal, "${metric.formatValue(-diff)}$unit")
-                        else -> context.getString(R.string.balance_reached)
+                when {
+                    metric == Metric.FOOD && isCaloricBalanceActive && goal != null -> {
+                        headline = "${metric.formatValue(points.last().value)}/${metric.formatValue(goal)} $unit"
+                        caption = null
                     }
-                    caption = if (dateOffset == 0) context.getString(R.string.today_comma, unit) else "${dayFmt.format(points.last().time.atZone(zone))}, $unit"
-                } else {
-                    headline = metric.formatValue(points.last().value)
-                    caption = if (dateOffset == 0) context.getString(R.string.today_comma, unit) else "${dayFmt.format(points.last().time.atZone(zone))}, $unit"
+                    metric == Metric.CALORIC_BALANCE && goal != null && goal > 0 -> {
+                        val absVal = if (points.last().value < 0) -points.last().value else points.last().value
+                        val diff = goal - absVal
+                        headline = when {
+                            diff > 0 -> context.getString(R.string.to_goal, "${metric.formatValue(diff)}$unit")
+                            diff < 0 -> context.getString(R.string.over_goal, "${metric.formatValue(-diff)}$unit")
+                            else -> context.getString(R.string.balance_reached)
+                        }
+                        caption = if (dateOffset == 0) context.getString(R.string.today_comma, unit) else "${dayFmt.format(points.last().time.atZone(zone))}, $unit"
+                    }
+                    else -> {
+                        headline = metric.formatValue(points.last().value)
+                        caption = if (dateOffset == 0) context.getString(R.string.today_comma, unit) else "${dayFmt.format(points.last().time.atZone(zone))}, $unit"
+                    }
                 }
                 stats = listOf(
                     context.getString(R.string.daily_avg) to "${metric.formatValue(values.average().toFloat())} $unit",
@@ -510,7 +511,7 @@ class HealthConnectManager(internal val context: Context) {
                 timeRangeSlicer = Period.ofDays(1),
             )
         )
-        val byDate = buckets.associate { it.startTime.toLocalDate() to extract(it.result, metric) }
+        val byDate = buckets.associateBy({ it.startTime.toLocalDate() }, { extract(it.result, metric) })
         return (0 until days).map { i ->
             val date = baseDate.minusDays((days - 1 - i).toLong())
             val instant = date.atStartOfDay(zone).toInstant()

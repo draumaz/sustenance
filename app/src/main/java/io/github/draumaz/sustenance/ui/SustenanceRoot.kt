@@ -22,7 +22,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.AlertDialog
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -105,7 +104,7 @@ private fun decodeDownsampledBitmap(context: android.content.Context, uri: Uri, 
             BitmapFactory.decodeStream(input, null, options)
             
             var inSampleSize = 1
-            if (options.outHeight > maxDim || (options.outWidth > maxDim)) {
+            if (options.outHeight > maxDim || options.outWidth > maxDim) {
                 val halfHeight = options.outHeight / 2
                 val halfWidth = options.outWidth / 2
                 while ((halfHeight / inSampleSize >= maxDim) && (halfWidth / inSampleSize >= maxDim)) {
@@ -119,6 +118,7 @@ private fun decodeDownsampledBitmap(context: android.content.Context, uri: Uri, 
             }
         }
     } catch (e: Exception) {
+        Log.e("SustenanceRoot", "Failed to decode downsampled bitmap", e)
         null
     }
 }
@@ -140,28 +140,26 @@ fun SustenanceRoot(
     launchLog: Boolean = false,
     onDeepLinkConsumed: () -> Unit = {},
     onSharedImagesConsumed: () -> Unit = {},
-    onLogConsumed: () -> Unit = {}
+    onLogConsumed: () -> Unit = {},
 ) {
     val currentContext = LocalContext.current
 
     if (!manager.isAvailable) {
-        UnavailableScreen(
-            onInstall = {
-                runCatching {
-                    currentContext.startActivity(
-                        Intent(Intent.ACTION_VIEW, "market://details?id=$HEALTH_CONNECT_PACKAGE".toUri())
-                            .setPackage("com.android.vending")
-                    )
-                }
+        UnavailableScreen {
+            runCatching {
+                currentContext.startActivity(
+                    Intent(Intent.ACTION_VIEW, "market://details?id=$HEALTH_CONNECT_PACKAGE".toUri())
+                        .setPackage("com.android.vending")
+                )
             }
-        )
+        }
         return
     }
 
     var granted by remember { mutableStateOf<Set<String>?>(null) }
     // True while the initial setup is chaining its permission requests (data → background).
     var inSetup by remember { mutableStateOf(value = false) }
-    var requestedExtras by remember { mutableStateOf(false) }
+    var requestedExtras by remember { mutableStateOf(value = false) }
     val scope = rememberCoroutineScope()
 
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -299,10 +297,10 @@ private fun MainNav(
     val goals by goalsRepo.goals.collectAsState(initial = emptyMap())
     val judgementalMode by settingsRepo.judgementalMode.collectAsState(initial = false)
     val ketoMode by settingsRepo.ketoMode.collectAsState(initial = false)
-    val currentTotals by produceState<Map<Metric, Float>>(initialValue = emptyMap(), goals, ketoMode, manager) {
+    val currentTotals by produceState(initialValue = emptyMap<Metric, Float>(), goals, ketoMode, manager) {
         suspend fun update() {
             val dashboard = manager.readDashboard(goals, ketoMode, 0)
-            value = dashboard.associate { it.metric to (it.spark.lastOrNull() ?: 0f) }
+            value = dashboard.associateBy({ it.metric }, { it.spark.lastOrNull() ?: 0f })
         }
         update()
         manager.changes.collect { update() }
@@ -314,7 +312,7 @@ private fun MainNav(
         scope.launch {
             uris.forEach { uri ->
                 decodeDownsampledBitmap(currentContext, uri)?.let { bitmap ->
-                    capturedBitmaps = capturedBitmaps + bitmap
+                    capturedBitmaps += bitmap
                 }
             }
             if (uris.isNotEmpty()) {
@@ -389,7 +387,7 @@ private fun MainNav(
                 val delta = available.y
                 val newOffset = bottomBarOffsetHeightPx.floatValue + delta
                 bottomBarOffsetHeightPx.floatValue = newOffset.coerceIn(-bottomBarHeightPx, 0f)
-                return Offset.Zero
+                return super.onPreScroll(available, source)
             }
         }
     }
@@ -400,7 +398,7 @@ private fun MainNav(
             isBatchMode = true
             uris.forEach { uri ->
                 decodeDownsampledBitmap(currentContext, uri)?.let { bitmap ->
-                    capturedBitmaps = capturedBitmaps + bitmap
+                    capturedBitmaps += bitmap
                 }
             }
             onSharedImagesConsumed()
@@ -446,7 +444,7 @@ private fun MainNav(
             if (showBar) {
                 val animatedOffset by animateIntAsState(
                     targetValue = bottomBarOffsetHeightPx.floatValue.roundToInt(),
-                    animationSpec = spring(stiffness = androidx.compose.animation.core.Spring.StiffnessMedium),
+                    animationSpec = spring(stiffness = Spring.StiffnessMedium),
                     label = "bottom_bar_offset"
                 )
 
@@ -593,7 +591,7 @@ private fun MainNav(
 
                 composable(
                     Dest.SETTINGS.route + "?scrollTo={scrollTo}",
-                    arguments = listOf(navArgument("scrollTo") { 
+                    arguments = listOf(navArgument("scrollTo") {
                         type = NavType.StringType
                         nullable = true
                         defaultValue = null

@@ -1,6 +1,5 @@
 package io.github.draumaz.sustenance.ui.summary
 
-import androidx.activity.compose.PredictiveBackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
@@ -91,7 +90,7 @@ fun InsightsScreen(
     val view = LocalView.current
     val pullToRefreshState = rememberPullToRefreshState()
 
-    var hapticTriggered by remember { mutableStateOf(false) }
+    var hapticTriggered by remember { mutableStateOf(value = false) }
     LaunchedEffect(pullToRefreshState.distanceFraction) {
         if (pullToRefreshState.distanceFraction >= 1f) {
             if (!hapticTriggered) {
@@ -135,7 +134,7 @@ fun InsightsScreen(
             state = pullToRefreshState,
             isRefreshing = refreshing,
             onRefresh = vm::refresh,
-            modifier = Modifier.padding(top = inner.calculateTopPadding())
+            modifier = Modifier.padding(top = inner.calculateTopPadding()),
         ) {
             LazyColumn(
                 modifier = Modifier.fillMaxSize().nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -151,7 +150,7 @@ fun InsightsScreen(
                 items(state.stats, key = { it.metric.key }) { stat ->
                     AnimatedVisibility(
                         visible = true,
-                        enter = fadeIn() + slideInVertically(initialOffsetY = { it / 4 })
+                        enter = fadeIn() + slideInVertically { it / 4 }
                     ) {
                         InsightCard(
                             stat = stat,

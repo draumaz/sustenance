@@ -19,7 +19,6 @@
     <string name="yesterday">Yesterday</string>
     <string name="today_label">Today</string>
     <string name="section_energy">Energy</string>
-    <string name="section_food">Food</string>
     <string name="section_macros">Macros</string>
     <string name="section_micros">Micros</string>
 
@@ -40,13 +39,10 @@
     <string name="unit_mg">mg</string>
     <string name="unit_hr">hr</string>
 
-    <string name="base_serving">Base Serving: </string>
     <string name="grams_label">GRAMS</string>
     <string name="less">Less</string>
     <string name="more">More</string>
     <string name="log_food">Log Food</string>
-    <string name="total_preview">Total: %s</string>
-    <string name="food_item_placeholder">Food item</string>
 
     <string name="summary_subtitle">Your daily feedback</string>
     <string name="summary_title">Insights</string>
@@ -134,7 +130,6 @@
     <string name="day">Day</string>
     <string name="night">Night</string>
     <string name="unknown_food">Unknown Food</string>
-    <string name="one_serving">1 serving</string>
     <string name="error_reading_data">Error reading data</string>
     <string name="permission_not_granted">Permission not granted</string>
 
@@ -145,7 +140,6 @@
     <string name="add_label">Add</string>
     <string name="history">History</string>
     <string name="no_history">No history found</string>
-    <string name="capture_count">Capture (%d)</string>
     <string name="log">Log</string>
 
     <string name="api_key_missing">API Key missing.</string>
