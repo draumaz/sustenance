@@ -19,7 +19,6 @@
     <string name="yesterday">Вчера</string>
     <string name="today_label">Сегодня</string>
     <string name="section_energy">Энергия</string>
-    <string name="section_food">Еда</string>
     <string name="section_macros">Макросы</string>
     <string name="section_micros">Микросы</string>
 
@@ -40,13 +39,10 @@
     <string name="unit_mg">мг</string>
     <string name="unit_hr">ч</string>
 
-    <string name="base_serving">Базовая порция: </string>
     <string name="grams_label">ГРАММ</string>
     <string name="less">Меньше</string>
     <string name="more">Больше</string>
     <string name="log_food">Записать еду</string>
-    <string name="total_preview">Всего: %s</string>
-    <string name="food_item_placeholder">Название еды</string>
 
     <string name="summary_subtitle">Ваш ежедневный отчёт</string>
     <string name="summary_title">Аналитика</string>
@@ -134,7 +130,6 @@
     <string name="day">День</string>
     <string name="night">Ночь</string>
     <string name="unknown_food">Неизвестная еда</string>
-    <string name="one_serving">1 порция</string>
     <string name="error_reading_data">Ошибка при чтении данных</string>
     <string name="permission_not_granted">Доступ не предоставлен</string>
 
@@ -145,7 +140,6 @@
     <string name="add_label">Добавить</string>
     <string name="history">История</string>
     <string name="no_history">История не найдена</string>
-    <string name="capture_count">Снять (%d)</string>
     <string name="log">Запись</string>
 
     <string name="api_key_missing">API-ключ отсутствует.</string>
