@@ -30,7 +30,7 @@ import kotlin.reflect.KClass
  * summary or a full detail series. All public reads swallow per-metric errors so one missing data
  * type never blanks the whole dashboard.
  */
-class HealthConnectManager(private val context: Context) {
+class HealthConnectManager(internal val context: Context) {
 
     private val zone: ZoneId get() = ZoneId.systemDefault()
     private val dowFmt: DateTimeFormatter = DateTimeFormatter.ofPattern("EEE")
@@ -533,6 +533,12 @@ class HealthConnectManager(private val context: Context) {
     }
 
     // ---- Low-level reads -----------------------------------------------------------------------
+
+    suspend fun readTodayNutrition(): List<NutritionRecord> {
+        val start = LocalDate.now().atStartOfDay(zone).toInstant()
+        val end = Instant.now()
+        return read(NutritionRecord::class, start, end).filterIsInstance<NutritionRecord>()
+    }
 
     private suspend fun read(type: KClass<out Record>, start: Instant, end: Instant): List<Record> =
         client.readRecords(

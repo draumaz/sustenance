@@ -75,13 +75,13 @@ import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SummaryScreen(
+fun InsightsScreen(
     manager: HealthConnectManager,
     goalsRepo: GoalsRepository,
     bottomInset: androidx.compose.ui.unit.Dp,
     onBack: () -> Unit = {},
 ) {
-    val vm: SummaryViewModel = viewModel(factory = SummaryViewModel.factory(manager, goalsRepo))
+    val vm: InsightsViewModel = viewModel(factory = InsightsViewModel.factory(manager, goalsRepo))
     val state by vm.state.collectAsStateWithLifecycle()
     val refreshing by vm.refreshing.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
@@ -224,7 +224,17 @@ private fun InsightCard(stat: WeeklyStat, onEdit: () -> Unit, editEnabled: Boole
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    Spacer(Modifier.height(8.dp))
+                    stat.insight?.let {
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            it,
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.primary,
+                            lineHeight = 16.sp
+                        )
+                    }
+                    Spacer(Modifier.height(12.dp))
                     DeltaChip(stat)
                 }
                 if (editEnabled) {

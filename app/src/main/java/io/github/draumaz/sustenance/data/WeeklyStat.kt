@@ -7,6 +7,7 @@ data class WeeklyStat(
     val todayValue: Float,
     val yesterdayValue: Float,
     val goal: Float,
+    val insight: String? = null,
 ) {
     /** 0f..1f progress of today toward the goal. */
     val progress: Float get() {

@@ -86,8 +86,8 @@ import io.github.draumaz.sustenance.ui.onboarding.LoadingScreen
 import io.github.draumaz.sustenance.ui.onboarding.OnboardingScreen
 import io.github.draumaz.sustenance.ui.onboarding.UnavailableScreen
 import io.github.draumaz.sustenance.ui.settings.SettingsScreen
-import io.github.draumaz.sustenance.ui.summary.SummaryScreen
-import io.github.draumaz.sustenance.ui.summary.SummaryViewModel
+import io.github.draumaz.sustenance.ui.summary.InsightsScreen
+import io.github.draumaz.sustenance.ui.summary.InsightsViewModel
 import io.github.draumaz.sustenance.ui.components.FoodReviewDialog
 import io.github.draumaz.sustenance.ui.history.HistoryScreen
 import io.github.draumaz.sustenance.util.FoodNutrients
@@ -125,7 +125,7 @@ private fun decodeDownsampledBitmap(context: android.content.Context, uri: Uri, 
 
 enum class Dest(val route: String, @param:StringRes val labelRes: Int, val icon: ImageVector) {
     TODAY("today", R.string.today_label, Icons.Rounded.Today),
-    SUMMARY("summary", R.string.summary_title, Icons.Rounded.Insights),
+    INSIGHTS("insights", R.string.summary_title, Icons.Rounded.Insights),
     SETTINGS("settings", R.string.settings_title, Icons.Rounded.Settings),
 }
 
@@ -273,7 +273,7 @@ private fun MainNav(
     val topLevel = remember { Dest.entries.toList() }
     val showBar =
         currentRoute == Dest.TODAY.route || 
-        currentRoute == Dest.SUMMARY.route || 
+        currentRoute == Dest.INSIGHTS.route || 
         currentRoute?.startsWith(Dest.SETTINGS.route) == true || 
         currentRoute?.startsWith("detail/") == true
 
@@ -566,11 +566,11 @@ private fun MainNav(
                 }
 
                 composable(
-                    Dest.SUMMARY.route,
+                    Dest.INSIGHTS.route,
                     enterTransition = { fadeIn(tween(200)) },
                     exitTransition = { fadeOut(tween(200)) }
                 ) {
-                    SummaryScreen(
+                    InsightsScreen(
                         manager = manager,
                         goalsRepo = goalsRepo,
                         bottomInset = inner.calculateBottomPadding(),

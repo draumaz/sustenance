@@ -48,8 +48,10 @@
     <string name="total_preview">Total: %s</string>
     <string name="food_item_placeholder">Food item</string>
 
-    <string name="summary_subtitle">Your daily intake</string>
-    <string name="summary_title">Summary</string>
+    <string name="summary_subtitle">Your daily feedback</string>
+    <string name="summary_title">Insights</string>
+    <string name="insight_over_goal">You went over your goal. %1$s contributed %2$s today.</string>
+    <string name="insight_good_job">Good job! You\'ve stayed within your goal.</string>
     <string name="new_label">New</string>
     <string name="steady_label">Steady</string>
     <string name="vs_yesterday">%d%% vs yesterday</string>

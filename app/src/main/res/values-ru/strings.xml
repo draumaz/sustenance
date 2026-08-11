@@ -48,8 +48,10 @@
     <string name="total_preview">Всего: %s</string>
     <string name="food_item_placeholder">Название еды</string>
 
-    <string name="summary_subtitle">Ваш ежедневный рацион</string>
-    <string name="summary_title">Сводка</string>
+    <string name="summary_subtitle">Ваш ежедневный отчёт</string>
+    <string name="summary_title">Аналитика</string>
+    <string name="insight_over_goal">Вы превысили свою цель. Продукт «%1$s» добавил %2$s сегодня.</string>
+    <string name="insight_good_job">Отличная работа! Вы придерживаетесь своей цели.</string>
     <string name="new_label">Новое</string>
     <string name="steady_label">Стабильно</string>
     <string name="vs_yesterday">%d%% по сравнению со вчера</string>
