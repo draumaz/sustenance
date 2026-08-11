@@ -2,6 +2,7 @@ package io.github.draumaz.sustenance.ui.history
 
 import android.view.HapticFeedbackConstants
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
@@ -57,6 +58,10 @@ fun HistoryScreen(
             compareByDescending<HistoryItem> { it.isPinned }
                 .thenByDescending { it.timestamp }
         )
+    }
+
+    val (pinned, unpinned) = remember(history) {
+        history.partition { it.isPinned }
     }
     
     val timeFmt = remember { DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT) }
@@ -118,7 +123,41 @@ fun HistoryScreen(
                     ),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(history, key = { it.nutrients.foodItem }) { item ->
+                    if (pinned.isNotEmpty()) {
+                        item(key = "pinned_card") {
+                            Surface(
+                                shape = RoundedCornerShape(24.dp),
+                                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .animateItem()
+                            ) {
+                                Column(modifier = Modifier.animateContentSize()) {
+                                    pinned.forEachIndexed { index, item ->
+                                        HistoryRow(
+                                            item = item,
+                                            timeText = timeFmt.format(item.timestamp.atZone(zone)),
+                                            showBackground = false,
+                                            onClick = { onItemSelected(item) },
+                                            onLongClick = {
+                                                scope.launch {
+                                                    settingsRepo.togglePinnedHistoryItem(item.nutrients.foodItem)
+                                                }
+                                            }
+                                        )
+                                        if (index < pinned.lastIndex) {
+                                            HorizontalDivider(
+                                                modifier = Modifier.padding(horizontal = 16.dp),
+                                                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    items(unpinned, key = { it.nutrients.foodItem }) { item ->
                         HistoryRow(
                             item = item,
                             timeText = timeFmt.format(item.timestamp.atZone(zone)),
@@ -143,37 +182,13 @@ fun HistoryRow(
     item: HistoryItem,
     timeText: String,
     modifier: Modifier = Modifier,
+    showBackground: Boolean = true,
     onClick: () -> Unit,
     onLongClick: () -> Unit
 ) {
     val view = LocalView.current
-    Surface(
-        shape = RoundedCornerShape(20.dp),
-        color = item.accentColor?.copy(alpha = 0.25f) ?: MaterialTheme.colorScheme.surfaceContainerLow,
-        modifier = modifier
-            .fillMaxWidth()
-            .combinedClickable(
-                onClick = {
-                    view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-                    onClick()
-                },
-                onLongClick = {
-                    view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-                    onLongClick()
-                }
-            )
-    ) {
+    val content = @Composable {
         Box(modifier = Modifier.padding(12.dp)) {
-            if (item.isPinned) {
-                Icon(
-                    Icons.Rounded.PushPin,
-                    contentDescription = null,
-                    modifier = Modifier
-                        .size(14.dp)
-                        .align(Alignment.TopEnd),
-                    tint = item.accentColor ?: MaterialTheme.colorScheme.primary
-                )
-            }
             Column {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -193,9 +208,17 @@ fun HistoryRow(
                         text = "${item.nutrients.calories.toInt()} ${stringResource(R.string.unit_kcal)}",
                         style = MaterialTheme.typography.bodyMedium,
                         color = item.accentColor ?: MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Black,
-                        modifier = Modifier.padding(end = if (item.isPinned) 20.dp else 0.dp)
+                        fontWeight = FontWeight.Black
                     )
+                    if (item.isPinned) {
+                        Spacer(Modifier.width(8.dp))
+                        Icon(
+                            Icons.Rounded.PushPin,
+                            contentDescription = null,
+                            modifier = Modifier.size(14.dp),
+                            tint = item.accentColor ?: MaterialTheme.colorScheme.primary
+                        )
+                    }
                 }
                 
                 Spacer(Modifier.height(2.dp))
@@ -216,6 +239,44 @@ fun HistoryRow(
                     NutrientIconList(item.nutrients)
                 }
             }
+        }
+    }
+
+    if (showBackground) {
+        Surface(
+            shape = RoundedCornerShape(20.dp),
+            color = item.accentColor?.copy(alpha = 0.25f) ?: MaterialTheme.colorScheme.surfaceContainerLow,
+            modifier = modifier
+                .fillMaxWidth()
+                .combinedClickable(
+                    onClick = {
+                        view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                        onClick()
+                    },
+                    onLongClick = {
+                        view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                        onLongClick()
+                    }
+                )
+        ) {
+            content()
+        }
+    } else {
+        Box(
+            modifier = modifier
+                .fillMaxWidth()
+                .combinedClickable(
+                    onClick = {
+                        view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                        onClick()
+                    },
+                    onLongClick = {
+                        view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                        onLongClick()
+                    }
+                )
+        ) {
+            content()
         }
     }
 }
