@@ -72,6 +72,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.material.icons.rounded.History
 import android.view.HapticFeedbackConstants
 import io.github.draumaz.sustenance.R
+import java.time.Instant
+import java.time.Duration
 import io.github.draumaz.sustenance.data.GoalsRepository
 import io.github.draumaz.sustenance.data.HealthConnectManager
 import io.github.draumaz.sustenance.data.Metric
@@ -301,91 +303,130 @@ private fun FoodItemsCard(
                         letterSpacing = 1.sp,
                         modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 4.dp)
                     )
-                    items.forEachIndexed { i, item ->
-                        val secondaryParts = item.secondary.split(" • ")
-                        val kcal = secondaryParts.getOrNull(0) ?: ""
-                        val time = secondaryParts.getOrNull(1) ?: ""
-                        val kcalColor = item.accentColor ?: MaterialTheme.colorScheme.primary
-                        
-                        val view = LocalView.current
-                        Surface(
-                            shape = RoundedCornerShape(if (item.accentColor != null) 12.dp else 0.dp),
-                            color = item.accentColor?.copy(alpha = 0.25f) ?: Color.Transparent,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(
-                                    horizontal = if (item.accentColor != null) 8.dp else 0.dp,
-                                    vertical = if (item.accentColor != null) 2.dp else 0.dp
-                                )
-                                .combinedClickable(
-                                    onClick = { },
-                                    onLongClick = {
-                                        item.nutrients?.let {
-                                            view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-                                            onReLog(it)
-                                        }
-                                    }
-                                )
+
+                    val groupedItems = mutableListOf<MutableList<RecordRow>>()
+                    items.forEach { item ->
+                        val lastGroup = groupedItems.lastOrNull()
+                        val lastItem = lastGroup?.lastOrNull()
+                        if (lastItem != null && item.startTime != null && lastItem.startTime != null &&
+                            Duration.between(item.startTime, lastItem.startTime).abs().toMinutes() <= 15
                         ) {
-                            Column(
-                                modifier = Modifier.padding(
-                                    horizontal = if (item.accentColor != null) 12.dp else 16.dp,
-                                    vertical = if (item.accentColor != null) 8.dp else 6.dp
-                                )
-                            ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        item.primary,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                    Spacer(Modifier.width(8.dp))
-                                    Text(
-                                        kcal,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.Black,
-                                        color = kcalColor
-                                    )
-                                    if (item.isEditable && item.id != null) {
-                                        IconButton(
-                                            onClick = { onDelete(item.id) },
-                                            modifier = Modifier.size(24.dp).padding(start = 4.dp)
-                                        ) {
-                                            Icon(
-                                                Icons.Rounded.Delete,
-                                                contentDescription = stringResource(R.string.delete),
-                                                tint = MaterialTheme.colorScheme.error.copy(alpha = 0.6f),
-                                                modifier = Modifier.size(16.dp)
-                                            )
-                                        }
-                                    }
-                                }
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        time,
-                                        style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                                    )
-                                    item.nutrients?.let { NutrientIconList(it) }
+                            lastGroup.add(item)
+                        } else {
+                            groupedItems.add(mutableListOf(item))
+                        }
+                    }
+
+                    groupedItems.forEach { group ->
+                        val isCluster = group.size > 1
+                        Column(
+                            modifier = if (isCluster) {
+                                Modifier
+                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+                                    .padding(vertical = 4.dp)
+                            } else Modifier
+                        ) {
+                            group.forEachIndexed { i, item ->
+                                FoodRecordRow(item, onReLog, onDelete)
+                                if (i < group.lastIndex) {
+                                    HorizontalDivider(Modifier.padding(horizontal = 16.dp).alpha(0.3f))
                                 }
                             }
                         }
-                        if (i < items.lastIndex && item.accentColor == null && items[i+1].accentColor == null) {
-                            HorizontalDivider(Modifier.padding(horizontal = 16.dp).alpha(0.3f))
-                        }
                     }
                 }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun FoodRecordRow(
+    item: RecordRow,
+    onReLog: (FoodNutrients) -> Unit,
+    onDelete: (String) -> Unit
+) {
+    val secondaryParts = item.secondary.split(" • ")
+    val kcal = secondaryParts.getOrNull(0) ?: ""
+    val time = secondaryParts.getOrNull(1) ?: ""
+    val kcalColor = item.accentColor ?: MaterialTheme.colorScheme.primary
+
+    val view = LocalView.current
+    Surface(
+        shape = RoundedCornerShape(if (item.accentColor != null) 12.dp else 0.dp),
+        color = item.accentColor?.copy(alpha = 0.25f) ?: Color.Transparent,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(
+                horizontal = if (item.accentColor != null) 8.dp else 0.dp,
+                vertical = if (item.accentColor != null) 2.dp else 0.dp
+            )
+            .combinedClickable(
+                onClick = { },
+                onLongClick = {
+                    item.nutrients?.let {
+                        view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                        onReLog(it)
+                    }
+                }
+            )
+    ) {
+        Column(
+            modifier = Modifier.padding(
+                horizontal = if (item.accentColor != null) 12.dp else 16.dp,
+                vertical = if (item.accentColor != null) 8.dp else 6.dp
+            )
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    item.primary,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    kcal,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Black,
+                    color = kcalColor
+                )
+                if (item.isEditable && item.id != null) {
+                    IconButton(
+                        onClick = { onDelete(item.id) },
+                        modifier = Modifier
+                            .size(24.dp)
+                            .padding(start = 4.dp)
+                    ) {
+                        Icon(
+                            Icons.Rounded.Delete,
+                            contentDescription = stringResource(R.string.delete),
+                            tint = MaterialTheme.colorScheme.error.copy(alpha = 0.6f),
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    time,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                )
+                item.nutrients?.let { NutrientIconList(it) }
             }
         }
     }
