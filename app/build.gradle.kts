@@ -4,6 +4,7 @@ import java.util.Properties
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.serialization)
 }
 
 // Optional release signing. Provide keystore.properties (gitignored) or env vars in CI.
@@ -19,14 +20,14 @@ val hasSigning = signingValue("storeFile", "SUSTENANCE_STORE_FILE") != null
 
 android {
     namespace = "io.github.draumaz.sustenance"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "io.github.draumaz.sustenance"
         minSdk = 30
         targetSdk = 36
-        versionCode = 8
-        versionName = "1.7.0"
+        versionCode = 9
+        versionName = "1.8.0"
         vectorDrawables { useSupportLibrary = true }
     }
 
@@ -105,6 +106,13 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.material.icons.extended)
     implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.navigation3.ui)
+    implementation(libs.androidx.navigation3.runtime)
+    implementation(libs.androidx.lifecycle.viewmodel.navigation3)
+    implementation(libs.androidx.material3.adaptive)
+    implementation(libs.androidx.material3.adaptive.navigation3)
+    implementation(libs.androidx.adaptive.navigation.suite)
+    implementation(libs.kotlinx.serialization.json)
     debugImplementation(libs.androidx.ui.tooling)
 
     implementation(libs.androidx.health.connect)

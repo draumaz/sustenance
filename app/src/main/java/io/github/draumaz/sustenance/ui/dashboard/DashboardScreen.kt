@@ -77,6 +77,7 @@ import io.github.draumaz.sustenance.data.MetricSummary
 import io.github.draumaz.sustenance.ui.DashboardViewModel
 import io.github.draumaz.sustenance.ui.components.MetricCard
 import io.github.draumaz.sustenance.ui.components.ScallopedLoadingAnimation
+import io.github.draumaz.sustenance.ui.NavKey
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.Duration
@@ -154,7 +155,7 @@ fun DashboardScreen(
     granted: Set<String>,
     bottomInset: androidx.compose.ui.unit.Dp,
     todayClickCount: Int = 0,
-    onOpenMetric: (Metric, Int) -> Unit,
+    onOpenMetric: (NavKey.Detail) -> Unit,
     onManagePermissions: () -> Unit,
     onTimerClick: () -> Unit = {},
     onDateChanged: (Int) -> Unit = {},
@@ -394,7 +395,7 @@ fun DashboardScreen(
                                                 title = stringResource(R.string.section_energy),
                                                 items = energyGroup,
                                                 columns = 2,
-                                                onOpenMetric = { onOpenMetric(it, targetOffset) },
+                                                onOpenMetric = { onOpenMetric(NavKey.Detail(it.key)) },
                                                 onManagePermissions = onManagePermissions,
                                                 bottomContent = {
                                                     foodGroup.forEach { summary ->
@@ -402,7 +403,7 @@ fun DashboardScreen(
                                                             summary = summary,
                                                             onClick = {
                                                                 if (summary.granted) {
-                                                                    onOpenMetric(summary.metric, targetOffset)
+                                                                    onOpenMetric(NavKey.Detail(summary.metric.key))
                                                                 } else {
                                                                     onManagePermissions()
                                                                 }
@@ -422,7 +423,7 @@ fun DashboardScreen(
                                                 title = stringResource(R.string.section_macros),
                                                 items = macrosGroup,
                                                 columns = 2,
-                                                onOpenMetric = { onOpenMetric(it, targetOffset) },
+                                                onOpenMetric = { onOpenMetric(NavKey.Detail(it.key)) },
                                                 onManagePermissions = onManagePermissions
                                             )
                                         }
@@ -433,7 +434,7 @@ fun DashboardScreen(
                                                 title = stringResource(R.string.section_micros),
                                                 items = microsGroup,
                                                 columns = 1,
-                                                onOpenMetric = { onOpenMetric(it, targetOffset) },
+                                                onOpenMetric = { onOpenMetric(NavKey.Detail(it.key)) },
                                                 onManagePermissions = onManagePermissions
                                             )
                                         }

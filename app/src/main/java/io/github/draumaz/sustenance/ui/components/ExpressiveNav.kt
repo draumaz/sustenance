@@ -36,6 +36,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.material3.VerticalDivider
+import io.github.draumaz.sustenance.data.Metric
+import io.github.draumaz.sustenance.ui.NavKey
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -45,6 +51,8 @@ import androidx.compose.material.icons.rounded.CameraAlt
 import androidx.compose.material.icons.rounded.FileUpload
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Image
+import androidx.compose.material.icons.rounded.Insights
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Today
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -83,7 +91,6 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.compose.ui.res.stringResource
 import io.github.draumaz.sustenance.R
-import io.github.draumaz.sustenance.data.Metric
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
@@ -101,8 +108,9 @@ class PredictiveBackState {
 
 @Composable
 fun ExpressiveNavigationBar(
-    navController: NavHostController,
-    destinations: List<io.github.draumaz.sustenance.ui.Dest>,
+    currentKey: NavKey?,
+    previousKey: NavKey?,
+    destinations: List<NavKey>,
     predictiveBackState: PredictiveBackState,
     dateOffset: Int = 0,
     hasApiKey: Boolean = false,
@@ -110,6 +118,7 @@ fun ExpressiveNavigationBar(
     isBatchMode: Boolean = false,
     capturedBitmaps: List<Bitmap> = emptyList(),
     batchInfoText: String = "",
+    isVertical: Boolean = false,
     onBatchInfoTextChange: (String) -> Unit = {},
     onSelectGallery: () -> Unit = {},
     onToggleTorch: () -> Unit = {},
@@ -118,66 +127,113 @@ fun ExpressiveNavigationBar(
     onFinishBatch: () -> Unit = {},
     isHistorySelected: Boolean = false,
     onHistoryClick: () -> Unit = {},
-    onNavigate: (io.github.draumaz.sustenance.ui.Dest) -> Unit,
+    onNavigate: (NavKey) -> Unit,
     onLogClick: () -> Unit = {},
 ) {
-    val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentDestination = navBackStackEntry?.destination
-    val currentRoute = currentDestination?.route
-    
-    val isOnDetail = currentRoute?.startsWith("detail/") == true
-    val detailMetric = if (isOnDetail) {
-        navBackStackEntry?.arguments?.getString("metricKey")?.let { Metric.fromKey(it) }
-    } else null
+    val isOnDetail = currentKey is NavKey.Detail
+    val detailMetric = (currentKey as? NavKey.Detail)?.let { Metric.fromKey(it.metricKey) }
 
     val density = LocalDensity.current
     val isImeVisible = WindowInsets.ime.getBottom(density) > 0
     val batchCount = capturedBitmaps.size
 
-    Column(
-        modifier = Modifier
+    val containerModifier = if (isVertical) {
+        Modifier
+            .fillMaxHeight()
+            .padding(start = 16.dp, top = 36.dp, bottom = 36.dp)
+            .graphicsLayer {
+                translationX = if (isImeVisible) -700f else 0f
+            }
+    } else {
+        Modifier
             .fillMaxWidth()
             .imePadding()
-            .graphicsLayer { 
-                translationY = if (isImeVisible) 700f else 0f 
+            .graphicsLayer {
+                translationY = if (isImeVisible) 700f else 0f
             }
-            .padding(bottom = 36.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
+            .padding(bottom = 36.dp)
+    }
+
+    val LayoutContainer = @Composable { content: @Composable () -> Unit ->
+        if (isVertical) {
+            Row(modifier = containerModifier, verticalAlignment = Alignment.CenterVertically) {
+                content()
+            }
+        } else {
+            Column(modifier = containerModifier, horizontalAlignment = Alignment.CenterHorizontally) {
+                content()
+            }
+        }
+    }
+
+    LayoutContainer {
         if (isCameraMode && capturedBitmaps.isNotEmpty()) {
             val lastPhotos = remember(capturedBitmaps) { capturedBitmaps.takeLast(8) }
-            Row(
-                modifier = Modifier.padding(bottom = 12.dp),
-                horizontalArrangement = Arrangement.spacedBy((-16).dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                lastPhotos.forEachIndexed { index, bitmap ->
-                    Image(
-                        bitmap = bitmap.asImageBitmap(),
-                        contentDescription = null,
-                        modifier = Modifier
-                            .size(56.dp)
-                            .graphicsLayer {
-                                rotationZ = (index - (lastPhotos.size / 2f)) * 7f
-                                shadowElevation = 12f
-                                shape = RoundedCornerShape(12.dp)
-                                clip = true
-                            }
-                            .background(MaterialTheme.colorScheme.surface)
-                            .border(
-                                2.dp,
-                                MaterialTheme.colorScheme.surfaceVariant,
-                                RoundedCornerShape(12.dp)
-                            ),
-                        contentScale = ContentScale.Crop
-                    )
+            val photosLayout = @Composable {
+                if (isVertical) {
+                    Column(
+                        modifier = Modifier.padding(end = 12.dp),
+                        verticalArrangement = Arrangement.spacedBy((-16).dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        lastPhotos.forEachIndexed { index, bitmap ->
+                            Image(
+                                bitmap = bitmap.asImageBitmap(),
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .size(56.dp)
+                                    .graphicsLayer {
+                                        rotationZ = (index - (lastPhotos.size / 2f)) * 7f
+                                        shadowElevation = 12f
+                                        shape = RoundedCornerShape(12.dp)
+                                        clip = true
+                                    }
+                                    .background(MaterialTheme.colorScheme.surface)
+                                    .border(
+                                        2.dp,
+                                        MaterialTheme.colorScheme.surfaceVariant,
+                                        RoundedCornerShape(12.dp)
+                                    ),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
+                    }
+                } else {
+                    Row(
+                        modifier = Modifier.padding(bottom = 12.dp),
+                        horizontalArrangement = Arrangement.spacedBy((-16).dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        lastPhotos.forEachIndexed { index, bitmap ->
+                            Image(
+                                bitmap = bitmap.asImageBitmap(),
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .size(56.dp)
+                                    .graphicsLayer {
+                                        rotationZ = (index - (lastPhotos.size / 2f)) * 7f
+                                        shadowElevation = 12f
+                                        shape = RoundedCornerShape(12.dp)
+                                        clip = true
+                                    }
+                                    .background(MaterialTheme.colorScheme.surface)
+                                    .border(
+                                        2.dp,
+                                        MaterialTheme.colorScheme.surfaceVariant,
+                                        RoundedCornerShape(12.dp)
+                                    ),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
+                    }
                 }
             }
+            photosLayout()
         }
         Surface(
             modifier = Modifier
-                .wrapContentWidth()
-                .clip(CircleShape)
+                .then(if (isVertical) Modifier.fillMaxHeight() else Modifier.wrapContentWidth())
+                .clip(if (isVertical) RoundedCornerShape(32.dp) else CircleShape)
                 .animateContentSize(
                     animationSpec = spring(
                         dampingRatio = Spring.DampingRatioNoBouncy,
@@ -186,29 +242,49 @@ fun ExpressiveNavigationBar(
                 ),
             color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.95f)
         ) {
-            Column(
-                modifier = Modifier.padding(8.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
+            val innerPadding = if (isVertical) PaddingValues(horizontal = 8.dp, vertical = 12.dp) else PaddingValues(8.dp)
+            val ContentContainer = @Composable { content: @Composable () -> Unit ->
+                if (isVertical) {
+                    Column(
+                        modifier = Modifier.padding(innerPadding),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        content()
+                    }
+                } else {
+                    Column(
+                        modifier = Modifier.padding(innerPadding),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        content()
+                    }
+                }
+            }
+
+            ContentContainer {
                 if (isCameraMode && isBatchMode) {
+                    val batchBoxModifier = if (isVertical) {
+                        Modifier.width(64.dp).heightIn(min = 160.dp, max = 320.dp)
+                    } else {
+                        Modifier.width(320.dp).heightIn(min = 64.dp, max = 160.dp)
+                    }
                     Row(
-                        modifier = Modifier
-                            .width(320.dp)
-                            .heightIn(min = 64.dp, max = 160.dp)
+                        modifier = batchBoxModifier
                             .clip(RoundedCornerShape(28.dp))
                             .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                            .padding(horizontal = 20.dp, vertical = 8.dp),
+                            .padding(horizontal = if (isVertical) 8.dp else 20.dp, vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         Box(
-                            modifier = Modifier.weight(1f).width(16.dp),
+                            modifier = Modifier.weight(1f),
                             contentAlignment = Alignment.Center
                         ) {
                             if (batchInfoText.isEmpty()) {
                                 Text(
-                                    text = stringResource(R.string.optional_info),
+                                    text = if (isVertical) "" else stringResource(R.string.optional_info),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                                 )
@@ -227,23 +303,39 @@ fun ExpressiveNavigationBar(
                         }
                     }
                 }
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                
+                val itemsContainer = @Composable { content: @Composable () -> Unit ->
+                    if (isVertical) {
+                        Column(
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            content()
+                        }
+                    } else {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            content()
+                        }
+                    }
+                }
+
+                itemsContainer {
                     if (isCameraMode) {
                         if ((batchCount == 0) && !isBatchMode) {
                             ExpressiveNavItem(
                                 label = stringResource(R.string.history),
                                 icon = Icons.Rounded.History,
                                 isSelected = isHistorySelected,
+                                isVertical = isVertical
                             ) { if (!isHistorySelected) onHistoryClick() }
                             ExpressiveNavItem(
-                                label = if (isHistorySelected) stringResource(R.string.analyze) else stringResource(
-                                    R.string.analyze
-                                ),
+                                label = stringResource(R.string.analyze),
                                 icon = if (isHistorySelected) Icons.Rounded.Add else Icons.Rounded.FileUpload,
                                 isSelected = !isHistorySelected,
+                                isVertical = isVertical,
                                 onClick = { if (isHistorySelected) { onHistoryClick(); onLogClick() } else { onCaptureBatch(); onCaptureBatch() } },
                                 onLongHold = onToggleTorch,
                             )
@@ -254,12 +346,14 @@ fun ExpressiveNavigationBar(
                                 label = stringResource(R.string.select_from_gallery),
                                 icon = Icons.Rounded.Image,
                                 isSelected = false,
+                                isVertical = isVertical,
                                 onClick = onSelectGallery
                             )
                             ExpressiveNavItem(
                                 label = stringResource(R.string.add_label),
                                 icon = Icons.Rounded.CameraAlt,
                                 isSelected = true,
+                                isVertical = isVertical,
                                 onClick = onCaptureBatch,
                                 onLongHold = onToggleTorch
                             )
@@ -267,72 +361,57 @@ fun ExpressiveNavigationBar(
                                 label = stringResource(R.string.analyze_photos),
                                 icon = Icons.Rounded.FileUpload,
                                 isSelected = false,
+                                isVertical = isVertical,
                                 onClick = onFinishBatch,
                                 onLongHold = onToggleTorch,
                             )
-                        } else {
+                        } else if (!((batchCount == 0) && !isBatchMode)) {
                             ExpressiveNavItem(
                                 label = stringResource(R.string.add_label),
                                 icon = Icons.Rounded.CameraAlt,
                                 isSelected = false,
+                                isVertical = isVertical,
                                 onClick = { if (isHistorySelected) { onHistoryClick() }; onCaptureBatch() },
                                 onLongHold = onToggleTorch,
                             )
                         }
                         
                     } else {
-                        val renderItem = @Composable { dest: io.github.draumaz.sustenance.ui.Dest ->
-                            val isSelected = currentDestination?.hierarchy?.any { 
-                                it.route == dest.route || it.route?.startsWith("${dest.route}?") == true 
-                            } == true
+                        val insightsKey = NavKey.Insights
+                        val todayKey = NavKey.Today
 
-                            var selectionAlphaOverride: Float? = null
-                            if (predictiveBackState.isSwipeActive) {
-                                val previousRoute = navController.previousBackStackEntry?.destination?.route
-                                if (previousRoute == dest.route) {
-                                    selectionAlphaOverride = predictiveBackState.progress
-                                } else if (currentRoute == dest.route) {
-                                    selectionAlphaOverride = 1f - predictiveBackState.progress
-                                }
-                            }
-
-                            ExpressiveNavItem(
-                                label = stringResource(dest.labelRes),
-                                icon = dest.icon,
-                                isSelected = isSelected,
-                                selectionAlphaOverride = selectionAlphaOverride,
-                                onClick = { onNavigate(dest) }
-                            )
-
-                        }
-
-                        val others = destinations.filter { it.route != "today" }
-                        val todayDest = destinations.first { it.route == "today" }
-
-                        // Summary (first item usually)
-                        others.take(1).forEach { renderItem(it) }
+                        // Insights
+                        ExpressiveNavItem(
+                            label = stringResource(R.string.summary_title),
+                            icon = Icons.Rounded.Insights,
+                            isSelected = currentKey == insightsKey,
+                            isVertical = isVertical,
+                            onClick = { onNavigate(insightsKey) }
+                        )
 
                         // Today (Home) item - now transforms into detail metric
-                        val isTodaySelected = (currentDestination?.hierarchy?.any { it.route == "today" } == true)
+                        val isTodaySelected = currentKey == todayKey
                         val isEffectivelySelected = isTodaySelected || isOnDetail
 
                         val isLogState = (dateOffset == 0) && hasApiKey && isTodaySelected && !isOnDetail
 
                         AnimatedContent(
-                            targetState = Triple(if (isOnDetail) detailMetric else null, dateOffset, isLogState),
+                            targetState = Triple<Metric?, Int, Boolean>(if (isOnDetail) detailMetric else null, dateOffset, isLogState),
                             transitionSpec = {
                                 (fadeIn(animationSpec = tween(220)) + scaleIn(initialScale = 0.92f))
                                     .togetherWith(fadeOut(animationSpec = tween(160)) + scaleOut(targetScale = 0.92f))
                                     .using(SizeTransform(clip = false))
                             },
                             label = "today_transform"
-                        ) { (targetMetric, offset, isLog) ->
+                        ) { targetTriple ->
+                            val targetMetric = targetTriple.first
+                            val offset = targetTriple.second
+                            val isLog = targetTriple.third
                             var selectionAlphaOverride: Float? = null
                             if (predictiveBackState.isSwipeActive) {
-                                val previousRoute = navController.previousBackStackEntry?.destination?.route
-                                if (previousRoute == "today" || previousRoute?.startsWith("detail/") == true) {
+                                if (previousKey == todayKey || previousKey is NavKey.Detail) {
                                     selectionAlphaOverride = predictiveBackState.progress
-                                } else if (currentRoute == "today" || currentRoute?.startsWith("detail/") == true) {
+                                } else if (currentKey == todayKey || currentKey is NavKey.Detail) {
                                     selectionAlphaOverride = 1f - predictiveBackState.progress
                                 }
                             }
@@ -340,7 +419,7 @@ fun ExpressiveNavigationBar(
                             val labelText = when {
                                 targetMetric != null -> stringResource(targetMetric.titleRes)
                                 isLog -> stringResource(R.string.log)
-                                offset == 0 -> stringResource(todayDest.labelRes)
+                                offset == 0 -> stringResource(R.string.today_label)
                                 offset == 1 -> stringResource(R.string.yesterday)
                                 else -> LocalDate.now().minusDays(offset.toLong())
                                     .format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
@@ -351,19 +430,26 @@ fun ExpressiveNavigationBar(
                                 icon = when {
                                     targetMetric != null -> targetMetric.icon
                                     isLog -> Icons.Rounded.Add
-                                    else -> todayDest.icon
+                                    else -> Icons.Rounded.Today
                                 },
                                 isSelected = isEffectivelySelected,
+                                isVertical = isVertical,
                                 selectionAlphaOverride = selectionAlphaOverride,
                                 onClick = {
-                                    if (isLog) onLogClick() else onNavigate(todayDest)
+                                    if (isLog) onLogClick() else onNavigate(todayKey)
                                 },
                                 onLongHold = { if (isLog) {  onSelectGallery(); onLogClick() } },
                             )
                         }
 
-                        // Settings and others
-                        others.drop(1).forEach { renderItem(it) }
+                        // Settings
+                        ExpressiveNavItem(
+                            label = stringResource(R.string.settings_title),
+                            icon = Icons.Rounded.Settings,
+                            isSelected = currentKey is NavKey.Settings,
+                            isVertical = isVertical,
+                            onClick = { onNavigate(NavKey.Settings()) }
+                        )
                     }
                 }
             }
@@ -377,6 +463,7 @@ fun ExpressiveNavItem(
     label: String,
     icon: ImageVector,
     isSelected: Boolean,
+    isVertical: Boolean = false,
     selectionAlphaOverride: Float? = null,
     onLongHold: () -> Unit = {},
     onClick: () -> Unit
@@ -426,9 +513,20 @@ fun ExpressiveNavItem(
     val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
     val onPrimaryContainer = MaterialTheme.colorScheme.onPrimaryContainer
 
+    val itemModifier = if (isVertical) {
+        Modifier
+            .width(56.dp)
+            .heightIn(min = 56.dp)
+            .padding(vertical = 12.dp)
+    } else {
+        Modifier
+            .height(56.dp)
+            .padding(horizontal = 16.dp)
+    }
+
     Box(
         modifier = Modifier
-            .height(56.dp)
+            .then(if (isVertical) Modifier.width(56.dp) else Modifier.height(56.dp))
             .graphicsLayer {
                 scaleX = scale.value
                 scaleY = scale.value
@@ -447,15 +545,30 @@ fun ExpressiveNavItem(
                     }
                 }
             )
-            .padding(horizontal = 16.dp),
+            .then(itemModifier),
         contentAlignment = Alignment.Center
     ) {
         val contentColor = if (selectionAlpha > 0.5f) onPrimaryContainer else onSurfaceVariant
 
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
-        ) {
+        val LayoutContainer = @Composable { content: @Composable () -> Unit ->
+            if (isVertical) {
+                Column(
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    content()
+                }
+            } else {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    content()
+                }
+            }
+        }
+
+        LayoutContainer {
             Icon(
                 imageVector = icon,
                 contentDescription = label,
@@ -464,16 +577,31 @@ fun ExpressiveNavItem(
             )
 
             if (isSelected || (selectionAlphaOverride ?: 0f) > 0.8f) {
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = label,
-                    color = contentColor,
-                    style = MaterialTheme.typography.labelLarge.copy(
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 0.5.sp
-                    ),
-                    maxLines = 1
-                )
+                if (isVertical) {
+                    // In vertical mode, maybe we don't show text to save width, or show it below
+                    // But for this "Expressive" style, let's try showing it below if selected
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = label,
+                        color = contentColor,
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.Bold,
+                        ),
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                    )
+                } else {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = label,
+                        color = contentColor,
+                        style = MaterialTheme.typography.labelLarge.copy(
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 0.5.sp
+                        ),
+                        maxLines = 1
+                    )
+                }
             }
         }
     }

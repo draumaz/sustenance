@@ -1,74 +1,75 @@
 package io.github.draumaz.sustenance.ui
 
-import android.content.Intent
 import android.Manifest
+import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
 import android.net.Uri
 import android.util.Log
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
+import androidx.activity.compose.PredictiveBackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Insights
-import androidx.compose.material.icons.rounded.Settings
-import androidx.compose.material.icons.rounded.Today
+import androidx.annotation.StringRes
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateIntAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.AlertDialog
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
-import androidx.compose.ui.input.nestedscroll.NestedScrollSource
-import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.dp
-import androidx.annotation.StringRes
-import androidx.compose.ui.res.stringResource
-import androidx.core.net.toUri
-import kotlinx.coroutines.launch
-import kotlin.math.roundToInt
-import androidx.health.connect.client.PermissionController
-import androidx.health.connect.client.permission.HealthPermission
-import androidx.health.connect.client.records.NutritionRecord
-import androidx.activity.compose.BackHandler
-import androidx.activity.compose.PredictiveBackHandler
-import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.compose.LifecycleResumeEffect
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.tween
-import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Insights
+import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material.icons.rounded.Today
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
+import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
+import androidx.compose.material3.adaptive.navigation3.ListDetailSceneStrategy
+import androidx.compose.material3.adaptive.navigation3.rememberListDetailSceneStrategy
+import androidx.compose.material3.adaptive.navigationsuite.ExperimentalMaterial3AdaptiveNavigationSuiteApi
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteDefaults
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffoldDefaults
+import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteType
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.navigation.NavGraph.Companion.findStartDestination
-import androidx.navigation.NavType
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.dp
+import androidx.core.net.toUri
+import androidx.health.connect.client.PermissionController
+import androidx.lifecycle.compose.LifecycleResumeEffect
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation3.runtime.NavEntry
+import androidx.navigation3.ui.NavDisplay
 import io.github.draumaz.sustenance.R
 import io.github.draumaz.sustenance.data.ExportManager
 import io.github.draumaz.sustenance.data.GoalsRepository
@@ -76,22 +77,23 @@ import io.github.draumaz.sustenance.data.HealthConnectManager
 import io.github.draumaz.sustenance.data.Metric
 import io.github.draumaz.sustenance.data.SettingsRepository
 import io.github.draumaz.sustenance.ui.components.ExpressiveNavigationBar
+import io.github.draumaz.sustenance.ui.components.FoodReviewDialog
 import io.github.draumaz.sustenance.ui.components.CameraPreview
 import io.github.draumaz.sustenance.ui.components.PredictiveBackState
 import io.github.draumaz.sustenance.ui.components.ScallopedLoadingAnimation
 import io.github.draumaz.sustenance.ui.dashboard.DashboardScreen
 import io.github.draumaz.sustenance.ui.detail.DetailScreen
+import io.github.draumaz.sustenance.ui.history.HistoryScreen
 import io.github.draumaz.sustenance.ui.onboarding.LoadingScreen
 import io.github.draumaz.sustenance.ui.onboarding.OnboardingScreen
 import io.github.draumaz.sustenance.ui.onboarding.UnavailableScreen
 import io.github.draumaz.sustenance.ui.settings.SettingsScreen
 import io.github.draumaz.sustenance.ui.summary.InsightsScreen
-import io.github.draumaz.sustenance.ui.summary.InsightsViewModel
-import io.github.draumaz.sustenance.ui.components.FoodReviewDialog
-import io.github.draumaz.sustenance.ui.history.HistoryScreen
 import io.github.draumaz.sustenance.util.FoodNutrients
 import io.github.draumaz.sustenance.util.GeminiManager
 import io.github.draumaz.sustenance.widget.WidgetUpdateWorker
+import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 private const val HEALTH_CONNECT_PACKAGE = "com.google.android.apps.healthdata"
 private const val ACTION_HC_SETTINGS = "androidx.health.connect.action.HEALTH_CONNECT_SETTINGS"
@@ -121,12 +123,6 @@ private fun decodeDownsampledBitmap(context: android.content.Context, uri: Uri, 
         Log.e("SustenanceRoot", "Failed to decode downsampled bitmap", e)
         null
     }
-}
-
-enum class Dest(val route: String, @param:StringRes val labelRes: Int, val icon: ImageVector) {
-    TODAY("today", R.string.today_label, Icons.Rounded.Today),
-    INSIGHTS("insights", R.string.summary_title, Icons.Rounded.Insights),
-    SETTINGS("settings", R.string.settings_title, Icons.Rounded.Settings),
 }
 
 @Composable
@@ -253,6 +249,7 @@ fun SustenanceRoot(
     }
 }
 
+@OptIn(ExperimentalMaterial3AdaptiveApi::class, ExperimentalMaterial3AdaptiveNavigationSuiteApi::class)
 @Composable
 private fun MainNav(
     manager: HealthConnectManager,
@@ -271,16 +268,13 @@ private fun MainNav(
     val currentContext = LocalContext.current
     val appContext = currentContext.applicationContext
     val scope = rememberCoroutineScope()
-    val navController = rememberNavController()
-    val backStack by navController.currentBackStackEntryAsState()
-    val currentRoute = backStack?.destination?.route
-    val topLevel = remember { Dest.entries.toList() }
-    val showBar =
-        currentRoute == Dest.TODAY.route || 
-        currentRoute == Dest.INSIGHTS.route || 
-        currentRoute?.startsWith(Dest.SETTINGS.route) == true || 
-        currentRoute?.startsWith("detail/") == true
-
+    
+    val backstack = remember { mutableStateListOf<NavKey>(NavKey.Today) }
+    val currentKey = backstack.lastOrNull()
+    val previousKey = if (backstack.size > 1) backstack[backstack.size - 2] else null
+    
+    val topLevel = remember { listOf(NavKey.Insights, NavKey.Today, NavKey.Settings()) }
+    
     val pbState = remember { PredictiveBackState() }
     var todayClickCount by remember { mutableIntStateOf(0) }
     var dashboardDateOffset by remember { mutableIntStateOf(0) }
@@ -376,7 +370,7 @@ private fun MainNav(
     val bottomBarHeightPx = with(LocalDensity.current) { bottomBarHeight.roundToPx().toFloat() }
     val bottomBarOffsetHeightPx = remember { mutableFloatStateOf(0f) }
 
-    LaunchedEffect(currentRoute, isHistoryActive) {
+    LaunchedEffect(currentKey, isHistoryActive) {
         bottomBarOffsetHeightPx.floatValue = 0f
     }
 
@@ -405,13 +399,12 @@ private fun MainNav(
         }
     }
 
-    // Open a metric's detail directly when launched from its widget.
     LaunchedEffect(deepLinkMetric) {
         val metric = deepLinkMetric?.let { Metric.fromKey(it) }
         if (metric != null) {
             val isGranted = manager.permissionFor(metric) in granted
             if (isGranted) {
-                navController.navigate("detail/${metric.key}")
+                backstack.add(NavKey.Detail(metric.key))
             } else {
                 onManagePermissions()
             }
@@ -436,199 +429,297 @@ private fun MainNav(
         label = "camera_blur"
     )
 
-    Scaffold(
-        modifier = Modifier
-            .fillMaxSize()
-            .nestedScroll(nestedScrollConnection),
-        bottomBar = {
-            if (showBar) {
-                val animatedOffset by animateIntAsState(
-                    targetValue = bottomBarOffsetHeightPx.floatValue.roundToInt(),
-                    animationSpec = spring(stiffness = Spring.StiffnessMedium),
-                    label = "bottom_bar_offset"
-                )
+    val listDetailStrategy = rememberListDetailSceneStrategy<NavKey>()
+    val adaptiveInfo = currentWindowAdaptiveInfo()
+    val layoutType = NavigationSuiteScaffoldDefaults.calculateFromAdaptiveInfo(adaptiveInfo)
+    val isVertical = layoutType != NavigationSuiteType.NavigationBar
 
-                Box(
-                    modifier = Modifier
-                        .offset { IntOffset(x = 0, y = -animatedOffset) }
-                ) {
-                    ExpressiveNavigationBar(
-                        navController = navController,
-                        destinations = topLevel,
-                        predictiveBackState = pbState,
-                        dateOffset = dashboardDateOffset,
-                        hasApiKey = hasApiKey,
-                        isCameraMode = isCameraActive && !isAnalyzing,
-                        isBatchMode = isBatchMode,
-                        capturedBitmaps = capturedBitmaps,
-                        batchInfoText = batchInfoText,
-                        onBatchInfoTextChange = { batchInfoText = it },
-                        onSelectGallery = { galleryLauncher.launch("image/*") },
-                        onToggleTorch = { isTorchOn = !isTorchOn },
-                        onCapture = {
-                            isTorchOn = false
-                            isBatchMode = false
+    val animatedOffset by animateIntAsState(
+        targetValue = bottomBarOffsetHeightPx.floatValue.roundToInt(),
+        animationSpec = spring(stiffness = Spring.StiffnessMedium),
+        label = "bottom_bar_offset"
+    )
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        Row(Modifier.fillMaxSize()) {
+            if (isVertical) {
+                ExpressiveNavigationBar(
+                    currentKey = currentKey,
+                    previousKey = previousKey,
+                    destinations = topLevel,
+                    predictiveBackState = pbState,
+                    dateOffset = dashboardDateOffset,
+                    hasApiKey = hasApiKey,
+                    isCameraMode = isCameraActive && !isAnalyzing,
+                    isBatchMode = isBatchMode,
+                    capturedBitmaps = capturedBitmaps,
+                    batchInfoText = batchInfoText,
+                    onBatchInfoTextChange = { batchInfoText = it },
+                    onSelectGallery = { galleryLauncher.launch("image/*") },
+                    onToggleTorch = { isTorchOn = !isTorchOn },
+                    onCapture = {
+                        isTorchOn = false
+                        isBatchMode = false
+                        isCapturing = true
+                    },
+                    onCaptureBatch = {
+                        if (!isBatchMode) {
+                            isBatchMode = true
+                        } else {
                             isCapturing = true
-                        },
-                        onCaptureBatch = {
-                            if (!isBatchMode) {
-                                isBatchMode = true
+                        }
+                    },
+                    onFinishBatch = {
+                        isTorchOn = false
+                        scope.launch {
+                            val trimmedKey = apiKey.trim()
+                            if (trimmedKey.isBlank()) {
+                                Toast.makeText(
+                                    currentContext,
+                                    R.string.api_key_missing,
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                                return@launch
+                            }
+                            isAnalyzing = true
+                            val result = GeminiManager(trimmedKey).analyzeFoodImages(
+                                capturedBitmaps,
+                                batchInfoText
+                            )
+                            isAnalyzing = false
+                            if (result.isSuccess) {
+                                pendingNutrients = result.getOrNull()
+                                clearCapture()
                             } else {
-                                isCapturing = true
+                                val errorMsg = result.exceptionOrNull()?.message ?: ""
+                                Toast.makeText(
+                                    currentContext,
+                                    appContext.getString(R.string.analysis_failed, errorMsg),
+                                    Toast.LENGTH_LONG
+                                ).show()
                             }
-                        },
-                        onFinishBatch = {
-                            isTorchOn = false
-                            scope.launch {
-                                val trimmedKey = apiKey.trim()
-                                if (trimmedKey.isBlank()) {
-                                    Toast.makeText(
-                                        currentContext,
-                                        R.string.api_key_missing,
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                    return@launch
-                                }
-                                isAnalyzing = true
-                                val result = GeminiManager(trimmedKey).analyzeFoodImages(
-                                    capturedBitmaps,
-                                    batchInfoText
-                                )
-                                isAnalyzing = false
-                                if (result.isSuccess) {
-                                    pendingNutrients = result.getOrNull()
-                                    clearCapture()
-                                } else {
-                                    val errorMsg = result.exceptionOrNull()?.message ?: ""
-                                    Toast.makeText(
-                                        currentContext,
-                                        appContext.getString(R.string.analysis_failed, errorMsg),
-                                        Toast.LENGTH_LONG
-                                    ).show()
+                        }
+                    },
+                    onLogClick = {
+                        cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                    },
+                    isHistorySelected = isHistoryActive,
+                    onHistoryClick = {
+                        isHistoryActive = !isHistoryActive
+                    },
+                    isVertical = true,
+                    onNavigate = { dest ->
+                        if (isCameraActive) clearCapture()
+                        isHistoryActive = false
+                        if (dest == NavKey.Today) {
+                            if (currentKey == NavKey.Today) {
+                                todayClickCount++
+                                bottomBarOffsetHeightPx.floatValue = 0f
+                            } else {
+                                while (backstack.size > 1) {
+                                    backstack.removeAt(backstack.size - 1)
                                 }
                             }
-                        },
-                        onLogClick = {
-                            cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
-                        },
-                        isHistorySelected = isHistoryActive,
-                        onHistoryClick = {
-                            isHistoryActive = !isHistoryActive
-                        },
-                        onNavigate = { dest ->
-                            if (isCameraActive) clearCapture()
-                            isHistoryActive = false
-                            if (dest == Dest.TODAY) {
-                                if (currentRoute == Dest.TODAY.route) {
-                                    todayClickCount++
+                        } else {
+                            val isSameTopLevel = when (dest) {
+                                is NavKey.Settings -> currentKey is NavKey.Settings
+                                else -> currentKey == dest
+                            }
+                            if (!isSameTopLevel) {
+                                while (backstack.size > 1) {
+                                    backstack.removeAt(backstack.size - 1)
+                                }
+                                if (dest != NavKey.Today) {
+                                    backstack.add(dest)
+                                }
+                            }
+                        }
+                    }
+                )
+            }
+
+            Box(Modifier.weight(1f)) {
+                NavDisplay(
+                    backStack = backstack,
+                    onBack = { if (backstack.size > 1) backstack.removeAt(backstack.size - 1) },
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .blur(dashboardBlur),
+                    sceneStrategy = listDetailStrategy
+                ) { key ->
+                    when (key) {
+                        NavKey.Today -> NavEntry(
+                            key = key,
+                            metadata = ListDetailSceneStrategy.listPane()
+                        ) { _ ->
+                            DashboardScreen(
+                                manager = manager,
+                                goalsRepo = goalsRepo,
+                                settingsRepo = settingsRepo,
+                                granted = granted,
+                                bottomInset = if (isVertical) 0.dp else 120.dp,
+                                todayClickCount = todayClickCount,
+                                onOpenMetric = { detailKey ->
+                                    backstack.add(detailKey)
+                                },
+                                onTimerClick = {
+                                    backstack.add(NavKey.Settings(scrollTo = "fasting"))
+                                },
+                                onManagePermissions = onManagePermissions,
+                                onDateChanged = { 
+                                    dashboardDateOffset = it
                                     bottomBarOffsetHeightPx.floatValue = 0f
-                                } else {
-                                    // Use popBackStack for consistent return to the root 'Today' screen.
-                                    // This handles detail screens and settings regardless of parameters.
-                                    navController.popBackStack(Dest.TODAY.route, inclusive = false)
                                 }
+                            )
+                        }
+
+                        NavKey.Insights -> NavEntry(
+                            key = key
+                        ) { _ ->
+                            InsightsScreen(
+                                manager = manager,
+                                goalsRepo = goalsRepo,
+                                bottomInset = if (isVertical) 0.dp else 120.dp,
+                                onBack = { if (backstack.size > 1) backstack.removeAt(backstack.size - 1) }
+                            )
+                        }
+
+                        is NavKey.Settings -> NavEntry(
+                            key = key
+                        ) { _ ->
+                            SettingsScreen(
+                                manager = manager,
+                                exporter = exporter,
+                                settingsRepo = settingsRepo,
+                                bottomInset = if (isVertical) 0.dp else 120.dp,
+                                onManagePermissions = onManagePermissions,
+                                onBack = { if (backstack.size > 1) backstack.removeAt(backstack.size - 1) },
+                                scrollTo = (key as NavKey.Settings).scrollTo
+                            )
+                        }
+
+                        is NavKey.Detail -> NavEntry(
+                            key = key,
+                            metadata = ListDetailSceneStrategy.detailPane()
+                        ) { entryKey ->
+                            val detailKey = (entryKey as? NavKey.Detail) ?: key as NavKey.Detail
+                            val metric = Metric.fromKey(detailKey.metricKey) ?: Metric.TOTAL_CALORIES
+                            DetailScreen(
+                                manager = manager,
+                                goalsRepo = goalsRepo,
+                                settingsRepo = settingsRepo,
+                                metric = metric,
+                                dateOffset = dashboardDateOffset,
+                                onReLog = { pendingNutrients = it },
+                                onBack = { if (backstack.size > 1) backstack.removeAt(backstack.size - 1) }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        if (!isVertical) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .offset { IntOffset(x = 0, y = -animatedOffset) }
+            ) {
+                ExpressiveNavigationBar(
+                    currentKey = currentKey,
+                    previousKey = previousKey,
+                    destinations = topLevel,
+                    predictiveBackState = pbState,
+                    dateOffset = dashboardDateOffset,
+                    hasApiKey = hasApiKey,
+                    isCameraMode = isCameraActive && !isAnalyzing,
+                    isBatchMode = isBatchMode,
+                    capturedBitmaps = capturedBitmaps,
+                    batchInfoText = batchInfoText,
+                    onBatchInfoTextChange = { batchInfoText = it },
+                    onSelectGallery = { galleryLauncher.launch("image/*") },
+                    onToggleTorch = { isTorchOn = !isTorchOn },
+                    onCapture = {
+                        isTorchOn = false
+                        isBatchMode = false
+                        isCapturing = true
+                    },
+                    onCaptureBatch = {
+                        if (!isBatchMode) {
+                            isBatchMode = true
+                        } else {
+                            isCapturing = true
+                        }
+                    },
+                    onFinishBatch = {
+                        isTorchOn = false
+                        scope.launch {
+                            val trimmedKey = apiKey.trim()
+                            if (trimmedKey.isBlank()) {
+                                Toast.makeText(
+                                    currentContext,
+                                    R.string.api_key_missing,
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                                return@launch
+                            }
+                            isAnalyzing = true
+                            val result = GeminiManager(trimmedKey).analyzeFoodImages(
+                                capturedBitmaps,
+                                batchInfoText
+                            )
+                            isAnalyzing = false
+                            if (result.isSuccess) {
+                                pendingNutrients = result.getOrNull()
+                                clearCapture()
                             } else {
-                                navController.navigate(dest.route) {
-                                    popUpTo(navController.graph.findStartDestination().id) {
-                                        saveState = true
-                                    }
-                                    launchSingleTop = true
-                                    restoreState = true
+                                val errorMsg = result.exceptionOrNull()?.message ?: ""
+                                Toast.makeText(
+                                    currentContext,
+                                    appContext.getString(R.string.analysis_failed, errorMsg),
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            }
+                        }
+                    },
+                    onLogClick = {
+                        cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                    },
+                    isHistorySelected = isHistoryActive,
+                    onHistoryClick = {
+                        isHistoryActive = !isHistoryActive
+                    },
+                    isVertical = false,
+                    onNavigate = { dest ->
+                        if (isCameraActive) clearCapture()
+                        isHistoryActive = false
+                        if (dest == NavKey.Today) {
+                            if (currentKey == NavKey.Today) {
+                                todayClickCount++
+                                bottomBarOffsetHeightPx.floatValue = 0f
+                            } else {
+                                while (backstack.size > 1) {
+                                    backstack.removeAt(backstack.size - 1)
+                                }
+                            }
+                        } else {
+                            val isSameTopLevel = when (dest) {
+                                is NavKey.Settings -> currentKey is NavKey.Settings
+                                else -> currentKey == dest
+                            }
+                            if (!isSameTopLevel) {
+                                while (backstack.size > 1) {
+                                    backstack.removeAt(backstack.size - 1)
+                                }
+                                if (dest != NavKey.Today) {
+                                    backstack.add(dest)
                                 }
                             }
                         }
-                    )
-                }
+                    }
+                )
             }
-        },
-    ) { inner ->
-        Box(modifier = Modifier.fillMaxSize()) {
-            NavHost(
-                navController = navController,
-                startDestination = Dest.TODAY.route,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .blur(dashboardBlur),
-            ) {
-                composable(
-                    Dest.TODAY.route,
-                    enterTransition = { fadeIn(tween(200)) },
-                    exitTransition = { fadeOut(tween(200)) }
-                ) {
-                    DashboardScreen(
-                        manager = manager,
-                        goalsRepo = goalsRepo,
-                        settingsRepo = settingsRepo,
-                        granted = granted,
-                        bottomInset = inner.calculateBottomPadding(),
-                        todayClickCount = todayClickCount,
-                        onOpenMetric = { metric, _ ->
-                            navController.navigate("detail/${metric.key}")
-                        },
-                        onTimerClick = {
-                            navController.navigate("settings?scrollTo=fasting")
-                        },
-                        onManagePermissions = onManagePermissions,
-                        onDateChanged = { 
-                            dashboardDateOffset = it
-                            bottomBarOffsetHeightPx.floatValue = 0f
-                        }
-                    )
-                }
-
-                composable(
-                    Dest.INSIGHTS.route,
-                    enterTransition = { fadeIn(tween(200)) },
-                    exitTransition = { fadeOut(tween(200)) }
-                ) {
-                    InsightsScreen(
-                        manager = manager,
-                        goalsRepo = goalsRepo,
-                        bottomInset = inner.calculateBottomPadding(),
-                        onBack = { navController.popBackStack() }
-                    )
-                }
-
-                composable(
-                    Dest.SETTINGS.route + "?scrollTo={scrollTo}",
-                    arguments = listOf(navArgument("scrollTo") {
-                        type = NavType.StringType
-                        nullable = true
-                        defaultValue = null
-                    }),
-                    enterTransition = { fadeIn(tween(200)) },
-                    exitTransition = { fadeOut(tween(200)) }
-                ) { entry ->
-                    SettingsScreen(
-                        manager = manager,
-                        exporter = exporter,
-                        settingsRepo = settingsRepo,
-                        bottomInset = inner.calculateBottomPadding(),
-                        onManagePermissions = onManagePermissions,
-                        onBack = { navController.popBackStack() },
-                        scrollTo = entry.arguments?.getString("scrollTo")
-                    )
-                }
-
-                composable(
-                    "detail/{metricKey}",
-                    arguments = listOf(navArgument("metricKey") { type = NavType.StringType }),
-                    enterTransition = { fadeIn(tween(200)) },
-                    exitTransition = { fadeOut(tween(200)) }
-                ) { entry ->
-                    val key = entry.arguments?.getString("metricKey") ?: ""
-                    val metric = Metric.fromKey(key) ?: Metric.TOTAL_CALORIES
-                    DetailScreen(
-                        manager = manager,
-                        goalsRepo = goalsRepo,
-                        settingsRepo = settingsRepo,
-                        metric = metric,
-                        dateOffset = dashboardDateOffset,
-                        onReLog = { pendingNutrients = it },
-                        onBack = { navController.popBackStack() }
-                    )
-                }
-            }
+        }
 
             // Interaction Shield for blurred background
             if (dashboardBlur > 0.dp) {
@@ -654,8 +745,7 @@ private fun MainNav(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(
-                            top = inner.calculateTopPadding(),
-                            bottom = bottomBarHeight
+                            bottom = if (isVertical) 0.dp else bottomBarHeight
                         )
                         .graphicsLayer {
                             alpha = 1f - pbState.progress
@@ -766,7 +856,7 @@ private fun MainNav(
                 HistoryScreen(
                     manager = manager,
                     settingsRepo = settingsRepo,
-                    bottomInset = inner.calculateBottomPadding(),
+                    bottomInset = if (isVertical) 0.dp else 120.dp,
                     predictiveBackProgress = if (isHistoryActive) pbState.progress else 0f,
                     onItemSelected = { item ->
                         pendingNutrients = item.nutrients
@@ -823,4 +913,3 @@ private fun MainNav(
             }
         }
     }
-}
