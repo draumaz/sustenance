@@ -330,7 +330,7 @@ class HealthConnectManager(internal val context: Context) {
     ): MetricDetail {
         val isGoalEditable = !(metric == Metric.FOOD && isCaloricBalanceActive)
         return runCatching {
-            val days = if (metric.kind == MetricKind.DAILY_TOTAL) 14 else 90
+            val days = if (metric.kind == MetricKind.DAILY_TOTAL) 7 else 90
             val points = series(metric, days, dateOffset)
             val unit = context.getString(metric.unitRes)
 
@@ -365,7 +365,7 @@ class HealthConnectManager(internal val context: Context) {
                 stats = listOf(
                     context.getString(R.string.daily_avg) to "${metric.formatValue(values.average().toFloat())} $unit",
                     context.getString(R.string.highest_day) to "${metric.formatValue(values.max())} $unit",
-                    context.getString(R.string.fourteen_day_total) to "${metric.formatValue(values.sum())} $unit",
+                    context.getString(R.string.seven_day_total) to "${metric.formatValue(values.sum())} $unit",
                 )
             } else {
                 headline = "${metric.formatValue(points.last().value)} $unit"

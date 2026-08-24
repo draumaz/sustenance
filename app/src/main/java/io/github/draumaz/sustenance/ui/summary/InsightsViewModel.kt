@@ -124,7 +124,7 @@ class InsightsViewModel(
             val granted = runCatching { manager.grantedPermissions() }.getOrDefault(emptySet())
             series.value = GoalCatalog.metrics
                 .filter { manager.permissionFor(it) in granted }
-                .associateWith { runCatching { manager.readDailySeries(it, 14) }.getOrDefault(emptyList()) }
+                .associateWith { runCatching { manager.readDailySeries(it, 7) }.getOrDefault(emptyList()) }
             
             if (granted.contains(manager.permissionFor(Metric.FOOD))) {
                 todayLogs.value = runCatching { manager.readTodayNutrition() }.getOrDefault(emptyList())

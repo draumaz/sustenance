@@ -121,7 +121,8 @@
     <string name="today_comma">Сегодня, %s</string>
     <string name="daily_avg">Среднее за день</string>
     <string name="highest_day">Наилучший день</string>
-    <string name="fourteen_day_total">Всего за 14 дней</string>
+    <string name="seven_day_total">Всего за 7 дней</string>
+    <string name="fourteen_day_total" translatable="false">Всего за 14 дней</string>
     <string name="average">Среднее</string>
     <string name="min">Мин</string>
     <string name="max">Макс</string>

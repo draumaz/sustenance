@@ -121,7 +121,8 @@
     <string name="today_comma">Today, %s</string>
     <string name="daily_avg">Daily avg</string>
     <string name="highest_day">Highest day</string>
-    <string name="fourteen_day_total">14-day total</string>
+    <string name="seven_day_total">7-day total</string>
+    <string name="fourteen_day_total" translatable="false">14-day total</string>
     <string name="average">Average</string>
     <string name="min">Min</string>
     <string name="max">Max</string>
