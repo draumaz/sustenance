@@ -63,7 +63,7 @@ fun HistoryScreen(
     val (pinned, unpinned) = remember(history) {
         history.partition { it.isPinned }
     }
-    
+
     val timeFmt = remember { DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT) }
     val zone = remember { ZoneId.systemDefault() }
 
