@@ -134,9 +134,11 @@ fun SustenanceRoot(
     deepLinkMetric: String? = null,
     sharedImageUris: List<Uri>? = null,
     launchLog: Boolean = false,
+    launchToday: Boolean = false,
     onDeepLinkConsumed: () -> Unit = {},
     onSharedImagesConsumed: () -> Unit = {},
     onLogConsumed: () -> Unit = {},
+    onTodayConsumed: () -> Unit = {},
 ) {
     val currentContext = LocalContext.current
 
@@ -241,9 +243,11 @@ fun SustenanceRoot(
                 deepLinkMetric = deepLinkMetric,
                 sharedImageUris = sharedImageUris,
                 launchLog = launchLog,
+                launchToday = launchToday,
                 onDeepLinkConsumed = onDeepLinkConsumed,
                 onSharedImagesConsumed = onSharedImagesConsumed,
-                onLogConsumed = onLogConsumed
+                onLogConsumed = onLogConsumed,
+                onTodayConsumed = onTodayConsumed
             )
         }
     }
@@ -261,9 +265,11 @@ private fun MainNav(
     deepLinkMetric: String? = null,
     sharedImageUris: List<Uri>? = null,
     launchLog: Boolean = false,
+    launchToday: Boolean = false,
     onDeepLinkConsumed: () -> Unit = {},
     onSharedImagesConsumed: () -> Unit = {},
     onLogConsumed: () -> Unit = {},
+    onTodayConsumed: () -> Unit = {},
 ) {
     val currentContext = LocalContext.current
     val appContext = currentContext.applicationContext
@@ -416,6 +422,17 @@ private fun MainNav(
         if (launchLog) {
             cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
             onLogConsumed()
+        }
+    }
+
+    LaunchedEffect(launchToday) {
+        if (launchToday) {
+            isCameraActive = false
+            isHistoryActive = false
+            while (backstack.size > 1) {
+                backstack.removeAt(backstack.size - 1)
+            }
+            onTodayConsumed()
         }
     }
 

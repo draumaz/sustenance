@@ -26,6 +26,7 @@ class MainActivity : ComponentActivity() {
     private var deepLinkMetric by mutableStateOf<String?>(null)
     private var sharedImages by mutableStateOf<List<Uri>?>(null)
     private var shouldLog by mutableStateOf(value = false)
+    private var shouldNavigateToToday by mutableStateOf(value = false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
@@ -50,9 +51,11 @@ class MainActivity : ComponentActivity() {
                         deepLinkMetric = deepLinkMetric,
                         sharedImageUris = sharedImages,
                         launchLog = shouldLog,
+                        launchToday = shouldNavigateToToday,
                         onDeepLinkConsumed = { deepLinkMetric = null },
                         onSharedImagesConsumed = { sharedImages = null },
-                        onLogConsumed = { shouldLog = false }
+                        onLogConsumed = { shouldLog = false },
+                        onTodayConsumed = { shouldNavigateToToday = false }
                     )
                 }
             }
@@ -71,6 +74,10 @@ class MainActivity : ComponentActivity() {
 
         if (intent.action == ACTION_LOG) {
             shouldLog = true
+        }
+
+        if (intent.action == ACTION_TODAY) {
+            shouldNavigateToToday = true
         }
 
         when (intent.action) {
@@ -92,5 +99,6 @@ class MainActivity : ComponentActivity() {
     companion object {
         const val EXTRA_METRIC = "io.github.draumaz.sustenance.extra.METRIC"
         const val ACTION_LOG = "io.github.draumaz.sustenance.action.LOG"
+        const val ACTION_TODAY = "io.github.draumaz.sustenance.action.TODAY"
     }
 }
