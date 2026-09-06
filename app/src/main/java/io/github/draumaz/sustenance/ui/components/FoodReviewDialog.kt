@@ -27,21 +27,43 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import io.github.draumaz.sustenance.R
+import io.github.draumaz.sustenance.data.GoalCatalog
 import io.github.draumaz.sustenance.data.Metric
 import io.github.draumaz.sustenance.util.FoodNutrients
 import java.time.Instant
 import java.util.Locale
+import kotlin.math.roundToInt
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
+
+private fun formatTargetPercentage(value: Double, goal: Float?): String? {
+    if (goal == null || goal <= 0f) return null
+    val pct = (value / goal * 100.0)
+    return when {
+        pct <= 0.0 -> "0"
+        pct < 1.0 -> "<1"
+        else -> pct.roundToInt().toString()
+    }
+}
+
+private data class NutrientChipData(
+    val label: String,
+    val value: String,
+    val onValueChange: (String) -> Unit,
+    val unit: String,
+    val containerColor: Color,
+    val percentage: String?
+)
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -147,7 +169,7 @@ fun FoodReviewDialog(
             Icon(
                 Icons.Rounded.Restaurant,
                 contentDescription = null,
-                modifier = Modifier.size(32.dp),
+                modifier = Modifier.size(28.dp),
                 tint = MaterialTheme.colorScheme.primary
             )
         },
@@ -156,7 +178,7 @@ fun FoodReviewDialog(
                 BasicTextField(
                     value = foodItem.replace("\\s*\\(\\d+g\\)".toRegex(), "").trim(),
                     onValueChange = { foodItem = it },
-                    textStyle = MaterialTheme.typography.headlineSmall.copy(
+                    textStyle = MaterialTheme.typography.titleLarge.copy(
                         fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.Center,
                         color = MaterialTheme.colorScheme.onSurface
@@ -165,7 +187,7 @@ fun FoodReviewDialog(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
                 )
 
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(4.dp))
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -193,27 +215,6 @@ fun FoodReviewDialog(
                             color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
                         )
                     )
-
-                    if (judgementalMode) {
-                        Spacer(Modifier.width(8.dp))
-                        val isNegative = judgement is Metric.Judgement.Negative
-                        val color = if (isNegative) MaterialTheme.colorScheme.error else Color(0xFF4CAF50)
-                        
-                        Box(
-                            modifier = Modifier
-                                .size(32.dp)
-                                .clip(MorphingScallopedShape(0f, 1f, bumpsCount = 2f))
-                                .background(color.copy(alpha = 0.15f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = if (isNegative) Icons.Rounded.Cancel else Icons.Rounded.CheckCircle,
-                                contentDescription = null,
-                                tint = color,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                    }
                 }
 
                 if (showTimePicker) {
@@ -263,78 +264,105 @@ fun FoodReviewDialog(
                 modifier = Modifier
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Gram Selector
-                Surface(
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                    modifier = Modifier.fillMaxWidth()
+                // Gram Selector & Judgement Badge
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
                 ) {
-                    Row(
-                        modifier = Modifier.padding(4.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
+                    Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                        modifier = Modifier.weight(1f)
                     ) {
-                        IconButton(
-                            onClick = {
-                                if (currentGrams > 1) {
-                                    val next = currentGrams - 1
+                        Row(
+                            modifier = Modifier.padding(2.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            IconButton(
+                                onClick = {
+                                    if (currentGrams > 1) {
+                                        val next = currentGrams - 1
+                                        scaleNutrients(next)
+                                        currentGrams = next
+                                    }
+                                },
+                                colors = IconButtonDefaults.filledIconButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.surface,
+                                    contentColor = MaterialTheme.colorScheme.onSurface
+                                ),
+                                modifier = Modifier.size(40.dp)
+                            ) {
+                                Icon(Icons.Rounded.Remove, stringResource(R.string.less))
+                            }
+                            
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                BasicTextField(
+                                    value = quantityText,
+                                    onValueChange = { newValue ->
+                                        val sanitized = newValue.replace(',', '.')
+                                        val num = sanitized.toDoubleOrNull()
+                                        if (num != null && num >= 0) {
+                                            scaleNutrients(num)
+                                            currentGrams = num
+                                        }
+                                        quantityText = newValue
+                                    },
+                                    textStyle = MaterialTheme.typography.titleLarge.copy(
+                                        fontWeight = FontWeight.Black,
+                                        textAlign = TextAlign.Center,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    ),
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                    modifier = Modifier.widthIn(min = 60.dp)
+                                )
+                                Text(
+                                    text = stringResource(R.string.grams_label),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+
+                            IconButton(
+                                onClick = {
+                                    val next = currentGrams + 1
                                     scaleNutrients(next)
                                     currentGrams = next
-                                }
-                            },
-                            colors = IconButtonDefaults.filledIconButtonColors(
-                                containerColor = MaterialTheme.colorScheme.surface,
-                                contentColor = MaterialTheme.colorScheme.onSurface
-                            ),
-                            modifier = Modifier.size(48.dp)
-                        ) {
-                            Icon(Icons.Rounded.Remove, stringResource(R.string.less))
-                        }
-                        
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            BasicTextField(
-                                value = quantityText,
-                                onValueChange = { newValue ->
-                                    val sanitized = newValue.replace(',', '.')
-                                    val num = sanitized.toDoubleOrNull()
-                                    if (num != null && num >= 0) {
-                                        scaleNutrients(num)
-                                        currentGrams = num
-                                    }
-                                    quantityText = newValue
                                 },
-                                textStyle = MaterialTheme.typography.headlineMedium.copy(
-                                    fontWeight = FontWeight.Black,
-                                    textAlign = TextAlign.Center,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                colors = IconButtonDefaults.filledIconButtonColors(
+                                    containerColor = MaterialTheme.colorScheme.primary,
+                                    contentColor = MaterialTheme.colorScheme.onPrimary
                                 ),
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                                modifier = Modifier.widthIn(min = 80.dp)
-                            )
-                            Text(
-                                text = stringResource(R.string.grams_label),
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                                modifier = Modifier.size(40.dp)
+                            ) {
+                                Icon(Icons.Rounded.Add, stringResource(R.string.more))
+                            }
                         }
+                    }
 
-                        IconButton(
-                            onClick = {
-                                val next = currentGrams + 1
-                                scaleNutrients(next)
-                                currentGrams = next
-                            },
-                            colors = IconButtonDefaults.filledIconButtonColors(
-                                containerColor = MaterialTheme.colorScheme.primary,
-                                contentColor = MaterialTheme.colorScheme.onPrimary
-                            ),
-                            modifier = Modifier.size(48.dp)
+                    if (judgementalMode) {
+                        Spacer(Modifier.width(8.dp))
+                        val isNegative = judgement is Metric.Judgement.Negative
+                        val color = if (isNegative) MaterialTheme.colorScheme.error else Color(0xFF4CAF50)
+                        
+                        Box(
+                            modifier = Modifier
+                                .size(44.dp)
+                                .clip(MorphingScallopedShape(0f, 1f, bumpsCount = 2f))
+                                .background(color.copy(alpha = 0.15f)),
+                            contentAlignment = Alignment.Center
                         ) {
-                            Icon(Icons.Rounded.Add, stringResource(R.string.more))
+                            Icon(
+                                imageVector = if (isNegative) Icons.Rounded.Cancel else Icons.Rounded.CheckCircle,
+                                contentDescription = null,
+                                tint = color,
+                                modifier = Modifier.size(22.dp)
+                            )
                         }
                     }
                 }
@@ -342,7 +370,7 @@ fun FoodReviewDialog(
                 // Nutrient Chips
                 Column(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     val ratio = if (baseGrams > 0) currentGrams / baseGrams else 1.0
                     val updateBase = { base: MutableDoubleState, newValue: String ->
@@ -352,24 +380,83 @@ fun FoodReviewDialog(
                         Unit
                     }
 
+                    val getGoal = { m: Metric -> goals[m] ?: GoalCatalog.defaults[m] ?: 0f }
+
                     val items = listOf(
-                        Triple(stringResource(R.string.metric_total_calories), cal to { s: String -> cal = s; updateBase(calBase, s) }, stringResource(R.string.unit_kcal) to MaterialTheme.colorScheme.primaryContainer),
-                        Triple(stringResource(R.string.metric_protein), prot to { s: String -> prot = s; updateBase(protBase, s) }, stringResource(R.string.unit_g) to MaterialTheme.colorScheme.secondaryContainer),
-                        Triple(stringResource(R.string.metric_carbs), carb to { s: String -> carb = s; updateBase(carbBase, s) }, stringResource(R.string.unit_g) to MaterialTheme.colorScheme.tertiaryContainer),
-                        Triple(stringResource(R.string.metric_fat), fat to { s: String -> fat = s; updateBase(fatBase, s) }, stringResource(R.string.unit_g) to MaterialTheme.colorScheme.surfaceContainerHigh),
-                        Triple(stringResource(R.string.metric_saturated_fat), satFat to { s: String -> satFat = s; updateBase(satFatBase, s) }, stringResource(R.string.unit_g) to MaterialTheme.colorScheme.surfaceContainer),
-                        Triple(stringResource(R.string.metric_fiber), fiber to { s: String -> fiber = s; updateBase(fiberBase, s) }, stringResource(R.string.unit_g) to MaterialTheme.colorScheme.surfaceContainerLow),
-                        Triple(stringResource(R.string.metric_sugar), sugar to { s: String -> sugar = s; updateBase(sugarBase, s) }, stringResource(R.string.unit_g) to MaterialTheme.colorScheme.surfaceContainerLowest),
-                        Triple(stringResource(R.string.metric_sodium), sodium to { s: String -> sodium = s; updateBase(sodiumBase, s) }, stringResource(R.string.unit_mg) to MaterialTheme.colorScheme.surfaceVariant)
+                        NutrientChipData(
+                            label = stringResource(R.string.metric_total_calories),
+                            value = cal,
+                            onValueChange = { s: String -> cal = s; updateBase(calBase, s) },
+                            unit = stringResource(R.string.unit_kcal),
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            percentage = formatTargetPercentage(safeParse(cal) ?: 0.0, getGoal(Metric.FOOD).takeIf { it > 0f } ?: getGoal(Metric.TOTAL_CALORIES))
+                        ),
+                        NutrientChipData(
+                            label = stringResource(R.string.metric_protein),
+                            value = prot,
+                            onValueChange = { s: String -> prot = s; updateBase(protBase, s) },
+                            unit = stringResource(R.string.unit_g),
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            percentage = formatTargetPercentage(safeParse(prot) ?: 0.0, getGoal(Metric.PROTEIN))
+                        ),
+                        NutrientChipData(
+                            label = stringResource(R.string.metric_carbs),
+                            value = carb,
+                            onValueChange = { s: String -> carb = s; updateBase(carbBase, s) },
+                            unit = stringResource(R.string.unit_g),
+                            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                            percentage = formatTargetPercentage(safeParse(carb) ?: 0.0, getGoal(Metric.CARBS))
+                        ),
+                        NutrientChipData(
+                            label = stringResource(R.string.metric_fat),
+                            value = fat,
+                            onValueChange = { s: String -> fat = s; updateBase(fatBase, s) },
+                            unit = stringResource(R.string.unit_g),
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            percentage = formatTargetPercentage(safeParse(fat) ?: 0.0, getGoal(Metric.FAT))
+                        ),
+                        NutrientChipData(
+                            label = stringResource(R.string.metric_saturated_fat),
+                            value = satFat,
+                            onValueChange = { s: String -> satFat = s; updateBase(satFatBase, s) },
+                            unit = stringResource(R.string.unit_g),
+                            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                            percentage = formatTargetPercentage(safeParse(satFat) ?: 0.0, getGoal(Metric.SATURATED_FAT))
+                        ),
+                        NutrientChipData(
+                            label = stringResource(R.string.metric_fiber),
+                            value = fiber,
+                            onValueChange = { s: String -> fiber = s; updateBase(fiberBase, s) },
+                            unit = stringResource(R.string.unit_g),
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                            percentage = formatTargetPercentage(safeParse(fiber) ?: 0.0, getGoal(Metric.FIBER))
+                        ),
+                        NutrientChipData(
+                            label = stringResource(R.string.metric_sugar),
+                            value = sugar,
+                            onValueChange = { s: String -> sugar = s; updateBase(sugarBase, s) },
+                            unit = stringResource(R.string.unit_g),
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+                            percentage = formatTargetPercentage(safeParse(sugar) ?: 0.0, getGoal(Metric.SUGAR))
+                        ),
+                        NutrientChipData(
+                            label = stringResource(R.string.metric_sodium),
+                            value = sodium,
+                            onValueChange = { s: String -> sodium = s; updateBase(sodiumBase, s) },
+                            unit = stringResource(R.string.unit_mg),
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            percentage = formatTargetPercentage(safeParse(sodium) ?: 0.0, getGoal(Metric.SODIUM))
+                        )
                     )
 
-                    items.forEach { (label, state, meta) ->
+                    items.forEach { data ->
                         EditableNutrientChip(
-                            label = label,
-                            value = state.first,
-                            onValueChange = state.second,
-                            unit = meta.first,
-                            containerColor = meta.second,
+                            label = data.label,
+                            value = data.value,
+                            onValueChange = data.onValueChange,
+                            unit = data.unit,
+                            containerColor = data.containerColor,
+                            percentage = data.percentage,
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
@@ -387,7 +474,7 @@ fun FoodReviewDialog(
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp)
+                shape = RoundedCornerShape(12.dp)
             ) {
                 Icon(Icons.Rounded.Done, null)
                 Spacer(Modifier.width(8.dp))
@@ -436,27 +523,47 @@ private fun EditableNutrientChip(
     onValueChange: (String) -> Unit,
     unit: String,
     containerColor: Color,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    percentage: String? = null,
 ) {
     Surface(
         color = containerColor,
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(12.dp),
         modifier = modifier
     ) {
         val contentColor = contentColorFor(containerColor)
+        val cleanUnit = unit.trim()
+        val isSodiumOrMg = cleanUnit.equals("mg", ignoreCase = true) || cleanUnit.equals("мг", ignoreCase = true)
+        val isMultiChar = cleanUnit.length > 1
+
         Row(
             modifier = Modifier
-                .padding(horizontal = 20.dp, vertical = 14.dp),
+                .padding(horizontal = 14.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Bold,
-                color = contentColor.copy(alpha = 0.6f),
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.weight(1f)
-            )
+            ) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = contentColor.copy(alpha = 0.7f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                if (percentage != null) {
+                    Text(
+                        text = " ($percentage%)",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = contentColor.copy(alpha = 0.45f),
+                        maxLines = 1
+                    )
+                }
+            }
 
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -470,21 +577,26 @@ private fun EditableNutrientChip(
                             onValueChange(it)
                         }
                     },
-                    textStyle = MaterialTheme.typography.titleLarge.copy(
+                    textStyle = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.Black,
                         textAlign = TextAlign.End,
                         color = contentColor
                     ),
-                    modifier = Modifier.width(IntrinsicSize.Min).widthIn(min = 60.dp),
+                    modifier = Modifier.width(IntrinsicSize.Min).widthIn(min = 50.dp),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     cursorBrush = SolidColor(contentColor.copy(alpha = 0.4f)),
                     singleLine = true
                 )
                 Text(
-                    text = " $unit",
-                    style = MaterialTheme.typography.labelMedium,
+                    text = " $cleanUnit",
+                    style = if (isMultiChar) {
+                        MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp)
+                    } else {
+                        MaterialTheme.typography.bodySmall
+                    },
                     fontWeight = FontWeight.Bold,
-                    color = contentColor.copy(alpha = 0.4f)
+                    color = contentColor.copy(alpha = 0.5f),
+                    modifier = Modifier.width(if (isSodiumOrMg) 22.dp else if (isMultiChar) 32.dp else 22.dp)
                 )
             }
         }
