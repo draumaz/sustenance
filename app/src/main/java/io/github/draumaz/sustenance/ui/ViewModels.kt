@@ -219,6 +219,7 @@ class SettingsViewModel(
     val ketoMode = repository.ketoMode
     val lastLogTimerEnabled = repository.lastLogTimerEnabled
     val judgementalMode = repository.judgementalMode
+    val gramIncrement = repository.gramIncrement
     val fastBreakingCalories = repository.fastBreakingCalories
     val fastingGoalHours = repository.fastingGoalHours
     val fastingNotificationsEnabled = repository.fastingNotificationsEnabled
@@ -239,6 +240,10 @@ class SettingsViewModel(
 
     fun setJudgementalMode(enabled: Boolean) {
         viewModelScope.launch { repository.setJudgementalMode(enabled) }
+    }
+
+    fun setGramIncrement(increment: Int) {
+        viewModelScope.launch { repository.setGramIncrement(increment) }
     }
 
     fun setFastBreakingCalories(calories: Int) {

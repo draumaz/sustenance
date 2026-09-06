@@ -336,6 +336,34 @@ fun SettingsScreen(
                             Spacer(Modifier.size(8.dp))
                         }
 
+                        val gramIncrement by vm.gramIncrement.collectAsState(initial = 1)
+                        var tempIncrement by remember(gramIncrement) { mutableStateOf(gramIncrement.toString()) }
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            OutlinedTextField(
+                                value = tempIncrement,
+                                onValueChange = { newValue ->
+                                    if (newValue.isEmpty() || newValue.all { it.isDigit() }) {
+                                        tempIncrement = newValue
+                                        newValue.toIntOrNull()?.takeIf { it > 0 }?.let { vm.setGramIncrement(it) }
+                                    }
+                                },
+                                modifier = Modifier.weight(1f),
+                                singleLine = true,
+                                label = { Text(stringResource(R.string.gram_increment)) },
+                                placeholder = { Text("1") },
+                                suffix = { Text(stringResource(R.string.unit_g)) },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                supportingText = { Text(stringResource(R.string.gram_increment_summary)) }
+                            )
+                            Spacer(Modifier.size(8.dp))
+                        }
+
                         val judgementalMode by vm.judgementalMode.collectAsState(initial = false)
                         SettingRow(
                             icon = Icons.Rounded.Psychology,

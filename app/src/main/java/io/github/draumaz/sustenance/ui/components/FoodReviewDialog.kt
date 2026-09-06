@@ -67,6 +67,7 @@ fun FoodReviewDialog(
     onDismiss: () -> Unit,
     onLog: (FoodNutrients, Double, Instant) -> Unit,
     judgementalMode: Boolean = false,
+    gramIncrement: Int = 1,
     currentTotals: Map<Metric, Float> = emptyMap(),
     goals: Map<Metric, Float> = emptyMap(),
 ) {
@@ -274,7 +275,7 @@ fun FoodReviewDialog(
                             IconButton(
                                 onClick = {
                                     if (currentGrams > 1) {
-                                        val next = currentGrams - 1
+                                        val next = (currentGrams - gramIncrement).coerceAtLeast(1.0)
                                         scaleNutrients(next)
                                         currentGrams = next
                                     }
@@ -318,7 +319,7 @@ fun FoodReviewDialog(
 
                             IconButton(
                                 onClick = {
-                                    val next = currentGrams + 1
+                                    val next = currentGrams + gramIncrement
                                     scaleNutrients(next)
                                     currentGrams = next
                                 },
