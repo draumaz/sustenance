@@ -34,6 +34,22 @@
     <string name="metric_fiber">Fiber</string>
     <string name="metric_net_carbs">Net Carbs</string>
 
+    <string name="nutrition_facts">Nutrition Facts</string>
+    <string name="daily_value_header">% Daily Value*</string>
+    <string name="per_serving">Per %d g</string>
+    <string name="nutrition_calories">Calories</string>
+    <string name="nutrition_fat">Fat</string>
+    <string name="nutrition_saturated">Saturated</string>
+    <string name="nutrition_carbohydrate">Carbohydrate</string>
+    <string name="nutrition_fibre">Fibre</string>
+    <string name="nutrition_sugars">Sugars</string>
+    <string name="nutrition_protein">Protein</string>
+    <string name="nutrition_sodium">Sodium</string>
+    <string name="dv_footnote_part1">* 5% or less is </string>
+    <string name="dv_footnote_a_little">a little</string>
+    <string name="dv_footnote_part2">, 15% or more is </string>
+    <string name="dv_footnote_a_lot">a lot</string>
+
     <string name="unit_kcal">kcal</string>
     <string name="unit_g">g</string>
     <string name="unit_mg">mg</string>

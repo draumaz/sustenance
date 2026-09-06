@@ -34,6 +34,22 @@
     <string name="metric_fiber">Клетчатка</string>
     <string name="metric_net_carbs">Чистые углеводы</string>
 
+    <string name="nutrition_facts">Пищевая ценность</string>
+    <string name="daily_value_header">% сут. нормы*</string>
+    <string name="per_serving">На %d г</string>
+    <string name="nutrition_calories">Калории</string>
+    <string name="nutrition_fat">Жиры</string>
+    <string name="nutrition_saturated">Насыщенные</string>
+    <string name="nutrition_carbohydrate">Углеводы</string>
+    <string name="nutrition_fibre">Клетчатка</string>
+    <string name="nutrition_sugars">Сахар</string>
+    <string name="nutrition_protein">Белки</string>
+    <string name="nutrition_sodium">Натрий</string>
+    <string name="dv_footnote_part1">* 5% или меньше — </string>
+    <string name="dv_footnote_a_little">мало</string>
+    <string name="dv_footnote_part2">, 15% или больше — </string>
+    <string name="dv_footnote_a_lot">много</string>
+
     <string name="unit_kcal">ккал</string>
     <string name="unit_g">г</string>
     <string name="unit_mg">мг</string>

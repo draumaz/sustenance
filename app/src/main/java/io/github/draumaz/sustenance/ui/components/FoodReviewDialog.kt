@@ -24,10 +24,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.stringResource
@@ -55,15 +58,6 @@ private fun formatTargetPercentage(value: Double, goal: Float?): String? {
         else -> pct.roundToInt().toString()
     }
 }
-
-private data class NutrientChipData(
-    val label: String,
-    val value: String,
-    val onValueChange: (String) -> Unit,
-    val unit: String,
-    val containerColor: Color,
-    val percentage: String?
-)
 
 @OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -367,100 +361,44 @@ fun FoodReviewDialog(
                     }
                 }
 
-                // Nutrient Chips
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    val ratio = if (baseGrams > 0) currentGrams / baseGrams else 1.0
-                    val updateBase = { base: MutableDoubleState, newValue: String ->
-                        safeParse(newValue)?.let { num ->
-                            if (ratio > 0) base.doubleValue = num / ratio else base.doubleValue = num
-                        }
-                        Unit
+                // Nutrition Facts Label
+                val ratio = if (baseGrams > 0) currentGrams / baseGrams else 1.0
+                val updateBase = { base: MutableDoubleState, newValue: String ->
+                    safeParse(newValue)?.let { num ->
+                        if (ratio > 0) base.doubleValue = num / ratio else base.doubleValue = num
                     }
-
-                    val getGoal = { m: Metric -> goals[m] ?: GoalCatalog.defaults[m] ?: 0f }
-
-                    val items = listOf(
-                        NutrientChipData(
-                            label = stringResource(R.string.metric_total_calories),
-                            value = cal,
-                            onValueChange = { s: String -> cal = s; updateBase(calBase, s) },
-                            unit = stringResource(R.string.unit_kcal),
-                            containerColor = MaterialTheme.colorScheme.primaryContainer,
-                            percentage = formatTargetPercentage(safeParse(cal) ?: 0.0, getGoal(Metric.FOOD).takeIf { it > 0f } ?: getGoal(Metric.TOTAL_CALORIES))
-                        ),
-                        NutrientChipData(
-                            label = stringResource(R.string.metric_protein),
-                            value = prot,
-                            onValueChange = { s: String -> prot = s; updateBase(protBase, s) },
-                            unit = stringResource(R.string.unit_g),
-                            containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                            percentage = formatTargetPercentage(safeParse(prot) ?: 0.0, getGoal(Metric.PROTEIN))
-                        ),
-                        NutrientChipData(
-                            label = stringResource(R.string.metric_carbs),
-                            value = carb,
-                            onValueChange = { s: String -> carb = s; updateBase(carbBase, s) },
-                            unit = stringResource(R.string.unit_g),
-                            containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-                            percentage = formatTargetPercentage(safeParse(carb) ?: 0.0, getGoal(Metric.CARBS))
-                        ),
-                        NutrientChipData(
-                            label = stringResource(R.string.metric_fat),
-                            value = fat,
-                            onValueChange = { s: String -> fat = s; updateBase(fatBase, s) },
-                            unit = stringResource(R.string.unit_g),
-                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                            percentage = formatTargetPercentage(safeParse(fat) ?: 0.0, getGoal(Metric.FAT))
-                        ),
-                        NutrientChipData(
-                            label = stringResource(R.string.metric_saturated_fat),
-                            value = satFat,
-                            onValueChange = { s: String -> satFat = s; updateBase(satFatBase, s) },
-                            unit = stringResource(R.string.unit_g),
-                            containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                            percentage = formatTargetPercentage(safeParse(satFat) ?: 0.0, getGoal(Metric.SATURATED_FAT))
-                        ),
-                        NutrientChipData(
-                            label = stringResource(R.string.metric_fiber),
-                            value = fiber,
-                            onValueChange = { s: String -> fiber = s; updateBase(fiberBase, s) },
-                            unit = stringResource(R.string.unit_g),
-                            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                            percentage = formatTargetPercentage(safeParse(fiber) ?: 0.0, getGoal(Metric.FIBER))
-                        ),
-                        NutrientChipData(
-                            label = stringResource(R.string.metric_sugar),
-                            value = sugar,
-                            onValueChange = { s: String -> sugar = s; updateBase(sugarBase, s) },
-                            unit = stringResource(R.string.unit_g),
-                            containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
-                            percentage = formatTargetPercentage(safeParse(sugar) ?: 0.0, getGoal(Metric.SUGAR))
-                        ),
-                        NutrientChipData(
-                            label = stringResource(R.string.metric_sodium),
-                            value = sodium,
-                            onValueChange = { s: String -> sodium = s; updateBase(sodiumBase, s) },
-                            unit = stringResource(R.string.unit_mg),
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                            percentage = formatTargetPercentage(safeParse(sodium) ?: 0.0, getGoal(Metric.SODIUM))
-                        )
-                    )
-
-                    items.forEach { data ->
-                        EditableNutrientChip(
-                            label = data.label,
-                            value = data.value,
-                            onValueChange = data.onValueChange,
-                            unit = data.unit,
-                            containerColor = data.containerColor,
-                            percentage = data.percentage,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
+                    Unit
                 }
+
+                val getGoal = { m: Metric -> goals[m] ?: GoalCatalog.defaults[m] ?: 0f }
+
+                NutritionFactsLabel(
+                    currentGrams = currentGrams,
+                    cal = cal,
+                    onCalChange = { s -> cal = s; updateBase(calBase, s) },
+                    fat = fat,
+                    onFatChange = { s -> fat = s; updateBase(fatBase, s) },
+                    fatPercentage = formatTargetPercentage(safeParse(fat) ?: 0.0, getGoal(Metric.FAT)),
+                    satFat = satFat,
+                    onSatFatChange = { s -> satFat = s; updateBase(satFatBase, s) },
+                    satFatPercentage = formatTargetPercentage(safeParse(satFat) ?: 0.0, getGoal(Metric.SATURATED_FAT)),
+                    carb = carb,
+                    onCarbChange = { s -> carb = s; updateBase(carbBase, s) },
+                    carbPercentage = formatTargetPercentage(safeParse(carb) ?: 0.0, getGoal(Metric.CARBS)),
+                    fiber = fiber,
+                    onFiberChange = { s -> fiber = s; updateBase(fiberBase, s) },
+                    fiberPercentage = formatTargetPercentage(safeParse(fiber) ?: 0.0, getGoal(Metric.FIBER)),
+                    sugar = sugar,
+                    onSugarChange = { s -> sugar = s; updateBase(sugarBase, s) },
+                    sugarPercentage = formatTargetPercentage(safeParse(sugar) ?: 0.0, getGoal(Metric.SUGAR)),
+                    prot = prot,
+                    onProtChange = { s -> prot = s; updateBase(protBase, s) },
+                    protPercentage = formatTargetPercentage(safeParse(prot) ?: 0.0, getGoal(Metric.PROTEIN)),
+                    sodium = sodium,
+                    onSodiumChange = { s -> sodium = s; updateBase(sodiumBase, s) },
+                    sodiumPercentage = formatTargetPercentage(safeParse(sodium) ?: 0.0, getGoal(Metric.SODIUM)),
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         },
         confirmButton = {
@@ -517,88 +455,311 @@ fun FoodReviewDialog(
 }
 
 @Composable
-private fun EditableNutrientChip(
+private fun NutritionFactsLabel(
+    currentGrams: Double,
+    cal: String,
+    onCalChange: (String) -> Unit,
+    fat: String,
+    onFatChange: (String) -> Unit,
+    fatPercentage: String?,
+    satFat: String,
+    onSatFatChange: (String) -> Unit,
+    satFatPercentage: String?,
+    carb: String,
+    onCarbChange: (String) -> Unit,
+    carbPercentage: String?,
+    fiber: String,
+    onFiberChange: (String) -> Unit,
+    fiberPercentage: String?,
+    sugar: String,
+    onSugarChange: (String) -> Unit,
+    sugarPercentage: String?,
+    prot: String,
+    onProtChange: (String) -> Unit,
+    protPercentage: String?,
+    sodium: String,
+    onSodiumChange: (String) -> Unit,
+    sodiumPercentage: String?,
+    modifier: Modifier = Modifier
+) {
+    val contentColor = MaterialTheme.colorScheme.onSurface
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp),
+        color = Color.Transparent,
+        border = BorderStroke(2.dp, contentColor)
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            // Header
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 10.dp, vertical = 6.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.nutrition_facts),
+                    style = TextStyle(
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = (-0.5).sp
+                    ),
+                    color = contentColor
+                )
+                Text(
+                    text = stringResource(R.string.per_serving, currentGrams.roundToInt()),
+                    style = TextStyle(
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    ),
+                    color = contentColor
+                )
+            }
+
+            HorizontalDivider(thickness = 7.dp, color = contentColor)
+
+            // Calories Row
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 10.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.Bottom,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = stringResource(R.string.nutrition_calories),
+                        style = TextStyle(
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Black
+                        ),
+                        color = contentColor
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    EditableNutrientValue(
+                        value = cal,
+                        onValueChange = onCalChange,
+                        textStyle = TextStyle(
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Black
+                        ),
+                        color = contentColor
+                    )
+                }
+
+                Text(
+                    text = stringResource(R.string.daily_value_header),
+                    style = TextStyle(
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold
+                    ),
+                    color = contentColor,
+                    textAlign = TextAlign.End
+                )
+            }
+
+            HorizontalDivider(thickness = 3.dp, color = contentColor)
+
+            // Fat Section
+            NutritionFactsRow(
+                label = stringResource(R.string.nutrition_fat),
+                value = fat,
+                onValueChange = onFatChange,
+                unit = stringResource(R.string.unit_g),
+                percentage = fatPercentage,
+                isBold = true,
+                color = contentColor
+            )
+            NutritionFactsRow(
+                label = stringResource(R.string.nutrition_saturated),
+                value = satFat,
+                onValueChange = onSatFatChange,
+                unit = stringResource(R.string.unit_g),
+                percentage = satFatPercentage,
+                isBold = false,
+                isIndented = true,
+                color = contentColor
+            )
+
+            HorizontalDivider(thickness = 1.dp, color = contentColor)
+
+            // Carbohydrate Section
+            NutritionFactsRow(
+                label = stringResource(R.string.nutrition_carbohydrate),
+                value = carb,
+                onValueChange = onCarbChange,
+                unit = stringResource(R.string.unit_g),
+                percentage = carbPercentage,
+                isBold = true,
+                color = contentColor
+            )
+            NutritionFactsRow(
+                label = stringResource(R.string.nutrition_fibre),
+                value = fiber,
+                onValueChange = onFiberChange,
+                unit = stringResource(R.string.unit_g),
+                percentage = fiberPercentage,
+                isBold = false,
+                isIndented = true,
+                color = contentColor
+            )
+            NutritionFactsRow(
+                label = stringResource(R.string.nutrition_sugars),
+                value = sugar,
+                onValueChange = onSugarChange,
+                unit = stringResource(R.string.unit_g),
+                percentage = sugarPercentage,
+                isBold = false,
+                isIndented = true,
+                color = contentColor
+            )
+
+            HorizontalDivider(thickness = 1.dp, color = contentColor)
+
+            // Protein Section
+            NutritionFactsRow(
+                label = stringResource(R.string.nutrition_protein),
+                value = prot,
+                onValueChange = onProtChange,
+                unit = stringResource(R.string.unit_g),
+                percentage = protPercentage,
+                isBold = true,
+                color = contentColor
+            )
+
+            HorizontalDivider(thickness = 1.dp, color = contentColor)
+
+            // Sodium Section
+            NutritionFactsRow(
+                label = stringResource(R.string.nutrition_sodium),
+                value = sodium,
+                onValueChange = onSodiumChange,
+                unit = stringResource(R.string.unit_mg),
+                percentage = sodiumPercentage,
+                isBold = true,
+                color = contentColor
+            )
+
+            HorizontalDivider(thickness = 3.dp, color = contentColor)
+
+            // Footnote
+            val footnoteText = buildAnnotatedString {
+                append(stringResource(R.string.dv_footnote_part1))
+                withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
+                    append(stringResource(R.string.dv_footnote_a_little))
+                }
+                append(stringResource(R.string.dv_footnote_part2))
+                withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
+                    append(stringResource(R.string.dv_footnote_a_lot))
+                }
+            }
+
+            Text(
+                text = footnoteText,
+                style = TextStyle(
+                    fontSize = 10.5.sp,
+                    lineHeight = 13.sp
+                ),
+                color = contentColor,
+                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun NutritionFactsRow(
     label: String,
     value: String,
     onValueChange: (String) -> Unit,
     unit: String,
-    containerColor: Color,
-    modifier: Modifier = Modifier,
-    percentage: String? = null,
+    percentage: String?,
+    isBold: Boolean = false,
+    isIndented: Boolean = false,
+    color: Color
 ) {
-    Surface(
-        color = containerColor,
-        shape = RoundedCornerShape(12.dp),
-        modifier = modifier
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(
+                start = if (isIndented) 22.dp else 10.dp,
+                end = 10.dp,
+                top = 2.dp,
+                bottom = 2.dp
+            ),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        val contentColor = contentColorFor(containerColor)
-        val cleanUnit = unit.trim()
-        val isSodiumOrMg = cleanUnit.equals("mg", ignoreCase = true) || cleanUnit.equals("мг", ignoreCase = true)
-        val isMultiChar = cleanUnit.length > 1
-
         Row(
-            modifier = Modifier
-                .padding(horizontal = 14.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+            modifier = Modifier.weight(1f)
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = contentColor.copy(alpha = 0.7f),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                if (percentage != null) {
-                    Text(
-                        text = " ($percentage%)",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.SemiBold,
-                        color = contentColor.copy(alpha = 0.45f),
-                        maxLines = 1
-                    )
-                }
-            }
+            Text(
+                text = label,
+                style = TextStyle(
+                    fontSize = 13.sp,
+                    fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal
+                ),
+                color = color
+            )
+            Spacer(Modifier.width(4.dp))
+            EditableNutrientValue(
+                value = value,
+                onValueChange = onValueChange,
+                textStyle = TextStyle(
+                    fontSize = 13.sp,
+                    fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal
+                ),
+                color = color
+            )
+            Spacer(Modifier.width(2.dp))
+            Text(
+                text = unit,
+                style = TextStyle(
+                    fontSize = 13.sp,
+                    fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal
+                ),
+                color = color
+            )
+        }
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.wrapContentWidth()
-            ) {
-                BasicTextField(
-                    value = value,
-                    onValueChange = {
-                        val sanitized = it.replace(',', '.')
-                        if (it.isEmpty() || sanitized.toDoubleOrNull() != null || it == "." || it == ",") {
-                            onValueChange(it)
-                        }
-                    },
-                    textStyle = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Black,
-                        textAlign = TextAlign.End,
-                        color = contentColor
-                    ),
-                    modifier = Modifier.width(IntrinsicSize.Min).widthIn(min = 50.dp),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    cursorBrush = SolidColor(contentColor.copy(alpha = 0.4f)),
-                    singleLine = true
-                )
-                Text(
-                    text = " $cleanUnit",
-                    style = if (isMultiChar) {
-                        MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp)
-                    } else {
-                        MaterialTheme.typography.bodySmall
-                    },
-                    fontWeight = FontWeight.Bold,
-                    color = contentColor.copy(alpha = 0.5f),
-                    modifier = Modifier.width(if (isSodiumOrMg) 22.dp else if (isMultiChar) 32.dp else 22.dp)
-                )
-            }
+        if (percentage != null) {
+            Text(
+                text = "$percentage %",
+                style = TextStyle(
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold
+                ),
+                color = color,
+                textAlign = TextAlign.End
+            )
         }
     }
+}
+
+@Composable
+private fun EditableNutrientValue(
+    value: String,
+    onValueChange: (String) -> Unit,
+    textStyle: TextStyle,
+    color: Color
+) {
+    BasicTextField(
+        value = value,
+        onValueChange = { newValue ->
+            val sanitized = newValue.replace(',', '.')
+            if (newValue.isEmpty() || sanitized.toDoubleOrNull() != null || newValue == "." || newValue == ",") {
+                onValueChange(newValue)
+            }
+        },
+        textStyle = textStyle.copy(
+            color = color,
+            textAlign = TextAlign.Start
+        ),
+        modifier = Modifier
+            .width(IntrinsicSize.Min)
+            .widthIn(min = 20.dp),
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        cursorBrush = SolidColor(color.copy(alpha = 0.6f)),
+        singleLine = true
+    )
 }
