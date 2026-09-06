@@ -33,6 +33,20 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.PressInteraction
+import androidx.compose.ui.input.pointer.pointerInput
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import android.view.HapticFeedbackConstants
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.window.Dialog
@@ -71,6 +85,7 @@ fun FoodReviewDialog(
     currentTotals: Map<Metric, Float> = emptyMap(),
     goals: Map<Metric, Float> = emptyMap(),
 ) {
+    val view = LocalView.current
     var foodItem by remember { mutableStateOf(nutrients.foodItem) }
     // Extract only the numeric part for the editable state. Favor numbers followed by "g".
     var servingSize by remember(nutrients) {
@@ -272,19 +287,27 @@ fun FoodReviewDialog(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
+                            val minusInteractionSource = remember { MutableInteractionSource() }
                             IconButton(
-                                onClick = {
-                                    if (currentGrams > 1) {
-                                        val next = (currentGrams - gramIncrement).coerceAtLeast(1.0)
-                                        scaleNutrients(next)
-                                        currentGrams = next
-                                    }
-                                },
+                                onClick = {},
+                                interactionSource = minusInteractionSource,
                                 colors = IconButtonDefaults.filledIconButtonColors(
                                     containerColor = MaterialTheme.colorScheme.surface,
                                     contentColor = MaterialTheme.colorScheme.onSurface
                                 ),
-                                modifier = Modifier.size(40.dp)
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .repeatingClickable(
+                                        interactionSource = minusInteractionSource,
+                                        onAdjust = { multiplier ->
+                                            if (currentGrams > 1.0) {
+                                                view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                                                val next = (currentGrams - (gramIncrement * multiplier)).coerceAtLeast(1.0)
+                                                scaleNutrients(next)
+                                                currentGrams = next
+                                            }
+                                        }
+                                    )
                             ) {
                                 Icon(Icons.Rounded.Remove, stringResource(R.string.less))
                             }
@@ -317,17 +340,25 @@ fun FoodReviewDialog(
                                 )
                             }
 
+                            val plusInteractionSource = remember { MutableInteractionSource() }
                             IconButton(
-                                onClick = {
-                                    val next = currentGrams + gramIncrement
-                                    scaleNutrients(next)
-                                    currentGrams = next
-                                },
+                                onClick = {},
+                                interactionSource = plusInteractionSource,
                                 colors = IconButtonDefaults.filledIconButtonColors(
                                     containerColor = MaterialTheme.colorScheme.primary,
                                     contentColor = MaterialTheme.colorScheme.onPrimary
                                 ),
-                                modifier = Modifier.size(40.dp)
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .repeatingClickable(
+                                        interactionSource = plusInteractionSource,
+                                        onAdjust = { multiplier ->
+                                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                                            val next = currentGrams + (gramIncrement * multiplier)
+                                            scaleNutrients(next)
+                                            currentGrams = next
+                                        }
+                                    )
                             ) {
                                 Icon(Icons.Rounded.Add, stringResource(R.string.more))
                             }
@@ -767,6 +798,58 @@ private fun EditableNutrientValue(
         cursorBrush = SolidColor(color.copy(alpha = 0.6f)),
         singleLine = true
     )
+}
+
+private fun Modifier.repeatingClickable(
+    interactionSource: MutableInteractionSource,
+    enabled: Boolean = true,
+    onAdjust: (stepMultiplier: Int) -> Unit
+): Modifier = this.pointerInput(enabled, interactionSource) {
+    if (!enabled) return@pointerInput
+    coroutineScope {
+        awaitEachGesture {
+            val down = awaitFirstDown(requireUnconsumed = false)
+            down.consume()
+            val pressInteraction = PressInteraction.Press(down.position)
+
+            var repeatJob: Job? = null
+            try {
+                launch {
+                    interactionSource.emit(pressInteraction)
+                }
+                repeatJob = launch {
+                    onAdjust(1)
+                    delay(350L)
+
+                    var tickCount = 0
+                    while (isActive) {
+                        tickCount++
+                        val (delayMs, stepMultiplier) = when {
+                            tickCount < 5 -> 120L to 1
+                            else -> 90L to 2
+                        }
+                        onAdjust(stepMultiplier)
+                        delay(delayMs)
+                    }
+                }
+
+                val up = waitForUpOrCancellation()
+                repeatJob.cancel()
+                launch {
+                    if (up != null) {
+                        interactionSource.emit(PressInteraction.Release(pressInteraction))
+                    } else {
+                        interactionSource.emit(PressInteraction.Cancel(pressInteraction))
+                    }
+                }
+            } catch (_: CancellationException) {
+                repeatJob?.cancel()
+                launch {
+                    interactionSource.emit(PressInteraction.Cancel(pressInteraction))
+                }
+            }
+        }
+    }
 }
 
 @Preview
