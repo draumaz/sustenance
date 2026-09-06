@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -28,24 +27,21 @@ fun NutrientIconList(
 ) {
     Row(
         modifier = modifier,
-        horizontalArrangement = Arrangement.Start,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        NutrientIconItem(Metric.PROTEIN, nutrients.protein, Modifier.width(42.dp))
-        NutrientIconItem(Metric.CARBS, nutrients.carbs, Modifier.width(42.dp))
-        NutrientIconItem(Metric.FAT, nutrients.fat, Modifier.width(42.dp))
-        if (nutrients.sugar > 1.0) NutrientIconItem(Metric.SUGAR, nutrients.sugar, Modifier.width(42.dp))
-        if (nutrients.sodium > 50.0) NutrientIconItem(Metric.SODIUM, nutrients.sodium, Modifier.width(54.dp))
+        NutrientIconItem(Metric.PROTEIN, nutrients.protein)
+        NutrientIconItem(Metric.CARBS, nutrients.carbs)
+        NutrientIconItem(Metric.FAT, nutrients.fat)
+        if (nutrients.sugar > 1.0) NutrientIconItem(Metric.SUGAR, nutrients.sugar)
+        if (nutrients.sodium > 50.0) NutrientIconItem(Metric.SODIUM, nutrients.sodium)
     }
 }
 
 @Composable
-private fun NutrientIconItem(metric: Metric, value: Double, modifier: Modifier = Modifier) {
-    if (value < 0.1) {
-        Spacer(modifier)
-        return
-    }
-    Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
+private fun NutrientIconItem(metric: Metric, value: Double) {
+    if (value < 0.1) return
+    Row(verticalAlignment = Alignment.CenterVertically) {
         Icon(
             imageVector = metric.icon,
             contentDescription = stringResource(metric.titleRes),
