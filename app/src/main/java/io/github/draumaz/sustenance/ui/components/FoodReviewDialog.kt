@@ -34,6 +34,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import io.github.draumaz.sustenance.R
@@ -251,16 +252,9 @@ fun FoodReviewDialog(
                         }
                     }
                 }
-            }
-        },
-        text = {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
+
+                Spacer(Modifier.height(8.dp))
+
                 // Gram Selector & Judgement Badge
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -360,6 +354,16 @@ fun FoodReviewDialog(
                         }
                     }
                 }
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
 
                 // Nutrition Facts Label
                 val ratio = if (baseGrams > 0) currentGrams / baseGrams else 1.0
@@ -763,3 +767,28 @@ private fun EditableNutrientValue(
         singleLine = true
     )
 }
+
+@Preview
+@Composable
+private fun FoodReviewDialogPreview() {
+    MaterialTheme {
+        FoodReviewDialog(
+            nutrients = FoodNutrients(
+                foodItem = "Apple",
+                servingSize = "100g",
+                calories = 52.0,
+                protein = 0.3,
+                carbs = 14.0,
+                fat = 0.2,
+                saturatedFat = 0.0,
+                fiber = 2.4,
+                sugar = 10.0,
+                sodium = 1.0
+            ),
+            onDismiss = {},
+            onLog = { _, _, _ -> },
+            judgementalMode = true
+        )
+    }
+}
+
