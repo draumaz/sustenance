@@ -100,10 +100,14 @@
     <string name="time_since_last_ate">Time fasting</string>
     <string name="hour_minute_format">%1$dhr %2$dmin</string>
     <string name="enable_food_logging">Enable Food logging</string>
-    <string name="food_logging_summary">AI Studio API key required.\nSustenance talks to gemini-3.5-flash-lite.</string>
+    <string name="food_logging_summary">AI Studio API key required.</string>
     <string name="api_key">API Key</string>
     <string name="hide_api_key">Hide API Key</string>
     <string name="show_api_key">Show API Key</string>
+    <string name="gemini_model">Gemini Model</string>
+    <string name="verify_model">Verify Model</string>
+    <string name="verify_api_key">Verify API Key</string>
+    <string name="invalid_model_name">Invalid model name</string>
     <string name="launch_hc">Launch Health Connect</string>
     <string name="launch_hc_summary">Verify Sustenance can see your health data.</string>
     <string name="about_summary">Your beautiful, offline nutrition summary, powered by Health Connect.</string>
@@ -140,7 +144,7 @@
     <string name="daily_avg">Daily avg</string>
     <string name="highest_day">Highest day</string>
     <string name="seven_day_total">7-day total</string>
-    <string name="fourteen_day_total" translatable="false">14-day total</string>
+    <string name="fourteen_day_total">14-day total</string>
     <string name="average">Average</string>
     <string name="min">Min</string>
     <string name="max">Max</string>

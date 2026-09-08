@@ -24,6 +24,9 @@ class SettingsRepository(private val context: Context) {
     private val lastFastingNotificationTimeKey = androidx.datastore.preferences.core.longPreferencesKey("last_fasting_notification_time")
     private val apiKeyEnabledKey = booleanPreferencesKey("api_key_enabled")
     private val apiKeyKey = stringPreferencesKey("api_key")
+    private val apiKeyVerificationStatusKey = stringPreferencesKey("api_key_verification_status")
+    private val geminiModelKey = stringPreferencesKey("gemini_model")
+    private val geminiModelVerificationStatusKey = stringPreferencesKey("gemini_model_verification_status")
     private val pinnedHistoryItemsKey = stringSetPreferencesKey("pinned_history_items")
 
     val dynamicColor: Flow<Boolean> = context.settingsDataStore.data.map { prefs ->
@@ -68,6 +71,18 @@ class SettingsRepository(private val context: Context) {
 
     val apiKey: Flow<String> = context.settingsDataStore.data.map { prefs ->
         prefs[apiKeyKey] ?: ""
+    }
+
+    val apiKeyVerificationStatus: Flow<String> = context.settingsDataStore.data.map { prefs ->
+        prefs[apiKeyVerificationStatusKey] ?: "idle"
+    }
+
+    val geminiModel: Flow<String> = context.settingsDataStore.data.map { prefs ->
+        prefs[geminiModelKey] ?: "3.5-flash-lite"
+    }
+
+    val geminiModelVerificationStatus: Flow<String> = context.settingsDataStore.data.map { prefs ->
+        prefs[geminiModelVerificationStatusKey] ?: "idle"
     }
 
     val pinnedHistoryItems: Flow<Set<String>> = context.settingsDataStore.data.map { prefs ->
@@ -137,6 +152,24 @@ class SettingsRepository(private val context: Context) {
     suspend fun setApiKey(key: String) {
         context.settingsDataStore.edit { prefs ->
             prefs[apiKeyKey] = key
+        }
+    }
+
+    suspend fun setApiKeyVerificationStatus(status: String) {
+        context.settingsDataStore.edit { prefs ->
+            prefs[apiKeyVerificationStatusKey] = status
+        }
+    }
+
+    suspend fun setGeminiModel(model: String) {
+        context.settingsDataStore.edit { prefs ->
+            prefs[geminiModelKey] = model
+        }
+    }
+
+    suspend fun setGeminiModelVerificationStatus(status: String) {
+        context.settingsDataStore.edit { prefs ->
+            prefs[geminiModelVerificationStatusKey] = status
         }
     }
 

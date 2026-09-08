@@ -225,6 +225,9 @@ class SettingsViewModel(
     val fastingNotificationsEnabled = repository.fastingNotificationsEnabled
     val apiKeyEnabled = repository.apiKeyEnabled
     val apiKey = repository.apiKey
+    val apiKeyVerificationStatus = repository.apiKeyVerificationStatus
+    val geminiModel = repository.geminiModel
+    val geminiModelVerificationStatus = repository.geminiModelVerificationStatus
 
     fun setDynamicColor(enabled: Boolean) {
         viewModelScope.launch { repository.setDynamicColor(enabled) }
@@ -264,6 +267,18 @@ class SettingsViewModel(
 
     fun setApiKey(key: String) {
         viewModelScope.launch { repository.setApiKey(key) }
+    }
+
+    fun setApiKeyVerificationStatus(status: String) {
+        viewModelScope.launch { repository.setApiKeyVerificationStatus(status) }
+    }
+
+    fun setGeminiModel(model: String) {
+        viewModelScope.launch { repository.setGeminiModel(model) }
+    }
+
+    fun setGeminiModelVerificationStatus(status: String) {
+        viewModelScope.launch { repository.setGeminiModelVerificationStatus(status) }
     }
 
     companion object {

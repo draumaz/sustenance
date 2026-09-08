@@ -24,11 +24,28 @@ data class FoodNutrients(
     val sodium: Double
 )
 
-class GeminiManager(apiKey: String) {
+class GeminiManager(
+    apiKey: String,
+    modelName: String = "gemini-3.5-flash-lite"
+) {
     private val model = GenerativeModel(
-        modelName = "gemini-3.5-flash-lite", // Do not change this
+        modelName = modelName,
         apiKey = apiKey
     )
+
+    suspend fun verifyModel(): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            val response = model.generateContent("ping")
+            if (response.text != null) {
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception("Empty response"))
+            }
+        } catch (e: Exception) {
+            Log.e("GeminiManager", "Verification failed", e)
+            Result.failure(e)
+        }
+    }
 
     suspend fun analyzeFoodImages(bitmaps: List<Bitmap>, additionalInfo: String? = null): Result<FoodNutrients> = withContext(Dispatchers.IO) {
         try {

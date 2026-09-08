@@ -37,6 +37,8 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
+import android.widget.Toast
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -44,10 +46,13 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
+import androidx.compose.ui.graphics.Color
+import io.github.draumaz.sustenance.util.GeminiManager
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -295,6 +300,13 @@ fun SettingsScreen(
                     val apiKeyEnabled by vm.apiKeyEnabled.collectAsState(initial = false)
                     val apiKey by vm.apiKey.collectAsState(initial = "")
                     var tempApiKey by remember(apiKey) { mutableStateOf(apiKey) }
+                    val apiKeyVerificationStatus by vm.apiKeyVerificationStatus.collectAsState(initial = "idle")
+                    var isApiKeyVerifying by remember { mutableStateOf(false) }
+
+                    val geminiModel by vm.geminiModel.collectAsState(initial = "3.5-flash-lite")
+                    var tempGeminiModel by remember(geminiModel) { mutableStateOf(geminiModel.removePrefix("gemini-")) }
+                    val geminiModelVerificationStatus by vm.geminiModelVerificationStatus.collectAsState(initial = "idle")
+                    var isModelVerifying by remember { mutableStateOf(false) }
 
                     SettingRow(
                         icon = Icons.Rounded.Key,
@@ -306,6 +318,110 @@ fun SettingsScreen(
                     }
 
                     if (apiKeyEnabled) {
+                        val greenColor = Color(0xFF4CAF50)
+
+                        val modelOutlineColors = when (geminiModelVerificationStatus) {
+                            "success" -> OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = greenColor,
+                                unfocusedBorderColor = greenColor
+                            )
+                            "error" -> OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.error,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.error
+                            )
+                            else -> OutlinedTextFieldDefaults.colors()
+                        }
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            OutlinedTextField(
+                                value = tempGeminiModel,
+                                onValueChange = { newValue ->
+                                    val cleaned = if (newValue.startsWith("gemini-")) newValue.removePrefix("gemini-") else newValue
+                                    tempGeminiModel = cleaned
+                                    vm.setGeminiModel(cleaned)
+                                    if (geminiModelVerificationStatus != "idle") {
+                                        vm.setGeminiModelVerificationStatus("idle")
+                                    }
+                                },
+                                modifier = Modifier.weight(1f),
+                                prefix = { Text("gemini-") },
+                                placeholder = { Text("3.5-flash-lite", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)) },
+                                singleLine = true,
+                                label = { Text(stringResource(R.string.gemini_model)) },
+                                colors = modelOutlineColors,
+                                trailingIcon = {
+                                    if (isModelVerifying) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(24.dp),
+                                            strokeWidth = 2.dp
+                                        )
+                                    } else {
+                                        val (bgColor, contentColor) = when (geminiModelVerificationStatus) {
+                                            "success" -> greenColor.copy(alpha = 0.15f) to greenColor
+                                            "error" -> MaterialTheme.colorScheme.error.copy(alpha = 0.15f) to MaterialTheme.colorScheme.error
+                                            else -> MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) to MaterialTheme.colorScheme.primary
+                                        }
+                                        IconButton(
+                                            onClick = {
+                                                val keyToUse = tempApiKey.trim()
+                                                if (keyToUse.isBlank()) {
+                                                    Toast.makeText(context, R.string.api_key_missing, Toast.LENGTH_SHORT).show()
+                                                    vm.setGeminiModelVerificationStatus("error")
+                                                    return@IconButton
+                                                }
+                                                val modelToTest = if (tempGeminiModel.isBlank()) {
+                                                    "gemini-3.5-flash-lite"
+                                                } else {
+                                                    val trimmed = tempGeminiModel.trim()
+                                                    if (trimmed.startsWith("gemini-")) trimmed else "gemini-$trimmed"
+                                                }
+                                                isModelVerifying = true
+                                                scope.launch {
+                                                    val result = GeminiManager(keyToUse, modelToTest).verifyModel()
+                                                    isModelVerifying = false
+                                                    if (result.isSuccess) {
+                                                        vm.setGeminiModelVerificationStatus("success")
+                                                    } else {
+                                                        vm.setGeminiModelVerificationStatus("error")
+                                                        Toast.makeText(context, R.string.invalid_model_name, Toast.LENGTH_SHORT).show()
+                                                    }
+                                                }
+                                            }
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Rounded.Check,
+                                                contentDescription = stringResource(R.string.verify_model),
+                                                tint = contentColor,
+                                                modifier = Modifier
+                                                    .size(30.dp)
+                                                    .clip(CircleShape)
+                                                    .background(bgColor)
+                                                    .padding(6.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            )
+                            Spacer(Modifier.size(8.dp))
+                        }
+
+                        val apiKeyOutlineColors = when (apiKeyVerificationStatus) {
+                            "success" -> OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = greenColor,
+                                unfocusedBorderColor = greenColor
+                            )
+                            "error" -> OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.error,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.error
+                            )
+                            else -> OutlinedTextFieldDefaults.colors()
+                        }
+
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -318,18 +434,70 @@ fun SettingsScreen(
                                 onValueChange = {
                                     tempApiKey = it
                                     vm.setApiKey(it)
+                                    if (apiKeyVerificationStatus != "idle") {
+                                        vm.setApiKeyVerificationStatus("idle")
+                                    }
                                 },
                                 modifier = Modifier.weight(1f),
                                 placeholder = { Text("AQ.", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)) },
                                 singleLine = true,
                                 label = { Text(stringResource(R.string.api_key)) },
                                 visualTransformation = if (apiKeyVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                                colors = apiKeyOutlineColors,
                                 trailingIcon = {
-                                    IconButton(onClick = { apiKeyVisible = !apiKeyVisible }) {
-                                        Icon(
-                                            imageVector = if (apiKeyVisible) Icons.Rounded.VisibilityOff else Icons.Rounded.Visibility,
-                                            contentDescription = if (apiKeyVisible) stringResource(R.string.hide_api_key) else stringResource(R.string.show_api_key)
-                                        )
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        IconButton(onClick = { apiKeyVisible = !apiKeyVisible }) {
+                                            Icon(
+                                                imageVector = if (apiKeyVisible) Icons.Rounded.VisibilityOff else Icons.Rounded.Visibility,
+                                                contentDescription = if (apiKeyVisible) stringResource(R.string.hide_api_key) else stringResource(R.string.show_api_key)
+                                            )
+                                        }
+                                        if (isApiKeyVerifying) {
+                                            CircularProgressIndicator(
+                                                modifier = Modifier
+                                                    .size(24.dp)
+                                                    .padding(end = 4.dp),
+                                                strokeWidth = 2.dp
+                                            )
+                                        } else {
+                                            val (bgColor, contentColor) = when (apiKeyVerificationStatus) {
+                                                "success" -> greenColor.copy(alpha = 0.15f) to greenColor
+                                                "error" -> MaterialTheme.colorScheme.error.copy(alpha = 0.15f) to MaterialTheme.colorScheme.error
+                                                else -> MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) to MaterialTheme.colorScheme.primary
+                                            }
+                                            IconButton(
+                                                onClick = {
+                                                    val keyToUse = tempApiKey.trim()
+                                                    if (keyToUse.isBlank()) {
+                                                        Toast.makeText(context, R.string.api_key_missing, Toast.LENGTH_SHORT).show()
+                                                        vm.setApiKeyVerificationStatus("error")
+                                                        return@IconButton
+                                                    }
+                                                    isApiKeyVerifying = true
+                                                    scope.launch {
+                                                        val result = GeminiManager(keyToUse, "gemini-3.5-flash-lite").verifyModel()
+                                                        isApiKeyVerifying = false
+                                                        if (result.isSuccess) {
+                                                            vm.setApiKeyVerificationStatus("success")
+                                                        } else {
+                                                            vm.setApiKeyVerificationStatus("error")
+                                                            Toast.makeText(context, R.string.api_key_invalid, Toast.LENGTH_SHORT).show()
+                                                        }
+                                                    }
+                                                }
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Rounded.Check,
+                                                    contentDescription = stringResource(R.string.verify_api_key),
+                                                    tint = contentColor,
+                                                    modifier = Modifier
+                                                        .size(30.dp)
+                                                        .clip(CircleShape)
+                                                        .background(bgColor)
+                                                        .padding(6.dp)
+                                                )
+                                            }
+                                        }
                                     }
                                 }
                             )

@@ -100,10 +100,14 @@
     <string name="time_since_last_ate">Время голодания</string>
     <string name="hour_minute_format">%1$dч %2$dмин</string>
     <string name="enable_food_logging">Включить запись еды</string>
-    <string name="food_logging_summary">Требуется API-ключ AI Studio.\nSustenance использует gemini-3.5-flash-lite.</string>
+    <string name="food_logging_summary">Требуется API-ключ AI Studio.</string>
     <string name="api_key">API-ключ</string>
     <string name="hide_api_key">Скрыть API-ключ</string>
     <string name="show_api_key">Показать API-ключ</string>
+    <string name="gemini_model">Модель Gemini</string>
+    <string name="verify_model">Проверить модель</string>
+    <string name="verify_api_key">Проверить API-ключ</string>
+    <string name="invalid_model_name">Недействительное имя модели</string>
     <string name="launch_hc">Запустить Health Connect</string>
     <string name="launch_hc_summary">Проверьте, есть ли у Sustenance доступ к вашим данным.</string>
     <string name="about_summary">Ваш удобный офлайн-дневник питания на базе Health Connect.</string>
