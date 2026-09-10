@@ -30,6 +30,10 @@ android {
         vectorDrawables { useSupportLibrary = true }
     }
 
+    androidResources {
+        localeFilters += listOf("en", "ru")
+    }
+
     signingConfigs {
         if (hasSigning) {
             create("release") {

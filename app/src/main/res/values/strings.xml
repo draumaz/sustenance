@@ -80,6 +80,8 @@
     <string name="section_about">About</string>
     <string name="dynamic_color">Dynamic color</string>
     <string name="dynamic_color_summary">Use colors from your system wallpaper (Android 12+)</string>
+    <string name="app_language">App language</string>
+    <string name="app_language_summary">Set preferred language for Sustenance in system settings</string>
     <string name="keto_mode">Keto Mode</string>
     <string name="keto_mode_summary">Display Net Carbs (Carbs - Fiber)</string>
     <string name="gram_increment">Gram increment</string>

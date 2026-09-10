@@ -3,6 +3,7 @@ package io.github.draumaz.sustenance.ui.settings
 import android.content.Intent
 import android.os.Build
 import android.net.Uri
+import android.provider.Settings
 import androidx.activity.compose.PredictiveBackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -26,6 +27,7 @@ import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.HealthAndSafety
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Key
+import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.Palette
@@ -182,6 +184,32 @@ fun SettingsScreen(
                     ) {
                         Switch(checked = dynamicColor, onCheckedChange = null)
                     }
+
+                    SettingRow(
+                        icon = Icons.Rounded.Language,
+                        title = stringResource(R.string.app_language),
+                        subtitle = stringResource(R.string.app_language_summary),
+                        onClick = {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                try {
+                                    val intent = Intent(Settings.ACTION_APP_LOCALE_SETTINGS).apply {
+                                        data = Uri.fromParts("package", context.packageName, null)
+                                    }
+                                    context.startActivity(intent)
+                                } catch (_: Exception) {
+                                    val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                        data = Uri.fromParts("package", context.packageName, null)
+                                    }
+                                    context.startActivity(intent)
+                                }
+                            } else {
+                                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                    data = Uri.fromParts("package", context.packageName, null)
+                                }
+                                context.startActivity(intent)
+                            }
+                        }
+                    )
                 }
             }
             item { SectionLabel(stringResource(R.string.section_diet)) }
