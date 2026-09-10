@@ -618,6 +618,19 @@ private fun NutritionFactsLabel(
 
             HorizontalDivider(thickness = 1.dp, color = contentColor)
 
+            // Sodium Section
+            NutritionFactsRow(
+                label = stringResource(R.string.nutrition_sodium),
+                value = sodium,
+                onValueChange = onSodiumChange,
+                unit = stringResource(R.string.unit_mg),
+                percentage = sodiumPercentage,
+                isBold = true,
+                color = contentColor
+            )
+
+            HorizontalDivider(thickness = 1.dp, color = contentColor)
+
             // Carbohydrate Section
             NutritionFactsRow(
                 label = stringResource(R.string.nutrition_carbohydrate),
@@ -658,19 +671,6 @@ private fun NutritionFactsLabel(
                 onValueChange = onProtChange,
                 unit = stringResource(R.string.unit_g),
                 percentage = protPercentage,
-                isBold = true,
-                color = contentColor
-            )
-
-            HorizontalDivider(thickness = 1.dp, color = contentColor)
-
-            // Sodium Section
-            NutritionFactsRow(
-                label = stringResource(R.string.nutrition_sodium),
-                value = sodium,
-                onValueChange = onSodiumChange,
-                unit = stringResource(R.string.unit_mg),
-                percentage = sodiumPercentage,
                 isBold = true,
                 color = contentColor
             )
