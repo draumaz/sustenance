@@ -22,7 +22,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.AlertDialog
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -371,7 +370,7 @@ private fun MainNav(
 
     val apiKeyEnabled by settingsRepo.apiKeyEnabled.collectAsStateWithLifecycle(initialValue = false)
     val apiKey by settingsRepo.apiKey.collectAsStateWithLifecycle(initialValue = "")
-    val geminiModel by settingsRepo.geminiModel.collectAsStateWithLifecycle(initialValue = "3.5-flash-lite")
+    val geminiModel by settingsRepo.geminiModel.collectAsStateWithLifecycle(initialValue = "1.5-flash")
     val hasApiKey = apiKeyEnabled && apiKey.isNotEmpty()
 
     val bottomBarHeight = 120.dp
@@ -496,7 +495,7 @@ private fun MainNav(
                                     val trimmed = geminiModel.trim()
                                     if (trimmed.startsWith("gemini-")) trimmed else "gemini-$trimmed"
                                 } else {
-                                    "gemini-3.5-flash-lite"
+                                    "gemini-1.5-flash"
                                 }
                                 val result = GeminiManager(trimmedKey, effectiveModel).analyzeFoodImages(
                                     capturedBitmaps,
@@ -719,7 +718,7 @@ private fun MainNav(
                                                 val trimmed = geminiModel.trim()
                                                 if (trimmed.startsWith("gemini-")) trimmed else "gemini-$trimmed"
                                             } else {
-                                                "gemini-3.5-flash-lite"
+                                                "gemini-1.5-flash"
                                             }
                                             val result = GeminiManager(trimmedKey, effectiveModel).analyzeFoodImage(
                                                 rotatedBitmap,

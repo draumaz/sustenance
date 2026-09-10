@@ -36,7 +36,6 @@ import androidx.glance.state.PreferencesGlanceStateDefinition
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
-import androidx.glance.unit.ColorProvider
 import kotlinx.coroutines.flow.first
 import io.github.draumaz.sustenance.SustenanceApp
 import io.github.draumaz.sustenance.MainActivity
@@ -138,7 +137,7 @@ private fun MetricWidgetContent() {
     ) {
         Text(
             text = context.getString(metric.titleRes),
-            style = TextStyle(color = ColorProvider(metric.accent), fontWeight = FontWeight.Bold, fontSize = 14.sp),
+            style = TextStyle(color = GlanceTheme.colors.primary, fontWeight = FontWeight.Bold, fontSize = 14.sp),
         )
         Spacer(GlanceModifier.height(2.dp))
         when {

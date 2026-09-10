@@ -4,7 +4,6 @@ import android.content.Intent
 import android.os.Build
 import android.net.Uri
 import android.provider.Settings
-import androidx.activity.compose.PredictiveBackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -331,7 +330,7 @@ fun SettingsScreen(
                     val apiKeyVerificationStatus by vm.apiKeyVerificationStatus.collectAsState(initial = "idle")
                     var isApiKeyVerifying by remember { mutableStateOf(false) }
 
-                    val geminiModel by vm.geminiModel.collectAsState(initial = "3.5-flash-lite")
+                    val geminiModel by vm.geminiModel.collectAsState(initial = "1.5-flash")
                     var tempGeminiModel by remember(geminiModel) { mutableStateOf(geminiModel.removePrefix("gemini-")) }
                     val geminiModelVerificationStatus by vm.geminiModelVerificationStatus.collectAsState(initial = "idle")
                     var isModelVerifying by remember { mutableStateOf(false) }
@@ -378,7 +377,7 @@ fun SettingsScreen(
                                 },
                                 modifier = Modifier.weight(1f),
                                 prefix = { Text("gemini-") },
-                                placeholder = { Text("3.5-flash-lite", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)) },
+                                placeholder = { Text("1.5-flash", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)) },
                                 singleLine = true,
                                 label = { Text(stringResource(R.string.gemini_model)) },
                                 colors = modelOutlineColors,
@@ -403,7 +402,7 @@ fun SettingsScreen(
                                                     return@IconButton
                                                 }
                                                 val modelToTest = if (tempGeminiModel.isBlank()) {
-                                                    "gemini-3.5-flash-lite"
+                                                    "gemini-1.5-flash"
                                                 } else {
                                                     val trimmed = tempGeminiModel.trim()
                                                     if (trimmed.startsWith("gemini-")) trimmed else "gemini-$trimmed"
@@ -503,7 +502,7 @@ fun SettingsScreen(
                                                     }
                                                     isApiKeyVerifying = true
                                                     scope.launch {
-                                                        val result = GeminiManager(keyToUse, "gemini-3.5-flash-lite").verifyModel()
+                                                        val result = GeminiManager(keyToUse, "gemini-1.5-flash").verifyModel()
                                                         isApiKeyVerifying = false
                                                         if (result.isSuccess) {
                                                             vm.setApiKeyVerificationStatus("success")

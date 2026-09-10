@@ -4,7 +4,6 @@ import android.graphics.Bitmap
 import android.util.Log
 import androidx.core.graphics.scale
 import com.google.ai.client.generativeai.GenerativeModel
-import com.google.ai.client.generativeai.type.HarmCategory
 import com.google.ai.client.generativeai.type.SafetySetting
 import com.google.ai.client.generativeai.type.content
 import kotlinx.coroutines.Dispatchers
@@ -26,7 +25,7 @@ data class FoodNutrients(
 
 class GeminiManager(
     apiKey: String,
-    modelName: String = "gemini-3.5-flash-lite"
+    modelName: String = "gemini-1.5-flash"
 ) {
     private val model = GenerativeModel(
         modelName = modelName,

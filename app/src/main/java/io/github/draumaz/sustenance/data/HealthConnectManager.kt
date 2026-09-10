@@ -79,7 +79,7 @@ class HealthConnectManager(internal val context: Context) {
     }
 
     suspend fun writeNutrition(nutrients: FoodNutrients, servingCount: Double, timestamp: Instant = Instant.now()) {
-        val baseGrams = "(\\d+)".toRegex().find(nutrients.servingSize)?.groupValues?.get(1)?.toDoubleOrNull() ?: 100.0
+        val baseGrams = "(\\d+(?:[.,]\\d+)?)".toRegex().find(nutrients.servingSize)?.groupValues?.get(1)?.replace(',', '.')?.toDoubleOrNull() ?: 100.0
         val totalGrams = kotlin.math.round(baseGrams * servingCount).toInt()
         val cleanName = nutrients.foodItem.replace("\\s*\\(\\d+g\\)".toRegex(), "").trim()
         val entryName = "$cleanName (${totalGrams}g)"

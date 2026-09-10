@@ -90,8 +90,8 @@ fun FoodReviewDialog(
     // Extract only the numeric part for the editable state. Favor numbers followed by "g".
     var servingSize by remember(nutrients) {
         val s = nutrients.servingSize
-        val gMatch = "(\\d+)\\s*g".toRegex(RegexOption.IGNORE_CASE).find(s)
-        val result = gMatch?.groupValues?.get(1) ?: "(\\d+)".toRegex().find(s)?.groupValues?.get(1) ?: s
+        val gMatch = "(\\d+(?:[.,]\\d+)?)\\s*g".toRegex(RegexOption.IGNORE_CASE).find(s)
+        val result = gMatch?.groupValues?.get(1) ?: "(\\d+(?:[.,]\\d+)?)".toRegex().find(s)?.groupValues?.get(1) ?: s
         mutableStateOf(result)
     }
 

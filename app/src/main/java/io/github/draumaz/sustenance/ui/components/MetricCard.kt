@@ -32,7 +32,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
-import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -60,7 +59,7 @@ fun MetricCard(
     } else 0f
 
     val showProgress = goal != null && !locked
-    val isOver = showProgress && today > (goal ?: Float.MAX_VALUE)
+    val isOver = showProgress && today > goal
 
     val fillColor = when {
         isOver -> if (summary.metric.moreIsBetter) accent else Color(0xFFAB6161)
@@ -130,22 +129,24 @@ fun MetricItemContent(
             )
         }
         Spacer(Modifier.width(8.dp))
+        val textColor = if (hasFill) Color.White else MaterialTheme.colorScheme.onSurface
+        val titleColor = if (hasFill) Color.White.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant
         Column(Modifier.weight(1f)) {
             Text(
                 text = summary.titleOverride ?: stringResource(summary.metric.titleRes),
-                style = MaterialTheme.typography.labelSmall.copy(shadow = textShadow),
+                style = if (hasFill) MaterialTheme.typography.labelSmall.copy(shadow = textShadow) else MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Medium,
-                color = Color.White.copy(alpha = 0.8f),
+                color = titleColor,
                 maxLines = 1,
             )
 
-            var textStyle by remember(summary.value) {
+            var textStyle by remember(summary.value, hasFill, textColor) {
                 mutableStateOf(TextStyle(
                     fontSize = if (isCompact) 13.sp else 16.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = (-0.5).sp,
-                    color = Color.White,
-                    shadow = textShadow
+                    color = textColor,
+                    shadow = if (hasFill) textShadow else null
                 ))
             }
 
