@@ -2,7 +2,15 @@ package xyz.draumaz.sustenance.data
 
 import androidx.compose.ui.graphics.Color
 import xyz.draumaz.sustenance.util.FoodNutrients
+import java.time.Duration
 import java.time.Instant
+
+/** Represents a fasting stretch between two food logs. */
+data class FastingStretch(
+    val startTime: Instant,
+    val endTime: Instant,
+    val duration: Duration = Duration.between(startTime, endTime)
+)
 
 /** One dashboard tile: the headline value for a metric plus a sparkline of recent points. */
 data class MetricSummary(

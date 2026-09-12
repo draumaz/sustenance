@@ -323,6 +323,79 @@ class HealthConnectManager(internal val context: Context) {
         }.getOrNull()
     }
 
+    suspend fun readLongestFastingStretch(dateOffset: Int, threshold: Double = 0.0): FastingStretch? {
+        if (dateOffset <= 0) return null
+        return runCatching {
+            val zone = ZoneId.systemDefault()
+            val targetDate = LocalDate.now().minusDays(dateOffset.toLong())
+            val dayStart = targetDate.atStartOfDay(zone).toInstant()
+            val dayEnd = targetDate.plusDays(1).atStartOfDay(zone).toInstant()
+            val now = Instant.now()
+            val effectiveDayEnd = if (dayEnd.isAfter(now)) now else dayEnd
+
+            val queryStart = dayStart.minus(java.time.Duration.ofDays(2))
+            val queryEnd = dayEnd.plus(java.time.Duration.ofDays(2))
+
+            val records = client.readRecords(
+                ReadRecordsRequest(
+                    recordType = NutritionRecord::class,
+                    timeRangeFilter = TimeRangeFilter.between(queryStart, queryEnd),
+                    ascendingOrder = true,
+                    pageSize = 1000
+                )
+            ).records
+
+            val mealTimes = records
+                .filter { (it.energy?.inKilocalories ?: 0.0) >= threshold }
+                .map { it.startTime }
+                .distinct()
+                .sorted()
+
+            val intervals = mutableListOf<FastingStretch>()
+
+            if (mealTimes.isEmpty()) {
+                if (dayStart < effectiveDayEnd) {
+                    intervals.add(FastingStretch(dayStart, effectiveDayEnd))
+                }
+            } else {
+                // Gap before first meal
+                val firstMeal = mealTimes.first()
+                if (firstMeal > dayStart) {
+                    val start = dayStart
+                    val end = if (firstMeal < effectiveDayEnd) firstMeal else effectiveDayEnd
+                    if (start < end) {
+                        intervals.add(FastingStretch(start, end))
+                    }
+                }
+
+                // Gaps between consecutive meals
+                for (i in 0 until mealTimes.size - 1) {
+                    val m1 = mealTimes[i]
+                    val m2 = mealTimes[i + 1]
+                    if (m1 < effectiveDayEnd && m2 > dayStart) {
+                        val start = if (m1 > dayStart) m1 else dayStart
+                        val end = if (m2 < effectiveDayEnd) m2 else effectiveDayEnd
+                        if (start < end) {
+                            intervals.add(FastingStretch(start, end))
+                        }
+                    }
+                }
+
+                // Gap after last meal
+                val lastMeal = mealTimes.last()
+                if (lastMeal < effectiveDayEnd) {
+                    val start = if (lastMeal > dayStart) lastMeal else dayStart
+                    val end = effectiveDayEnd
+                    if (start < end) {
+                        intervals.add(FastingStretch(start, end))
+                    }
+                }
+            }
+
+            intervals.maxByOrNull { it.duration }
+        }.getOrNull()
+    }
+
     private fun extractNutrients(r: NutritionRecord): FoodNutrients {
         val rawName = r.name ?: context.getString(R.string.unknown_food)
         val gramsMatch = "\\((\\d+)g\\)".toRegex().find(rawName)

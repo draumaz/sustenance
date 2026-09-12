@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import xyz.draumaz.sustenance.data.FastingStretch
 import xyz.draumaz.sustenance.data.GoalsRepository
 import xyz.draumaz.sustenance.data.HealthConnectManager
 import xyz.draumaz.sustenance.data.Metric
@@ -32,6 +33,9 @@ class DashboardViewModel(
         mapOf(0 to manager.initialSummaries())
     )
     val summariesMap = _summariesMap.asStateFlow()
+
+    private val _longestFastingMap = MutableStateFlow<Map<Int, FastingStretch?>>(emptyMap())
+    val longestFastingMap = _longestFastingMap.asStateFlow()
     
     private val _dateOffset = MutableStateFlow(0)
     val dateOffset = _dateOffset.asStateFlow()
@@ -132,9 +136,12 @@ class DashboardViewModel(
             }
         }
         val data = manager.readDashboard(finalGoals, isKeto, offset)
+        val threshold = settingsRepo.fastBreakingCalories.first().toDouble()
         if (offset == 0) {
-            val threshold = settingsRepo.fastBreakingCalories.first().toDouble()
             _lastLogTime.value = manager.readLastFoodLogTime(threshold)
+        } else {
+            val stretch = manager.readLongestFastingStretch(offset, threshold)
+            _longestFastingMap.value = _longestFastingMap.value + (offset to stretch)
         }
         _summariesMap.value = _summariesMap.value + (offset to data)
     }
