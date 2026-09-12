@@ -121,13 +121,12 @@ class ScallopedPillShape(private val isScalloped: Boolean = false) : Shape {
         val radius = height / 2f
 
         if (!isScalloped) {
-            path.addRoundRect(
+            return Outline.Rounded(
                 RoundRect(
                     0f, 0f, width, height,
                     CornerRadius(radius)
                 )
             )
-            return Outline.Generic(path)
         }
 
         val bumpDepth = with(density) { 2.5.dp.toPx() }
@@ -261,8 +260,8 @@ fun ExpressiveNavigationBar(
                     )
                 ),
             shape = ScallopedPillShape(isScalloped),
-            color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.95f),
-            shadowElevation = 8.dp
+            color = MaterialTheme.colorScheme.surfaceContainerHighest,
+            shadowElevation = 0.dp
         ) {
             Column(
                 modifier = Modifier.padding(8.dp),
