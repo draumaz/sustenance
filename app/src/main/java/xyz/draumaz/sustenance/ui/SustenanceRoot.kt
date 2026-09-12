@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.annotation.StringRes
 import androidx.compose.ui.res.stringResource
 import androidx.core.net.toUri
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 import androidx.health.connect.client.PermissionController
@@ -327,14 +328,21 @@ private fun MainNav(
         }
     }
 
+    var analysisJob by remember { mutableStateOf<Job?>(null) }
+
     fun clearCapture() {
+        analysisJob?.cancel()
+        analysisJob = null
+        isAnalyzing = false
         isCameraActive = false
         isTorchOn = false
         isCapturing = false
         isBatchMode = false
         batchInfoText = ""
+        pendingNutrients = null
         capturedBitmaps.forEach { it.recycle() }
         capturedBitmaps = emptyList()
+        navController.popBackStack(Dest.TODAY.route, inclusive = false)
     }
 
     val cameraPermissionLauncher = rememberLauncherForActivityResult(
@@ -346,6 +354,9 @@ private fun MainNav(
     }
 
     if (isCameraActive) {
+        BackHandler {
+            clearCapture()
+        }
         PredictiveBackHandler(enabled = !isHistoryActive) { progress ->
             pbState.isSwipeActive = true
             try {
@@ -443,11 +454,13 @@ private fun MainNav(
 
     val rootBlur by animateDpAsState(
         targetValue = if (isDashboardLoading || isCameraActive || isAnalyzing || pendingNutrients != null) 16.dp else 0.dp,
+        animationSpec = if (!isCameraActive && !isAnalyzing && pendingNutrients == null) tween(0) else spring(),
         label = "root_blur"
     )
 
     val cameraBlur by animateDpAsState(
         targetValue = if (isAnalyzing || pendingNutrients != null) 16.dp else 0.dp,
+        animationSpec = if (!isAnalyzing && pendingNutrients == null) tween(0) else spring(),
         label = "camera_blur"
     )
 
@@ -498,7 +511,7 @@ private fun MainNav(
                         },
                         onFinishBatch = {
                             isTorchOn = false
-                            scope.launch {
+                            analysisJob = scope.launch {
                                 val trimmedKey = apiKey.trim()
                                 if (trimmedKey.isBlank()) {
                                     Toast.makeText(
@@ -506,6 +519,8 @@ private fun MainNav(
                                         R.string.api_key_missing,
                                         Toast.LENGTH_SHORT
                                     ).show()
+                                    isAnalyzing = false
+                                    analysisJob = null
                                     return@launch
                                 }
                                 isAnalyzing = true
@@ -520,6 +535,7 @@ private fun MainNav(
                                     batchInfoText
                                 )
                                 isAnalyzing = false
+                                analysisJob = null
                                 if (result.isSuccess) {
                                     pendingNutrients = result.getOrNull()
                                     clearCapture()
@@ -754,31 +770,34 @@ private fun MainNav(
                                             }
 
                                             isAnalyzing = true
-                                            val effectiveModel = if (geminiModel.isNotBlank()) {
-                                                val trimmed = geminiModel.trim()
-                                                if (trimmed.startsWith("gemini-")) trimmed else "gemini-$trimmed"
-                                            } else {
-                                                "gemini-3.5-flash-lite"
-                                            }
-                                            val result = GeminiManager(trimmedKey, effectiveModel).analyzeFoodImage(
-                                                rotatedBitmap,
-                                                batchInfoText
-                                            )
-                                            isAnalyzing = false
+                                            analysisJob = scope.launch {
+                                                val effectiveModel = if (geminiModel.isNotBlank()) {
+                                                    val trimmed = geminiModel.trim()
+                                                    if (trimmed.startsWith("gemini-")) trimmed else "gemini-$trimmed"
+                                                } else {
+                                                    "gemini-3.5-flash-lite"
+                                                }
+                                                val result = GeminiManager(trimmedKey, effectiveModel).analyzeFoodImage(
+                                                    rotatedBitmap,
+                                                    batchInfoText
+                                                )
+                                                isAnalyzing = false
+                                                analysisJob = null
 
-                                            if (result.isSuccess) {
-                                                pendingNutrients = result.getOrNull()
-                                                clearCapture()
-                                            } else {
-                                                val errorMsg =
-                                                    result.exceptionOrNull()?.localizedMessage
-                                                        ?: ""
-                                                Toast.makeText(
-                                                    currentContext,
-                                                    appContext.getString(R.string.analysis_failed, errorMsg),
-                                                    Toast.LENGTH_LONG
-                                                ).show()
-                                                isCapturing = false
+                                                if (result.isSuccess) {
+                                                    pendingNutrients = result.getOrNull()
+                                                    clearCapture()
+                                                } else {
+                                                    val errorMsg =
+                                                        result.exceptionOrNull()?.localizedMessage
+                                                            ?: ""
+                                                    Toast.makeText(
+                                                        currentContext,
+                                                        appContext.getString(R.string.analysis_failed, errorMsg),
+                                                        Toast.LENGTH_LONG
+                                                    ).show()
+                                                    isCapturing = false
+                                                }
                                             }
                                         }
                                     }
