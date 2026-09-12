@@ -1,6 +1,17 @@
 package xyz.draumaz.sustenance.ui.components
 
 import android.view.HapticFeedbackConstants
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -32,12 +43,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.res.stringResource
 import xyz.draumaz.sustenance.R
 import xyz.draumaz.sustenance.data.MetricSummary
 
@@ -61,6 +72,19 @@ fun MetricCard(
     val showProgress = goal != null && !locked
     val isOver = showProgress && today > goal
 
+    val targetProgress = if (showProgress && (progress > 0.01f || isOver)) {
+        if (isOver) 1f else progress
+    } else 0f
+
+    val animatedProgress by animateFloatAsState(
+        targetValue = targetProgress,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioLowBouncy,
+            stiffness = Spring.StiffnessMediumLow
+        ),
+        label = "card_progress_morph"
+    )
+
     val fillColor = when {
         isOver -> if (summary.metric.moreIsBetter) accent else Color(0xFFAB6161)
         else -> accent
@@ -76,10 +100,10 @@ fun MetricCard(
         color = containerColor,
     ) {
         Box(Modifier.fillMaxSize().clip(RoundedCornerShape(16.dp))) {
-            if (showProgress && (progress > 0.01f || isOver)) {
+            if (showProgress && animatedProgress > 0.001f) {
                 Box(
                     Modifier
-                        .fillMaxWidth(if (isOver) 1f else progress)
+                        .fillMaxWidth(animatedProgress.coerceIn(0.01f, 1f))
                         .fillMaxHeight()
                         .background(fillColor)
                         .clip(RoundedCornerShape(topEnd = 12.dp, bottomEnd = 12.dp))
@@ -88,7 +112,7 @@ fun MetricCard(
             MetricItemContent(
                 summary = summary, 
                 isCompact = true, 
-                hasFill = showProgress && (progress > 0.05f || isOver)
+                hasFill = showProgress && (animatedProgress > 0.05f || isOver)
             )
         }
     }
@@ -150,17 +174,29 @@ fun MetricItemContent(
                 ))
             }
 
-            Text(
-                text = if (locked) stringResource(R.string.locked) else summary.value,
-                style = textStyle,
-                maxLines = 1,
-                softWrap = false,
-                onTextLayout = { textLayoutResult ->
-                    if (textLayoutResult.hasVisualOverflow) {
-                        textStyle = textStyle.copy(fontSize = textStyle.fontSize * 0.9f)
+            val displayValue = if (locked) stringResource(R.string.locked) else summary.value
+
+            AnimatedContent(
+                targetState = displayValue,
+                transitionSpec = {
+                    (fadeIn(animationSpec = tween(220)) + scaleIn(initialScale = 0.96f))
+                        .togetherWith(fadeOut(animationSpec = tween(160)) + scaleOut(targetScale = 1.04f))
+                        .using(SizeTransform(clip = false))
+                },
+                label = "metric_value_morph"
+            ) { valueText ->
+                Text(
+                    text = valueText,
+                    style = textStyle,
+                    maxLines = 1,
+                    softWrap = false,
+                    onTextLayout = { textLayoutResult ->
+                        if (textLayoutResult.hasVisualOverflow) {
+                            textStyle = textStyle.copy(fontSize = textStyle.fontSize * 0.9f)
+                        }
                     }
-                }
-            )
+                )
+            }
         }
     }
 }

@@ -2,6 +2,8 @@ package xyz.draumaz.sustenance.ui.components
 
 import android.graphics.Bitmap
 import android.view.HapticFeedbackConstants
+import androidx.compose.ui.draw.blur
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.animateContentSize

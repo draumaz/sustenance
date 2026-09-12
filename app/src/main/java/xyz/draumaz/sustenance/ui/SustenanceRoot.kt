@@ -59,6 +59,11 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.ui.unit.DpSize
+import xyz.draumaz.sustenance.ui.components.ScallopedLoadingAnimation
+import androidx.compose.animation.core.tween
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.input.pointer.pointerInput
@@ -434,8 +439,10 @@ private fun MainNav(
         }
     }
 
+    var isDashboardLoading by remember { mutableStateOf(false) }
+
     val dashboardBlur by animateDpAsState(
-        targetValue = if (isCameraActive || isAnalyzing || pendingNutrients != null) 16.dp else 0.dp,
+        targetValue = if (isDashboardLoading || isCameraActive || isAnalyzing || pendingNutrients != null) 16.dp else 0.dp,
         label = "dashboard_blur"
     )
 
@@ -444,10 +451,12 @@ private fun MainNav(
         label = "camera_blur"
     )
 
-    Scaffold(
-        modifier = Modifier
-            .fillMaxSize()
-            .nestedScroll(nestedScrollConnection),
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            modifier = Modifier
+                .fillMaxSize()
+                .nestedScroll(nestedScrollConnection)
+                .blur(dashboardBlur),
         bottomBar = {
             if (showBar) {
                 val animatedOffset by animateIntAsState(
@@ -592,6 +601,9 @@ private fun MainNav(
                         },
                         onResetView = {
                             bottomBarOffsetHeightPx.floatValue = 0f
+                        },
+                        onLoadingChanged = {
+                            isDashboardLoading = it
                         }
                     )
                 }
@@ -850,4 +862,5 @@ private fun MainNav(
             }
         }
     }
+}
 }

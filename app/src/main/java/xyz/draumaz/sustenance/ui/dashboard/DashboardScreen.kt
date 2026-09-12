@@ -75,6 +75,7 @@ import xyz.draumaz.sustenance.data.MetricSummary
 import xyz.draumaz.sustenance.ui.DashboardViewModel
 import xyz.draumaz.sustenance.ui.components.MetricCard
 import xyz.draumaz.sustenance.ui.components.ScallopedLoadingAnimation
+import xyz.draumaz.sustenance.ui.components.opticalDepthCard
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.Duration
@@ -89,6 +90,9 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.draw.blur
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
@@ -114,6 +118,7 @@ fun DashboardScreen(
     onTimerClick: () -> Unit = {},
     onDateChanged: (Int) -> Unit = {},
     onResetView: () -> Unit = {},
+    onLoadingChanged: (Boolean) -> Unit = {},
 ) {
     val context = LocalContext.current
     val app = context.applicationContext as xyz.draumaz.sustenance.SustenanceApp
@@ -129,6 +134,18 @@ fun DashboardScreen(
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(topAppBarState)
     val view = LocalView.current
     val pullToRefreshState = rememberPullToRefreshState()
+
+    val currentSummaryData = summariesMap[dateOffset]
+    val isLoading = currentSummaryData == null
+
+    LaunchedEffect(isLoading) {
+        onLoadingChanged(isLoading)
+    }
+
+    val loadingBlur by animateDpAsState(
+        targetValue = if (isLoading) 16.dp else 0.dp,
+        label = "dashboard_loading_blur"
+    )
 
     var hapticTriggered by remember { mutableStateOf(value = false) }
     LaunchedEffect(pullToRefreshState.distanceFraction) {
@@ -188,6 +205,7 @@ fun DashboardScreen(
 
     val pullDistance = remember { Animatable(0f) }
     val pullThreshold = 60f
+    val pullProgress = (pullDistance.value / pullThreshold)
     val scope = rememberCoroutineScope()
     val listState = rememberLazyListState()
 
@@ -230,6 +248,7 @@ fun DashboardScreen(
                 val wasPulling = pullDistance.value > 0f
                 if (pullDistance.value >= pullThreshold) {
                     view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                    view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                     vm.moveBack()
                 } else if (wasPulling || topAppBarState.heightOffset != 0f) {
                     onResetView()
@@ -265,139 +284,119 @@ fun DashboardScreen(
         }
     }
 
-    Scaffold(
-        modifier = Modifier.fillMaxSize().nestedScroll(nestedScrollConnection),
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally
+    Box(Modifier.fillMaxSize()) {
+        Scaffold(
+            modifier = Modifier
+                .fillMaxSize()
+                .nestedScroll(nestedScrollConnection)
+                .blur(loadingBlur),
+            topBar = {
+                CenterAlignedTopAppBar(
+                    title = {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = greeting,
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 15.sp),
+                                color = MaterialTheme.colorScheme.primary,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            )
+                            Text(
+                                text = stringResource(R.string.app_name),
+                                style = MaterialTheme.typography.titleLarge.copy(fontSize = 25.sp),
+                                fontWeight = FontWeight.Bold,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            )
+                        }
+                    },
+                    scrollBehavior = scrollBehavior,
+                )
+            },
+        ) { inner ->
+            PullToRefreshBox(
+                isRefreshing = refreshing,
+                onRefresh = vm::refresh,
+                state = pullToRefreshState,
+                indicator = {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .padding(top = inner.calculateTopPadding() + 12.dp)
+                            .graphicsLayer {
+                                val pullProgress = pullToRefreshState.distanceFraction.coerceIn(0f, 1f)
+                                translationY = (pullProgress * 40.dp.toPx()) - 35.dp.toPx()
+                                alpha = pullProgress
+                                scaleX = 0.5f + (pullProgress * 0.5f)
+                                scaleY = 0.5f + (pullProgress * 0.5f)
+                            }
                     ) {
-                        Text(
-                            text = greeting,
-                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 15.sp),
-                            color = MaterialTheme.colorScheme.primary,
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                        )
-                        Text(
-                            text = stringResource(R.string.app_name),
-                            style = MaterialTheme.typography.titleLarge.copy(fontSize = 25.sp),
-                            fontWeight = FontWeight.Bold,
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        ScallopedLoadingAnimation(
+                            size = DpSize(50.dp, 50.dp),
+                            bumpsCount = 3f,
                         )
                     }
                 },
-                scrollBehavior = scrollBehavior,
-            )
-        },
-    ) { inner ->
-        PullToRefreshBox(
-            isRefreshing = refreshing,
-            onRefresh = vm::refresh,
-            state = pullToRefreshState,
-            indicator = {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .padding(top = inner.calculateTopPadding() + 12.dp)
-                        .graphicsLayer {
-                            val pullProgress = pullToRefreshState.distanceFraction.coerceIn(0f, 1f)
-                            // Start higher and slide down into view
-                            translationY = (pullProgress * 40.dp.toPx()) - 35.dp.toPx()
-                            alpha = pullProgress
-                            scaleX = 0.5f + (pullProgress * 0.5f)
-                            scaleY = 0.5f + (pullProgress * 0.5f)
-                        }
-                ) {
-                    ScallopedLoadingAnimation(
-                        size = DpSize(50.dp, 50.dp),
-                        bumpsCount = 3f,
-                    )
-                }
-            },
-            modifier = Modifier.fillMaxSize()
-        ) {
-            Box(Modifier.fillMaxSize()) {
-                Box(Modifier.padding(top = inner.calculateTopPadding()).fillMaxSize()) {
-                    AnimatedContent(
-                        targetState = dateOffset,
-                        transitionSpec = {
-                            val springSpec = spring<androidx.compose.ui.unit.IntOffset>(
-                                dampingRatio = Spring.DampingRatioNoBouncy,
-                                stiffness = Spring.StiffnessMediumLow
-                            )
-                            val gap = 150 // Material 3 Expressive styled gap in pixels
-                            if (targetState > initialState) {
-                                // Moving further back in time: current day slides DOWN, yesterday slides DOWN from top
-                                (slideInVertically(animationSpec = springSpec) { height -> -height - gap } + scaleIn(initialScale = 0.98f) + fadeIn(tween(300, 100)))
-                                    .togetherWith(slideOutVertically(animationSpec = springSpec) { height -> height + gap } + scaleOut(targetScale = 0.98f) + fadeOut(tween(300)))
-                                    .using(SizeTransform(clip = false))
-                            } else {
-                                // Moving forward in time: current day slides UP, today slides UP from bottom
-                                (slideInVertically(animationSpec = springSpec) { height -> height + gap } + scaleIn(initialScale = 0.98f) + fadeIn(tween(300, 100)))
-                                    .togetherWith(slideOutVertically(animationSpec = springSpec) { height -> -height - gap } + scaleOut(targetScale = 0.98f) + fadeOut(tween(300)))
-                                    .using(SizeTransform(clip = false))
-                            }
-                        },
-                        label = "dashboard_day_transition"
-                    ) { targetOffset ->
-                        val data = summariesMap[targetOffset]
-                        
+                modifier = Modifier.fillMaxSize()
+            ) {
+                Box(Modifier.fillMaxSize()) {
+                    Box(Modifier.padding(top = inner.calculateTopPadding()).fillMaxSize()) {
                         AnimatedContent(
-                            targetState = data != null,
+                            targetState = dateOffset,
                             transitionSpec = {
-                                fadeIn(tween(250)) togetherWith fadeOut(tween(250))
+                                fadeIn(tween(220)) togetherWith fadeOut(tween(180))
                             },
-                            label = "data_loading_transition"
-                        ) { isLoaded ->
-                            if (!isLoaded) {
-                                Column(
-                                    modifier = Modifier.fillMaxSize(),
-                                    verticalArrangement = Arrangement.Center,
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    ScallopedLoadingAnimation(
-                                        size = DpSize(150.dp, 150.dp),
-                                        modifier = Modifier.offset(y = (-75).dp),
-                                    )
-                                }
-                            } else {
-                                val currentData = summariesMap[targetOffset] ?: emptyList()
-                                val energyMetrics = listOf(Metric.TOTAL_CALORIES, Metric.CALORIC_BALANCE)
-                                val foodMetric = listOf(Metric.FOOD)
-                                val microMetrics = listOf(Metric.SUGAR, Metric.SATURATED_FAT, Metric.SODIUM)
+                            label = "dashboard_day_transition"
+                        ) { targetOffset ->
+                            val data = summariesMap[targetOffset]
 
-                                val energyGroup = currentData.filter { it.metric in energyMetrics }
-                                val foodGroup = currentData.filter { it.metric in foodMetric }
-                                val microsGroup = microMetrics.mapNotNull { m -> currentData.find { it.metric == m } }
-                                val macrosGroup = currentData.filter { it.metric !in (energyMetrics + foodMetric + microMetrics) }
+                            val currentData = data ?: summariesMap[dateOffset] ?: summariesMap[0] ?: emptyList()
+                            val activePullProgress = if (targetOffset == dateOffset) pullProgress else 0f
+                            val energyMetrics = listOf(Metric.TOTAL_CALORIES, Metric.CALORIC_BALANCE)
+                            val foodMetric = listOf(Metric.FOOD)
+                            val microMetrics = listOf(Metric.SUGAR, Metric.SATURATED_FAT, Metric.SODIUM)
 
-                                LazyColumn(
-                                    state = listState,
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .nestedScroll(scrollBehavior.nestedScrollConnection)
-                                        .graphicsLayer {
-                                            // Pull UP effect: Move the list UP as we pull
-                                            translationY = -pullDistance.value * 0.3f
-                                        },
-                                    contentPadding = PaddingValues(
-                                        start = 16.dp, end = 16.dp,
-                                        top = 3.dp,
-                                        bottom = bottomInset + 16.dp,
-                                    ),
-                                    verticalArrangement = Arrangement.SpaceBetween,
-                                ) {
-                                    if (energyGroup.isNotEmpty() || foodGroup.isNotEmpty() || (lastLogTimerEnabled && targetOffset == 0)) {
-                                        item {
-                                            MetricSection(
-                                                title = stringResource(R.string.section_energy),
-                                                items = energyGroup,
-                                                columns = 2,
-                                                onOpenMetric = { onOpenMetric(it, targetOffset) },
-                                                onManagePermissions = onManagePermissions,
-                                                bottomContent = {
-                                                    foodGroup.forEach { summary ->
+                            val energyGroup = currentData.filter { it.metric in energyMetrics }
+                            val foodGroup = currentData.filter { it.metric in foodMetric }
+                            val microsGroup = microMetrics.mapNotNull { m -> currentData.find { it.metric == m } }
+                            val macrosGroup = currentData.filter { it.metric !in (energyMetrics + foodMetric + microMetrics) }
+
+                            LazyColumn(
+                                state = listState,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .nestedScroll(scrollBehavior.nestedScrollConnection)
+                                    .graphicsLayer {
+                                        // Base pull UP offset
+                                        translationY = -activePullProgress * pullThreshold * 0.15f
+                                    },
+                                contentPadding = PaddingValues(
+                                    start = 16.dp, end = 16.dp,
+                                    top = 3.dp,
+                                    bottom = bottomInset + 16.dp,
+                                ),
+                                verticalArrangement = Arrangement.SpaceBetween,
+                            ) {
+                                if (energyGroup.isNotEmpty() || foodGroup.isNotEmpty() || (lastLogTimerEnabled && targetOffset == 0)) {
+                                    item {
+                                        MetricSection(
+                                            title = stringResource(R.string.section_energy),
+                                            items = energyGroup,
+                                            columns = 2,
+                                            sectionIndex = 0,
+                                            pullProgress = activePullProgress,
+                                            onOpenMetric = { onOpenMetric(it, targetOffset) },
+                                            onManagePermissions = onManagePermissions,
+                                            bottomContent = {
+                                                foodGroup.forEachIndexed { foodIdx, summary ->
+                                                    Box(
+                                                        Modifier.opticalDepthCard(
+                                                            sectionIndex = 0,
+                                                            cardIndex = energyGroup.size + foodIdx,
+                                                            pullProgress = activePullProgress,
+                                                            accentColor = summary.metric.accent
+                                                        )
+                                                    ) {
                                                         MetricCard(
                                                             summary = summary,
                                                             onClick = {
@@ -409,34 +408,46 @@ fun DashboardScreen(
                                                             }
                                                         )
                                                     }
-                                                    if (lastLogTimerEnabled && targetOffset == 0) {
+                                                }
+                                                if (lastLogTimerEnabled && targetOffset == 0) {
+                                                    Box(
+                                                        Modifier.opticalDepthCard(
+                                                            sectionIndex = 0,
+                                                            cardIndex = energyGroup.size + foodGroup.size,
+                                                            pullProgress = activePullProgress
+                                                        )
+                                                    ) {
                                                         TimerChip(lastLogTime, fastingGoalHours, currentTime, onClick = onTimerClick)
                                                     }
                                                 }
-                                            )
-                                        }
+                                            }
+                                        )
                                     }
-                                    if (macrosGroup.isNotEmpty()) {
-                                        item {
-                                            MetricSection(
-                                                title = stringResource(R.string.section_macros),
-                                                items = macrosGroup,
-                                                columns = 2,
-                                                onOpenMetric = { onOpenMetric(it, targetOffset) },
-                                                onManagePermissions = onManagePermissions
-                                            )
-                                        }
+                                }
+                                if (macrosGroup.isNotEmpty()) {
+                                    item {
+                                        MetricSection(
+                                            title = stringResource(R.string.section_macros),
+                                            items = macrosGroup,
+                                            columns = 2,
+                                            sectionIndex = 1,
+                                            pullProgress = activePullProgress,
+                                            onOpenMetric = { onOpenMetric(it, targetOffset) },
+                                            onManagePermissions = onManagePermissions
+                                        )
                                     }
-                                    if (microsGroup.isNotEmpty()) {
-                                        item {
-                                            MetricSection(
-                                                title = stringResource(R.string.section_micros),
-                                                items = microsGroup,
-                                                columns = 1,
-                                                onOpenMetric = { onOpenMetric(it, targetOffset) },
-                                                onManagePermissions = onManagePermissions
-                                            )
-                                        }
+                                }
+                                if (microsGroup.isNotEmpty()) {
+                                    item {
+                                        MetricSection(
+                                            title = stringResource(R.string.section_micros),
+                                            items = microsGroup,
+                                            columns = 1,
+                                            sectionIndex = 2,
+                                            pullProgress = activePullProgress,
+                                            onOpenMetric = { onOpenMetric(it, targetOffset) },
+                                            onManagePermissions = onManagePermissions
+                                        )
                                     }
                                 }
                             }
@@ -477,6 +488,24 @@ fun DashboardScreen(
                 }
             }
         }
+
+        AnimatedVisibility(
+            visible = isLoading,
+            enter = fadeIn(tween(200)),
+            exit = fadeOut(tween(200)),
+            modifier = Modifier.align(Alignment.Center)
+        ) {
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                ScallopedLoadingAnimation(
+                    size = DpSize(150.dp, 150.dp),
+                    modifier = Modifier.offset(y = (-75).dp),
+                )
+            }
+        }
     }
 }
 
@@ -488,11 +517,20 @@ private fun MetricSection(
     columns: Int,
     onOpenMetric: (Metric) -> Unit,
     onManagePermissions: () -> Unit,
+    modifier: Modifier = Modifier,
+    sectionIndex: Int = 0,
+    pullProgress: Float = 0f,
     extraContent: (@Composable () -> Unit)? = null,
     bottomContent: (@Composable ColumnScope.() -> Unit)? = null
 ) {
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .opticalDepthCard(
+                sectionIndex = sectionIndex,
+                cardIndex = 0,
+                pullProgress = pullProgress
+            ),
         shape = RoundedCornerShape(28.dp),
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         shadowElevation = 6.dp
@@ -515,8 +553,17 @@ private fun MetricSection(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     maxItemsInEachRow = columns
                 ) {
-                    items.forEach { summary ->
-                        Box(Modifier.weight(1f)) {
+                    items.forEachIndexed { cardIdx, summary ->
+                        Box(
+                            Modifier
+                                .weight(1f)
+                                .opticalDepthCard(
+                                    sectionIndex = sectionIndex,
+                                    cardIndex = cardIdx,
+                                    pullProgress = pullProgress,
+                                    accentColor = summary.metric.accent
+                                )
+                        ) {
                             MetricCard(
                                 summary = summary,
                                 onClick = {
@@ -526,7 +573,15 @@ private fun MetricSection(
                         }
                     }
                     extraContent?.let {
-                        Box(Modifier.weight(1f)) {
+                        Box(
+                            Modifier
+                                .weight(1f)
+                                .opticalDepthCard(
+                                    sectionIndex = sectionIndex,
+                                    cardIndex = items.size,
+                                    pullProgress = pullProgress
+                                )
+                        ) {
                             it()
                         }
                     }
