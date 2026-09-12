@@ -4,8 +4,11 @@ import android.graphics.Bitmap
 import android.util.Log
 import androidx.core.graphics.scale
 import com.google.ai.client.generativeai.GenerativeModel
+import com.google.ai.client.generativeai.type.BlockThreshold
+import com.google.ai.client.generativeai.type.HarmCategory
 import com.google.ai.client.generativeai.type.SafetySetting
 import com.google.ai.client.generativeai.type.content
+import com.google.ai.client.generativeai.type.generationConfig
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -20,7 +23,7 @@ data class FoodNutrients(
     val fiber: Double,
     val sugar: Double,
     val saturatedFat: Double,
-    val sodium: Double
+    val sodium: Double,
 )
 
 class GeminiManager(
@@ -29,7 +32,16 @@ class GeminiManager(
 ) {
     private val model = GenerativeModel(
         modelName = modelName,
-        apiKey = apiKey
+        apiKey = apiKey,
+        generationConfig = generationConfig {
+            responseMimeType = "application/json"
+        },
+        safetySettings = listOf(
+            SafetySetting(HarmCategory.HARASSMENT, BlockThreshold.NONE),
+            SafetySetting(HarmCategory.HATE_SPEECH, BlockThreshold.NONE),
+            SafetySetting(HarmCategory.SEXUALLY_EXPLICIT, BlockThreshold.NONE),
+            SafetySetting(HarmCategory.DANGEROUS_CONTENT, BlockThreshold.NONE)
+        )
     )
 
     suspend fun verifyModel(): Result<Unit> = withContext(Dispatchers.IO) {
@@ -42,14 +54,15 @@ class GeminiManager(
             }
         } catch (e: Exception) {
             Log.e("GeminiManager", "Verification failed", e)
-            Result.failure(e)
+            val msg = e.localizedMessage ?: e.message ?: e.javaClass.simpleName
+            Result.failure(Exception(msg))
         }
     }
 
     suspend fun analyzeFoodImages(bitmaps: List<Bitmap>, additionalInfo: String? = null): Result<FoodNutrients> = withContext(Dispatchers.IO) {
         try {
             val scaledBitmaps = bitmaps.map { bitmap ->
-                val maxDim = 1024
+                val maxDim = 512
                 if ((bitmap.width > maxDim) || (bitmap.height > maxDim)) {
                     val ratio = bitmap.width.toFloat() / bitmap.height.toFloat()
                     val (w, h) = if (ratio > 1) maxDim to (maxDim / ratio).toInt() else (maxDim * ratio).toInt() to maxDim
@@ -62,9 +75,9 @@ class GeminiManager(
             val response = model.generateContent(
                 content {
                     scaledBitmaps.forEach { image(it) }
-                    var prompt = "Analyze these food images. Return a JSON object with: food_item, serving_size, calories, protein, carbs, fat, fiber, sugar, saturated_fat, and sodium. Use numbers for nutrients. You MUST specify serving_size as a weight in grams (e.g., '150g'). Estimate the weight if not known. Return ONLY the JSON."
+                    var prompt = "Estimate nutrients for food in image as JSON: food_item, serving_size (weight in grams, e.g. '150g'), calories, protein, carbs, fat, fiber, sugar, saturated_fat, sodium. Use numbers for nutrient values."
                     if (!additionalInfo.isNullOrBlank()) {
-                        prompt += " Additional context from user: $additionalInfo"
+                        prompt += " Context: $additionalInfo"
                     }
                     text(prompt)
                 }
@@ -77,8 +90,12 @@ class GeminiManager(
             val text = try {
                 response.text
             } catch (e: Exception) {
-                val reason = response.candidates.firstOrNull()?.finishReason
-                return@withContext Result.failure(Exception("Gemini error ($reason): ${e.message}"))
+                val candidate = response.candidates.firstOrNull()
+                val reason = candidate?.finishReason
+                val msg = e.localizedMessage ?: e.message ?: e.toString()
+                return@withContext Result.failure(Exception(
+                    if (reason != null) "Gemini error ($reason): $msg" else "Gemini error: $msg"
+                ))
             } ?: return@withContext Result.failure(Exception("Empty response from Gemini"))
             
             Log.d("GeminiManager", "Response: $text")
@@ -104,7 +121,9 @@ class GeminiManager(
             ))
         } catch (e: Exception) {
             Log.e("GeminiManager", "Analysis failed", e)
-            Result.failure(Exception("${e.javaClass.simpleName}: ${e.localizedMessage}"))
+            val msg = e.localizedMessage ?: e.message
+            val displayError = if (!msg.isNullOrBlank()) msg else e.javaClass.simpleName
+            Result.failure(Exception(displayError))
         }
     }
 
