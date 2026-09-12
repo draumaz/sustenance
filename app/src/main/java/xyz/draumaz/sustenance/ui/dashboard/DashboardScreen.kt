@@ -384,9 +384,9 @@ fun DashboardScreen(
                                     contentPadding = PaddingValues(
                                         start = 16.dp, end = 16.dp,
                                         top = 16.dp,
-                                        bottom = bottomInset + 88.dp,
+                                        bottom = bottomInset + 16.dp,
                                     ),
-                                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                                    verticalArrangement = Arrangement.SpaceBetween,
                                 ) {
                                     if (energyGroup.isNotEmpty() || foodGroup.isNotEmpty() || (lastLogTimerEnabled && targetOffset == 0)) {
                                         item {
