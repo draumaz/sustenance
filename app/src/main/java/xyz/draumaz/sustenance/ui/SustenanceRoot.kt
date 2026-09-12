@@ -345,6 +345,20 @@ private fun MainNav(
         navController.popBackStack(Dest.TODAY.route, inclusive = false)
     }
 
+    fun onAnalysisSuccess(nutrients: FoodNutrients) {
+        analysisJob?.cancel()
+        analysisJob = null
+        isAnalyzing = false
+        isCameraActive = false
+        isTorchOn = false
+        isCapturing = false
+        isBatchMode = false
+        batchInfoText = ""
+        capturedBitmaps.forEach { it.recycle() }
+        capturedBitmaps = emptyList()
+        pendingNutrients = nutrients
+    }
+
     val cameraPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
@@ -537,8 +551,7 @@ private fun MainNav(
                                 isAnalyzing = false
                                 analysisJob = null
                                 if (result.isSuccess) {
-                                    pendingNutrients = result.getOrNull()
-                                    clearCapture()
+                                    result.getOrNull()?.let { onAnalysisSuccess(it) }
                                 } else {
                                     val errorMsg = result.exceptionOrNull()?.message ?: ""
                                     Toast.makeText(
@@ -785,8 +798,7 @@ private fun MainNav(
                                                 analysisJob = null
 
                                                 if (result.isSuccess) {
-                                                    pendingNutrients = result.getOrNull()
-                                                    clearCapture()
+                                                    result.getOrNull()?.let { onAnalysisSuccess(it) }
                                                 } else {
                                                     val errorMsg =
                                                         result.exceptionOrNull()?.localizedMessage
