@@ -330,7 +330,7 @@ fun SettingsScreen(
                     val apiKeyVerificationStatus by vm.apiKeyVerificationStatus.collectAsState(initial = "idle")
                     var isApiKeyVerifying by remember { mutableStateOf(false) }
 
-                    val geminiModel by vm.geminiModel.collectAsState(initial = "1.5-flash")
+                    val geminiModel by vm.geminiModel.collectAsState(initial = "3.5-flash-lite")
                     var tempGeminiModel by remember(geminiModel) { mutableStateOf(geminiModel.removePrefix("gemini-")) }
                     val geminiModelVerificationStatus by vm.geminiModelVerificationStatus.collectAsState(initial = "idle")
                     var isModelVerifying by remember { mutableStateOf(false) }
@@ -377,7 +377,7 @@ fun SettingsScreen(
                                 },
                                 modifier = Modifier.weight(1f),
                                 prefix = { Text("gemini-") },
-                                placeholder = { Text("1.5-flash", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)) },
+                                placeholder = { Text("3.5-flash-lite", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)) },
                                 singleLine = true,
                                 label = { Text(stringResource(R.string.gemini_model)) },
                                 colors = modelOutlineColors,
@@ -402,7 +402,7 @@ fun SettingsScreen(
                                                     return@IconButton
                                                 }
                                                 val modelToTest = if (tempGeminiModel.isBlank()) {
-                                                    "gemini-1.5-flash"
+                                                    "gemini-3.5-flash-lite"
                                                 } else {
                                                     val trimmed = tempGeminiModel.trim()
                                                     if (trimmed.startsWith("gemini-")) trimmed else "gemini-$trimmed"
@@ -415,7 +415,13 @@ fun SettingsScreen(
                                                         vm.setGeminiModelVerificationStatus("success")
                                                     } else {
                                                         vm.setGeminiModelVerificationStatus("error")
-                                                        Toast.makeText(context, R.string.invalid_model_name, Toast.LENGTH_SHORT).show()
+                                                        val errorDetails = result.exceptionOrNull()?.localizedMessage
+                                                        val msg = if (!errorDetails.isNullOrBlank()) {
+                                                            "${appContext.getString(R.string.invalid_model_name)} ($errorDetails)"
+                                                        } else {
+                                                            appContext.getString(R.string.invalid_model_name)
+                                                        }
+                                                        Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
                                                     }
                                                 }
                                             }
@@ -500,15 +506,27 @@ fun SettingsScreen(
                                                         vm.setApiKeyVerificationStatus("error")
                                                         return@IconButton
                                                     }
+                                                    val modelToTest = if (tempGeminiModel.isBlank()) {
+                                                        "gemini-3.5-flash-lite"
+                                                    } else {
+                                                        val trimmed = tempGeminiModel.trim()
+                                                        if (trimmed.startsWith("gemini-")) trimmed else "gemini-$trimmed"
+                                                    }
                                                     isApiKeyVerifying = true
                                                     scope.launch {
-                                                        val result = GeminiManager(keyToUse, "gemini-1.5-flash").verifyModel()
+                                                        val result = GeminiManager(keyToUse, modelToTest).verifyModel()
                                                         isApiKeyVerifying = false
                                                         if (result.isSuccess) {
                                                             vm.setApiKeyVerificationStatus("success")
                                                         } else {
                                                             vm.setApiKeyVerificationStatus("error")
-                                                            Toast.makeText(context, R.string.api_key_invalid, Toast.LENGTH_SHORT).show()
+                                                            val errorDetails = result.exceptionOrNull()?.localizedMessage
+                                                            val msg = if (!errorDetails.isNullOrBlank()) {
+                                                                "${appContext.getString(R.string.api_key_invalid)} ($errorDetails)"
+                                                            } else {
+                                                                appContext.getString(R.string.api_key_invalid)
+                                                            }
+                                                            Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
                                                         }
                                                     }
                                                 }

@@ -78,7 +78,7 @@ class SettingsRepository(private val context: Context) {
     }
 
     val geminiModel: Flow<String> = context.settingsDataStore.data.map { prefs ->
-        prefs[geminiModelKey] ?: "1.5-flash"
+        prefs[geminiModelKey] ?: "3.5-flash-lite"
     }
 
     val geminiModelVerificationStatus: Flow<String> = context.settingsDataStore.data.map { prefs ->

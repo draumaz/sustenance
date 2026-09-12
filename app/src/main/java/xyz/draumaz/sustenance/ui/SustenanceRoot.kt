@@ -370,7 +370,7 @@ private fun MainNav(
 
     val apiKeyEnabled by settingsRepo.apiKeyEnabled.collectAsStateWithLifecycle(initialValue = false)
     val apiKey by settingsRepo.apiKey.collectAsStateWithLifecycle(initialValue = "")
-    val geminiModel by settingsRepo.geminiModel.collectAsStateWithLifecycle(initialValue = "1.5-flash")
+    val geminiModel by settingsRepo.geminiModel.collectAsStateWithLifecycle(initialValue = "3.5-flash-lite")
     val hasApiKey = apiKeyEnabled && apiKey.isNotEmpty()
 
     val bottomBarHeight = 120.dp
@@ -495,7 +495,7 @@ private fun MainNav(
                                     val trimmed = geminiModel.trim()
                                     if (trimmed.startsWith("gemini-")) trimmed else "gemini-$trimmed"
                                 } else {
-                                    "gemini-1.5-flash"
+                                    "gemini-3.5-flash-lite"
                                 }
                                 val result = GeminiManager(trimmedKey, effectiveModel).analyzeFoodImages(
                                     capturedBitmaps,
@@ -718,7 +718,7 @@ private fun MainNav(
                                                 val trimmed = geminiModel.trim()
                                                 if (trimmed.startsWith("gemini-")) trimmed else "gemini-$trimmed"
                                             } else {
-                                                "gemini-1.5-flash"
+                                                "gemini-3.5-flash-lite"
                                             }
                                             val result = GeminiManager(trimmedKey, effectiveModel).analyzeFoodImage(
                                                 rotatedBitmap,
