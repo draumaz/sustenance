@@ -27,7 +27,9 @@ fun Modifier.opticalDepthCard(
     cardIndex: Int = 0,
     pullProgress: Float, // 0.0 when idle, 1.0 at threshold, >1.0 over-drag
     accentColor: Color = Color.Unspecified,
-    cornerRadius: Dp = 28.dp
+    cornerRadius: Dp = 28.dp,
+    columns: Int = 2,
+    isFullWidth: Boolean = false
 ): Modifier = this.then(
     Modifier
         .graphicsLayer {
@@ -60,10 +62,23 @@ fun Modifier.opticalDepthCard(
                 else -> p * 30f // Bottom section pulls DOWN (creating physical depth gap!)
             }
 
-            // Sub-card horizontal & vertical micro separation
-            val odd = cardIndex % 2 == 1
-            val cardOffsetX = if (odd) p * 10f else -p * 10f
-            val cardOffsetY = cardIndex * p * 5f
+            // Sub-card horizontal & vertical separation centered on Y axis
+            val cardOffsetX: Float
+            val cardOffsetY: Float
+            val cardRotationY: Float
+
+            if (isFullWidth || columns <= 1) {
+                cardOffsetX = 0f
+                cardOffsetY = cardIndex * p * 5f
+                cardRotationY = 0f
+            } else {
+                val col = cardIndex % columns
+                val row = cardIndex / columns
+                val isLeft = col < columns / 2.0f
+                cardOffsetX = if (isLeft) -p * 12f else p * 12f
+                cardOffsetY = row * p * 6f
+                cardRotationY = if (isLeft) 3f * p else -3f * p
+            }
 
             translationY = (sectionOffsetY + cardOffsetY) * density
             translationX = cardOffsetX * density
@@ -74,7 +89,6 @@ fun Modifier.opticalDepthCard(
                 1 -> -5f * p
                 else -> 8f * p
             }
-            val cardRotationY = if (odd) -4f * p else 4f * p
 
             rotationX = baseRotationX
             rotationY = cardRotationY

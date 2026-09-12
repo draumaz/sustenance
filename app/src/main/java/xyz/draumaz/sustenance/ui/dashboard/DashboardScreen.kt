@@ -395,7 +395,8 @@ fun DashboardScreen(
                                                             cardIndex = energyGroup.size + foodIdx,
                                                             pullProgress = activePullProgress,
                                                             accentColor = summary.metric.accent,
-                                                            cornerRadius = 16.dp
+                                                            cornerRadius = 16.dp,
+                                                            isFullWidth = true
                                                         )
                                                     ) {
                                                         MetricCard(
@@ -416,7 +417,8 @@ fun DashboardScreen(
                                                             sectionIndex = 0,
                                                             cardIndex = energyGroup.size + foodGroup.size,
                                                             pullProgress = activePullProgress,
-                                                            cornerRadius = 16.dp
+                                                            cornerRadius = 16.dp,
+                                                            isFullWidth = true
                                                         )
                                                     ) {
                                                         TimerChip(
@@ -489,7 +491,8 @@ private fun MetricSection(
                 sectionIndex = sectionIndex,
                 cardIndex = 0,
                 pullProgress = pullProgress,
-                cornerRadius = 28.dp
+                cornerRadius = 28.dp,
+                isFullWidth = true
             ),
         shape = RoundedCornerShape(28.dp),
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -522,7 +525,8 @@ private fun MetricSection(
                                     cardIndex = cardIdx,
                                     pullProgress = pullProgress,
                                     accentColor = summary.metric.accent,
-                                    cornerRadius = 16.dp
+                                    cornerRadius = 16.dp,
+                                    columns = columns
                                 )
                         ) {
                             MetricCard(
