@@ -22,4 +22,3 @@ dependencyResolutionManagement {
 
 rootProject.name = "Sustenance"
 include(":app")
-include(":bouncy-nav-pill-template-app")
