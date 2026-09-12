@@ -110,6 +110,27 @@ class HealthConnectManager(internal val context: Context) {
 
     // ---- Dashboard -----------------------------------------------------------------------------
 
+    fun initialSummaries(
+        goals: Map<Metric, Float> = emptyMap(),
+        isKeto: Boolean = false
+    ): List<MetricSummary> {
+        return Metric.entries.map { metric ->
+            val titleOverride = if (isKeto && metric == Metric.CARBS) {
+                context.getString(R.string.metric_net_carbs)
+            } else null
+            MetricSummary(
+                metric = metric,
+                value = "-",
+                caption = null,
+                hasData = false,
+                granted = true,
+                spark = emptyList(),
+                goal = goals[metric],
+                titleOverride = titleOverride
+            )
+        }
+    }
+
     suspend fun readDashboard(
         goals: Map<Metric, Float> = emptyMap(),
         isKeto: Boolean = false,

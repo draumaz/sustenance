@@ -439,11 +439,11 @@ private fun MainNav(
         }
     }
 
-    var isDashboardLoading by remember { mutableStateOf(false) }
+    var isDashboardLoading by remember { mutableStateOf(true) }
 
-    val dashboardBlur by animateDpAsState(
+    val rootBlur by animateDpAsState(
         targetValue = if (isDashboardLoading || isCameraActive || isAnalyzing || pendingNutrients != null) 16.dp else 0.dp,
-        label = "dashboard_blur"
+        label = "root_blur"
     )
 
     val cameraBlur by animateDpAsState(
@@ -456,7 +456,7 @@ private fun MainNav(
             modifier = Modifier
                 .fillMaxSize()
                 .nestedScroll(nestedScrollConnection)
-                .blur(dashboardBlur),
+                .blur(rootBlur),
         bottomBar = {
             if (showBar) {
                 val animatedOffset by animateIntAsState(
@@ -572,9 +572,7 @@ private fun MainNav(
             NavHost(
                 navController = navController,
                 startDestination = Dest.TODAY.route,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .blur(dashboardBlur),
+                modifier = Modifier.fillMaxSize(),
             ) {
                 composable(
                     Dest.TODAY.route,
@@ -663,7 +661,7 @@ private fun MainNav(
             }
 
             // Interaction Shield for blurred background
-            if (dashboardBlur > 0.dp) {
+            if (rootBlur > 0.dp) {
                 Box(
                     Modifier
                         .fillMaxSize()
@@ -671,6 +669,22 @@ private fun MainNav(
                             detectTapGestures { /* Block interactions */ }
                         }
                 )
+            }
+
+            androidx.compose.animation.AnimatedVisibility(
+                visible = isDashboardLoading,
+                enter = fadeIn(tween(200)),
+                exit = fadeOut(tween(200)),
+                modifier = Modifier.align(Alignment.Center)
+            ) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    ScallopedLoadingAnimation(
+                        size = androidx.compose.ui.unit.DpSize(200.dp, 200.dp)
+                    )
+                }
             }
 
             androidx.compose.animation.AnimatedVisibility(
@@ -788,8 +802,8 @@ private fun MainNav(
                     ) {
                         ScallopedLoadingAnimation(
                             size = androidx.compose.ui.unit.DpSize(
-                                150.dp,
-                                150.dp
+                                200.dp,
+                                200.dp
                             )
                         )
                     }

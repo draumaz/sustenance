@@ -105,8 +105,8 @@ fun MetricCard(
                     Modifier
                         .fillMaxWidth(animatedProgress.coerceIn(0.01f, 1f))
                         .fillMaxHeight()
-                        .background(fillColor)
                         .clip(RoundedCornerShape(topEnd = 12.dp, bottomEnd = 12.dp))
+                        .background(fillColor)
                 )
             }
             MetricItemContent(

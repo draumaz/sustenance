@@ -136,16 +136,11 @@ fun DashboardScreen(
     val pullToRefreshState = rememberPullToRefreshState()
 
     val currentSummaryData = summariesMap[dateOffset]
-    val isLoading = currentSummaryData == null
+    val isLoading = currentSummaryData == null || currentSummaryData.all { it.value == "-" }
 
     LaunchedEffect(isLoading) {
         onLoadingChanged(isLoading)
     }
-
-    val loadingBlur by animateDpAsState(
-        targetValue = if (isLoading) 16.dp else 0.dp,
-        label = "dashboard_loading_blur"
-    )
 
     var hapticTriggered by remember { mutableStateOf(value = false) }
     LaunchedEffect(pullToRefreshState.distanceFraction) {
@@ -288,8 +283,7 @@ fun DashboardScreen(
         Scaffold(
             modifier = Modifier
                 .fillMaxSize()
-                .nestedScroll(nestedScrollConnection)
-                .blur(loadingBlur),
+                .nestedScroll(nestedScrollConnection),
             topBar = {
                 CenterAlignedTopAppBar(
                     title = {
@@ -350,7 +344,7 @@ fun DashboardScreen(
                         ) { targetOffset ->
                             val data = summariesMap[targetOffset]
 
-                            val currentData = data ?: summariesMap[dateOffset] ?: summariesMap[0] ?: emptyList()
+                            val currentData = data ?: summariesMap[dateOffset] ?: summariesMap[0] ?: manager.initialSummaries()
                             val activePullProgress = if (targetOffset == dateOffset) pullProgress else 0f
                             val energyMetrics = listOf(Metric.TOTAL_CALORIES, Metric.CALORIC_BALANCE)
                             val foodMetric = listOf(Metric.FOOD)
@@ -394,7 +388,8 @@ fun DashboardScreen(
                                                             sectionIndex = 0,
                                                             cardIndex = energyGroup.size + foodIdx,
                                                             pullProgress = activePullProgress,
-                                                            accentColor = summary.metric.accent
+                                                            accentColor = summary.metric.accent,
+                                                            cornerRadius = 16.dp
                                                         )
                                                     ) {
                                                         MetricCard(
@@ -414,7 +409,8 @@ fun DashboardScreen(
                                                         Modifier.opticalDepthCard(
                                                             sectionIndex = 0,
                                                             cardIndex = energyGroup.size + foodGroup.size,
-                                                            pullProgress = activePullProgress
+                                                            pullProgress = activePullProgress,
+                                                            cornerRadius = 16.dp
                                                         )
                                                     ) {
                                                         TimerChip(lastLogTime, fastingGoalHours, currentTime, onClick = onTimerClick)
@@ -454,56 +450,6 @@ fun DashboardScreen(
                         }
                     }
                 }
-
-                val progress = (pullDistance.value / pullThreshold).coerceIn(0f, 1f)
-                val isReady = pullDistance.value >= pullThreshold
-
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .fillMaxWidth()
-                        .height((pullDistance.value * 0.8f).dp + bottomInset)
-                        .clip(RoundedCornerShape(topStart = 48.dp, topEnd = 48.dp))
-                        .background(
-                            if (isReady) MaterialTheme.colorScheme.primaryContainer 
-                            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = progress * 0.8f)
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Box(Modifier.padding(bottom = bottomInset).fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Icon(
-                            Icons.AutoMirrored.Rounded.ArrowBack, 
-                            null, 
-                            modifier = Modifier
-                                .size(40.dp)
-                                .graphicsLayer { 
-                                    rotationZ = if (isReady) -90f else -90f + (progress * 180f)
-                                    scaleX = 0.8f + progress * 0.4f
-                                    scaleY = 0.8f + progress * 0.4f
-                                    alpha = progress
-                                },
-                            tint = if (isReady) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.primary
-                        )
-                    }
-                }
-            }
-        }
-
-        AnimatedVisibility(
-            visible = isLoading,
-            enter = fadeIn(tween(200)),
-            exit = fadeOut(tween(200)),
-            modifier = Modifier.align(Alignment.Center)
-        ) {
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                ScallopedLoadingAnimation(
-                    size = DpSize(150.dp, 150.dp),
-                    modifier = Modifier.offset(y = (-75).dp),
-                )
             }
         }
     }
@@ -529,7 +475,8 @@ private fun MetricSection(
             .opticalDepthCard(
                 sectionIndex = sectionIndex,
                 cardIndex = 0,
-                pullProgress = pullProgress
+                pullProgress = pullProgress,
+                cornerRadius = 28.dp
             ),
         shape = RoundedCornerShape(28.dp),
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -561,7 +508,8 @@ private fun MetricSection(
                                     sectionIndex = sectionIndex,
                                     cardIndex = cardIdx,
                                     pullProgress = pullProgress,
-                                    accentColor = summary.metric.accent
+                                    accentColor = summary.metric.accent,
+                                    cornerRadius = 16.dp
                                 )
                         ) {
                             MetricCard(
@@ -579,7 +527,8 @@ private fun MetricSection(
                                 .opticalDepthCard(
                                     sectionIndex = sectionIndex,
                                     cardIndex = items.size,
-                                    pullProgress = pullProgress
+                                    pullProgress = pullProgress,
+                                    cornerRadius = 16.dp
                                 )
                         ) {
                             it()
@@ -646,8 +595,8 @@ private fun TimerChip(lastLogTime: Instant?, goalHours: Float, currentTime: Inst
                     Modifier
                         .fillMaxWidth(progress)
                         .fillMaxHeight()
-                        .background(progressColor)
                         .clip(RoundedCornerShape(topEnd = 12.dp, bottomEnd = 12.dp))
+                        .background(progressColor)
                 )
             }
 

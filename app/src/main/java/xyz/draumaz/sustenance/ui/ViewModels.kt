@@ -28,7 +28,9 @@ class DashboardViewModel(
     private val goalsRepo: GoalsRepository,
     private val settingsRepo: SettingsRepository,
 ) : AndroidViewModel(application) {
-    private val _summariesMap = MutableStateFlow<Map<Int, List<MetricSummary>>>(emptyMap())
+    private val _summariesMap = MutableStateFlow<Map<Int, List<MetricSummary>>>(
+        mapOf(0 to manager.initialSummaries())
+    )
     val summariesMap = _summariesMap.asStateFlow()
     
     private val _dateOffset = MutableStateFlow(0)
@@ -55,8 +57,12 @@ class DashboardViewModel(
 
     init {
         viewModelScope.launch {
-            combine(goalsRepo.goals, settingsRepo.ketoMode) { _, _ -> }.collect {
-                _summariesMap.value = emptyMap()
+            combine(goalsRepo.goals, settingsRepo.ketoMode) { goals, isKeto ->
+                goals to isKeto
+            }.collect { (goals, isKeto) ->
+                if (_summariesMap.value[0]?.all { it.value == "-" } == true) {
+                    _summariesMap.value = _summariesMap.value + (0 to manager.initialSummaries(goals, isKeto))
+                }
                 refresh(showIndicator = false)
             }
         }
@@ -69,7 +75,6 @@ class DashboardViewModel(
         }
         viewModelScope.launch {
             manager.changes.collect {
-                _summariesMap.value = emptyMap()
                 refresh(showIndicator = false)
             }
         }
@@ -107,6 +112,9 @@ class DashboardViewModel(
     fun preload(offset: Int) {
         if (_summariesMap.value.containsKey(offset) || offset < 0) return
         viewModelScope.launch {
+            val goals = goalsRepo.goals.first()
+            val isKeto = settingsRepo.ketoMode.first()
+            _summariesMap.value = _summariesMap.value + (offset to manager.initialSummaries(goals, isKeto))
             fetchForOffset(offset)
         }
     }
