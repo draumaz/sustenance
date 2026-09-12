@@ -70,7 +70,7 @@
             </intent-filter>
 
             <intent-filter>
-                <action android:name="io.github.draumaz.sustenance.action.LOG" />
+                <action android:name="xyz.draumaz.sustenance.action.LOG" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
 

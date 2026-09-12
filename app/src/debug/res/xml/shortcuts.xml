@@ -7,8 +7,8 @@
         android:shortcutShortLabel="@string/log_food"
         android:shortcutLongLabel="@string/log_food">
         <intent
-            android:action="io.github.draumaz.sustenance.action.LOG"
-            android:targetPackage="io.github.draumaz.sustenance.debug"
-            android:targetClass="io.github.draumaz.sustenance.MainActivity" />
+            android:action="xyz.draumaz.sustenance.action.LOG"
+            android:targetPackage="xyz.draumaz.sustenance.debug"
+            android:targetClass="xyz.draumaz.sustenance.MainActivity" />
     </shortcut>
 </shortcuts>
