@@ -83,6 +83,11 @@ class DashboardViewModel(
             }
         }
         viewModelScope.launch {
+            fastBreakingCalories.collect {
+                refresh(showIndicator = false)
+            }
+        }
+        viewModelScope.launch {
             combine(
                 settingsRepo.fastingNotificationsEnabled,
                 _lastLogTime,

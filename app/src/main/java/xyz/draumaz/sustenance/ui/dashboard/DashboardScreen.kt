@@ -80,7 +80,12 @@ import java.time.LocalDate
 import java.time.LocalTime
 import java.time.Duration
 import java.time.Instant
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
+import android.text.format.DateFormat
+import xyz.draumaz.sustenance.data.FastingStretch
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
@@ -128,6 +133,7 @@ fun DashboardScreen(
     val dateOffset by vm.dateOffset.collectAsStateWithLifecycle()
     val lastLogTime by vm.lastLogTime.collectAsStateWithLifecycle()
     val lastLogTimerEnabled by vm.lastLogTimerEnabled.collectAsStateWithLifecycle()
+    val longestFastingMap by vm.longestFastingMap.collectAsStateWithLifecycle()
     val fastingGoalHours by vm.fastingGoalHours.collectAsStateWithLifecycle()
     var currentTime by remember { mutableStateOf(Instant.now()) }
     val topAppBarState = rememberTopAppBarState()
@@ -371,7 +377,7 @@ fun DashboardScreen(
                                 ),
                                 verticalArrangement = Arrangement.SpaceBetween,
                             ) {
-                                if (energyGroup.isNotEmpty() || foodGroup.isNotEmpty() || (lastLogTimerEnabled && targetOffset == 0)) {
+                                if (energyGroup.isNotEmpty() || foodGroup.isNotEmpty() || lastLogTimerEnabled) {
                                     item {
                                         MetricSection(
                                             title = stringResource(R.string.section_energy),
@@ -404,7 +410,7 @@ fun DashboardScreen(
                                                         )
                                                     }
                                                 }
-                                                if (lastLogTimerEnabled && targetOffset == 0) {
+                                                if (lastLogTimerEnabled) {
                                                     Box(
                                                         Modifier.opticalDepthCard(
                                                             sectionIndex = 0,
@@ -413,7 +419,14 @@ fun DashboardScreen(
                                                             cornerRadius = 16.dp
                                                         )
                                                     ) {
-                                                        TimerChip(lastLogTime, fastingGoalHours, currentTime, onClick = onTimerClick)
+                                                        TimerChip(
+                                                            lastLogTime = if (targetOffset == 0) lastLogTime else null,
+                                                            stretch = if (targetOffset > 0) longestFastingMap[targetOffset] else null,
+                                                            isToday = targetOffset == 0,
+                                                            goalHours = fastingGoalHours,
+                                                            currentTime = currentTime,
+                                                            onClick = onTimerClick
+                                                        )
                                                     }
                                                 }
                                             }
@@ -561,12 +574,43 @@ private fun MetricSection(
 }
 
 @Composable
-private fun TimerChip(lastLogTime: Instant?, goalHours: Float, currentTime: Instant, onClick: () -> Unit = {}) {
+private fun TimerChip(
+    lastLogTime: Instant?,
+    stretch: FastingStretch? = null,
+    isToday: Boolean = true,
+    goalHours: Float,
+    currentTime: Instant,
+    onClick: () -> Unit = {}
+) {
     val view = LocalView.current
-    val duration = lastLogTime?.let { Duration.between(it, currentTime) } ?: Duration.ZERO
-    val hours = duration.toHours()
-    val minutes = duration.toMinutes() % 60
-    val formatted = stringResource(R.string.hour_minute_format, hours, minutes)
+    val context = LocalContext.current
+    val zone = ZoneId.systemDefault()
+    val is24Hour = remember(context) { DateFormat.is24HourFormat(context) }
+    val timeFormatter = remember(is24Hour) {
+        if (is24Hour) DateTimeFormatter.ofPattern("H:mm")
+        else DateTimeFormatter.ofPattern("h:mm a")
+    }
+
+    val (duration, formatted) = if (isToday) {
+        val d = lastLogTime?.let { Duration.between(it, currentTime) } ?: Duration.ZERO
+        val hours = d.toHours()
+        val minutes = d.toMinutes() % 60
+        val fmt = stringResource(R.string.hour_minute_format, hours, minutes)
+        d to fmt
+    } else {
+        if (stretch != null) {
+            val d = stretch.duration
+            val hours = d.toHours()
+            val minutes = d.toMinutes() % 60
+            val durationStr = stringResource(R.string.hour_minute_format, hours, minutes)
+            val startStr = timeFormatter.format(stretch.startTime.atZone(zone))
+            val endStr = timeFormatter.format(stretch.endTime.atZone(zone))
+            val fmt = "$durationStr ($startStr - $endStr)"
+            d to fmt
+        } else {
+            Duration.ZERO to "-"
+        }
+    }
 
     val progress = if (goalHours > 0f) (duration.toMinutes().toFloat() / (goalHours * 60f)).coerceIn(0f, 1f) else 0f
     
@@ -638,6 +682,7 @@ private fun TimerChip(lastLogTime: Instant?, goalHours: Float, currentTime: Inst
                         fontWeight = FontWeight.Bold,
                         color = if (progress > 0.05f) Color.White else MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             }
