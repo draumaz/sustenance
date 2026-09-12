@@ -372,6 +372,14 @@ fun DashboardScreen(
                                 val microsGroup = microMetrics.mapNotNull { m -> currentData.find { it.metric == m } }
                                 val macrosGroup = currentData.filter { it.metric !in (energyMetrics + foodMetric + microMetrics) }
 
+                                val showTimer = lastLogTimerEnabled && targetOffset == 0
+                                val cardVerticalPadding = if (showTimer) 20.dp else 26.dp
+                                val cardTitleBottomPadding = if (showTimer) 12.dp else 14.dp
+                                val cardItemSpacing = if (showTimer) 10.dp else 12.dp
+                                val topSpace = if (showTimer) 14.dp else 18.dp
+                                val bottomSpace = if (showTimer) 16.dp else 20.dp
+                                val cardGap = if (showTimer) 16.dp else 20.dp
+
                                 LazyColumn(
                                     state = listState,
                                     modifier = Modifier
@@ -383,12 +391,12 @@ fun DashboardScreen(
                                         },
                                     contentPadding = PaddingValues(
                                         start = 16.dp, end = 16.dp,
-                                        top = 3.dp,
-                                        bottom = bottomInset + 16.dp,
+                                        top = topSpace,
+                                        bottom = bottomInset + bottomSpace,
                                     ),
-                                    verticalArrangement = Arrangement.SpaceBetween,
+                                    verticalArrangement = Arrangement.spacedBy(cardGap),
                                 ) {
-                                    if (energyGroup.isNotEmpty() || foodGroup.isNotEmpty() || (lastLogTimerEnabled && targetOffset == 0)) {
+                                    if (energyGroup.isNotEmpty() || foodGroup.isNotEmpty() || showTimer) {
                                         item {
                                             MetricSection(
                                                 title = stringResource(R.string.section_energy),
@@ -396,6 +404,9 @@ fun DashboardScreen(
                                                 columns = 2,
                                                 onOpenMetric = { onOpenMetric(it, targetOffset) },
                                                 onManagePermissions = onManagePermissions,
+                                                verticalPadding = cardVerticalPadding,
+                                                titleBottomPadding = cardTitleBottomPadding,
+                                                itemSpacing = cardItemSpacing,
                                                 bottomContent = {
                                                     foodGroup.forEach { summary ->
                                                         MetricCard(
@@ -409,7 +420,7 @@ fun DashboardScreen(
                                                             }
                                                         )
                                                     }
-                                                    if (lastLogTimerEnabled && targetOffset == 0) {
+                                                    if (showTimer) {
                                                         TimerChip(lastLogTime, fastingGoalHours, currentTime, onClick = onTimerClick)
                                                     }
                                                 }
@@ -423,7 +434,10 @@ fun DashboardScreen(
                                                 items = macrosGroup,
                                                 columns = 2,
                                                 onOpenMetric = { onOpenMetric(it, targetOffset) },
-                                                onManagePermissions = onManagePermissions
+                                                onManagePermissions = onManagePermissions,
+                                                verticalPadding = cardVerticalPadding,
+                                                titleBottomPadding = cardTitleBottomPadding,
+                                                itemSpacing = cardItemSpacing
                                             )
                                         }
                                     }
@@ -434,7 +448,10 @@ fun DashboardScreen(
                                                 items = microsGroup,
                                                 columns = 1,
                                                 onOpenMetric = { onOpenMetric(it, targetOffset) },
-                                                onManagePermissions = onManagePermissions
+                                                onManagePermissions = onManagePermissions,
+                                                verticalPadding = cardVerticalPadding,
+                                                titleBottomPadding = cardTitleBottomPadding,
+                                                itemSpacing = cardItemSpacing
                                             )
                                         }
                                     }
@@ -489,7 +506,10 @@ private fun MetricSection(
     onOpenMetric: (Metric) -> Unit,
     onManagePermissions: () -> Unit,
     extraContent: (@Composable () -> Unit)? = null,
-    bottomContent: (@Composable ColumnScope.() -> Unit)? = null
+    bottomContent: (@Composable ColumnScope.() -> Unit)? = null,
+    verticalPadding: androidx.compose.ui.unit.Dp = 16.dp,
+    titleBottomPadding: androidx.compose.ui.unit.Dp = 12.dp,
+    itemSpacing: androidx.compose.ui.unit.Dp = 8.dp
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -498,7 +518,7 @@ private fun MetricSection(
         shadowElevation = 6.dp
     ) {
         Column(
-            modifier = Modifier.padding(16.dp)
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = verticalPadding)
         ) {
             Text(
                 text = title.uppercase(),
@@ -506,13 +526,13 @@ private fun MetricSection(
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary,
                 letterSpacing = 1.sp,
-                modifier = Modifier.padding(bottom = 12.dp, start = 8.dp)
+                modifier = Modifier.padding(bottom = titleBottomPadding, start = 8.dp)
             )
             if (items.isNotEmpty() || extraContent != null) {
                 FlowRow(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(itemSpacing),
                     maxItemsInEachRow = columns
                 ) {
                     items.forEach { summary ->
@@ -543,11 +563,11 @@ private fun MetricSection(
 
             if (bottomContent != null) {
                 if (items.isNotEmpty() || extraContent != null) {
-                    Spacer(Modifier.height(8.dp))
+                    Spacer(Modifier.height(itemSpacing))
                 }
                 Column(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(itemSpacing)
                 ) {
                     bottomContent()
                 }
