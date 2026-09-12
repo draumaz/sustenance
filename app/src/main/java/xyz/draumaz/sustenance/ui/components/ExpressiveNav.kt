@@ -63,23 +63,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.RoundRect
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Outline
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -98,79 +89,12 @@ import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlin.math.PI
-import kotlin.math.cos
-import kotlin.math.sin
 import kotlin.time.Duration.Companion.milliseconds
 
 @Stable
 class PredictiveBackState {
     var progress by mutableFloatStateOf(0f)
     var isSwipeActive by mutableStateOf(value = false)
-}
-
-class ScallopedPillShape(private val isScalloped: Boolean = false) : Shape {
-    override fun createOutline(
-        size: Size,
-        layoutDirection: LayoutDirection,
-        density: Density,
-    ): Outline {
-        val path = Path()
-        val width = size.width
-        val height = size.height
-        val radius = height / 2f
-
-        if (!isScalloped) {
-            path.addRoundRect(
-                RoundRect(
-                    0f, 0f, width, height,
-                    CornerRadius(radius)
-                )
-            )
-            return Outline.Generic(path)
-        }
-
-        val bumpDepth = with(density) { 2.5.dp.toPx() }
-        val bumpsCount = 12f
-        val numPoints = 120
-
-        fun getPoint(p: Float): Pair<Offset, Offset> {
-            val straight = (width - (2 * radius)).coerceAtLeast(0f)
-            val arc = PI.toFloat() * radius
-            val total = 2 * straight + 2 * arc
-            val d = p * total
-
-            return when {
-                d < straight -> {
-                    Offset(radius + d, 0f) to Offset(0f, -1f)
-                }
-                d < straight + arc -> {
-                    val angle = 1.5f * PI.toFloat() + (d - straight) / radius
-                    val n = Offset(cos(angle), sin(angle))
-                    Offset(width - radius, radius) + n * radius to n
-                }
-                d < 2 * straight + arc -> {
-                    Offset(width - radius - (d - (straight + arc)), height) to Offset(0f, 1f)
-                }
-                else -> {
-                    val angle = 0.5f * PI.toFloat() + (d - (2 * straight + arc)) / radius
-                    val n = Offset(cos(angle), sin(angle))
-                    Offset(radius, radius) + n * radius to n
-                }
-            }
-        }
-
-        for (i in 0..numPoints) {
-            val p = i.toFloat() / numPoints
-            val (pos, normal) = getPoint(p)
-            val bump = sin(p * bumpsCount * 2 * PI.toFloat()) * bumpDepth
-            val finalPos = pos + normal * bump
-            if (i == 0) path.moveTo(finalPos.x, finalPos.y) else path.lineTo(finalPos.x, finalPos.y)
-        }
-
-        path.close()
-        return Outline.Generic(path)
-    }
 }
 
 
@@ -209,7 +133,6 @@ fun ExpressiveNavigationBar(
     val density = LocalDensity.current
     val isImeVisible = WindowInsets.ime.getBottom(density) > 0
     val batchCount = capturedBitmaps.size
-    var isScalloped by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -254,15 +177,14 @@ fun ExpressiveNavigationBar(
         Surface(
             modifier = Modifier
                 .wrapContentWidth()
+                .clip(CircleShape)
                 .animateContentSize(
                     animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        dampingRatio = Spring.DampingRatioNoBouncy,
                         stiffness = Spring.StiffnessMedium
                     )
                 ),
-            shape = ScallopedPillShape(isScalloped),
-            color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.95f),
-            shadowElevation = 8.dp
+            color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.95f)
         ) {
             Column(
                 modifier = Modifier.padding(8.dp),
@@ -399,16 +321,9 @@ fun ExpressiveNavigationBar(
                         AnimatedContent(
                             targetState = Triple(if (isOnDetail) detailMetric else null, dateOffset, isLogState),
                             transitionSpec = {
-                                (fadeIn(animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium)) + scaleIn(initialScale = 0.92f))
-                                    .togetherWith(fadeOut(animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium)) + scaleOut(targetScale = 0.92f))
-                                    .using(
-                                        SizeTransform(clip = false) { _, _ ->
-                                            spring(
-                                                dampingRatio = Spring.DampingRatioMediumBouncy,
-                                                stiffness = Spring.StiffnessMedium
-                                            )
-                                        }
-                                    )
+                                (fadeIn(animationSpec = tween(220)) + scaleIn(initialScale = 0.92f))
+                                    .togetherWith(fadeOut(animationSpec = tween(160)) + scaleOut(targetScale = 0.92f))
+                                    .using(SizeTransform(clip = false))
                             },
                             label = "today_transform"
                         ) { (targetMetric, offset, isLog) ->
@@ -466,7 +381,6 @@ fun ExpressiveNavItem(
     onLongHold: () -> Unit = {},
     onClick: () -> Unit
 ) {
-    val haptic = LocalHapticFeedback.current
     val view = LocalView.current
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
@@ -478,12 +392,12 @@ fun ExpressiveNavItem(
             isLongPressed = false
             val job = launch {
                 delay(500.milliseconds)
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
                 isLongPressed = true
                 onLongHold()
             }
             scale.animateTo(
-                0.85f,
+                0.88f,
                 animationSpec = spring(
                     dampingRatio = Spring.DampingRatioNoBouncy,
                     stiffness = Spring.StiffnessHigh
@@ -494,8 +408,8 @@ fun ExpressiveNavItem(
             scale.animateTo(
                 1f,
                 animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessMedium
+                    dampingRatio = Spring.DampingRatioLowBouncy,
+                    stiffness = Spring.StiffnessHigh
                 )
             )
         }
@@ -503,29 +417,14 @@ fun ExpressiveNavItem(
 
     val animatedAlpha by animateFloatAsState(
         targetValue = if (isSelected) 1f else 0f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium
-        ),
+        animationSpec = tween(300),
         label = "selection_alpha"
     )
 
-    val iconScale by animateFloatAsState(
-        targetValue = if (isSelected) 1.15f else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium
-        ),
-        label = "icon_scale"
-    )
-
     val selectionAlpha = selectionAlphaOverride ?: animatedAlpha
-    val containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = selectionAlpha)
-    val contentColor = if (selectionAlpha > 0.5f) {
-        MaterialTheme.colorScheme.onPrimaryContainer
-    } else {
-        MaterialTheme.colorScheme.onSurfaceVariant
-    }
+    val containerColorBase = MaterialTheme.colorScheme.primaryContainer
+    val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
+    val onPrimaryContainer = MaterialTheme.colorScheme.onPrimaryContainer
 
     Box(
         modifier = Modifier
@@ -535,26 +434,24 @@ fun ExpressiveNavItem(
                 scaleY = scale.value
             }
             .clip(CircleShape)
-            .background(containerColor)
+            .drawBehind {
+                drawRect(color = containerColorBase, alpha = selectionAlpha)
+            }
             .clickable(
                 interactionSource = interactionSource,
                 indication = null,
                 onClick = {
                     if (!isLongPressed) {
-                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                        view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                         onClick()
                     }
                 }
             )
-            .animateContentSize(
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessMedium
-                )
-            )
             .padding(horizontal = 16.dp),
         contentAlignment = Alignment.Center
     ) {
+        val contentColor = if (selectionAlpha > 0.5f) onPrimaryContainer else onSurfaceVariant
+
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
@@ -563,15 +460,10 @@ fun ExpressiveNavItem(
                 imageVector = icon,
                 contentDescription = label,
                 tint = contentColor,
-                modifier = Modifier
-                    .size(24.dp)
-                    .graphicsLayer {
-                        scaleX = iconScale
-                        scaleY = iconScale
-                    }
+                modifier = Modifier.size(24.dp)
             )
 
-            if (selectionAlpha > 0.8f) {
+            if (isSelected || (selectionAlphaOverride ?: 0f) > 0.8f) {
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = label,
