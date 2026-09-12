@@ -28,10 +28,8 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -101,49 +99,6 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.SizeTransform
-
-@Composable
-fun SquishyIconButton(
-    onClick: () -> Unit,
-    @Suppress("UNUSED_PARAMETER") contentDescription: String?,
-    icon: @Composable () -> Unit,
-) {
-    val view = LocalView.current
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    
-    val scaleX = remember { Animatable(1f) }
-    val scaleY = remember { Animatable(1f) }
-
-    LaunchedEffect(isPressed) {
-        if (isPressed) {
-            launch { scaleX.animateTo(1.25f, spring(Spring.DampingRatioNoBouncy, Spring.StiffnessLow)) }
-            launch { scaleY.animateTo(0.7f, spring(Spring.DampingRatioNoBouncy, Spring.StiffnessLow)) }
-        } else {
-            launch { scaleX.animateTo(1f, spring(Spring.DampingRatioMediumBouncy, Spring.StiffnessMedium)) }
-            launch { scaleY.animateTo(1f, spring(Spring.DampingRatioMediumBouncy, Spring.StiffnessMedium)) }
-        }
-    }
-
-    Box(
-        modifier = Modifier
-            .size(48.dp)
-            .graphicsLayer {
-                this.scaleX = scaleX.value
-                this.scaleY = scaleY.value
-            }
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-            ) {
-                view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-                onClick()
-            },
-        contentAlignment = Alignment.Center
-    ) {
-        icon()
-    }
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -287,15 +242,6 @@ fun DashboardScreen(
                             fontWeight = FontWeight.Bold,
                             textAlign = androidx.compose.ui.text.style.TextAlign.Center
                         )
-                    }
-                },
-                actions = {
-                    SquishyIconButton(onClick = vm::refresh, contentDescription = stringResource(R.string.refresh)) {
-                        if (refreshing) {
-                            CircularProgressIndicator(Modifier.size(24.dp).padding(4.dp), strokeWidth = 2.dp)
-                        } else {
-                            Icon(Icons.Rounded.Refresh, contentDescription = null)
-                        }
                     }
                 },
                 scrollBehavior = scrollBehavior,
