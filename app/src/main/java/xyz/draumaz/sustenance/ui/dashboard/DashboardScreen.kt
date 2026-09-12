@@ -595,7 +595,6 @@ private fun TimerChip(lastLogTime: Instant?, goalHours: Float, currentTime: Inst
                     Modifier
                         .fillMaxWidth(progress)
                         .fillMaxHeight()
-                        .clip(RoundedCornerShape(topEnd = 12.dp, bottomEnd = 12.dp))
                         .background(progressColor)
                 )
             }
