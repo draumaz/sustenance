@@ -113,6 +113,7 @@ fun DashboardScreen(
     onManagePermissions: () -> Unit,
     onTimerClick: () -> Unit = {},
     onDateChanged: (Int) -> Unit = {},
+    onResetView: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val app = context.applicationContext as xyz.draumaz.sustenance.SustenanceApp
@@ -188,9 +189,23 @@ fun DashboardScreen(
     val pullDistance = remember { Animatable(0f) }
     val pullThreshold = 60f
     val scope = rememberCoroutineScope()
+    val listState = rememberLazyListState()
 
     val nestedScrollConnection = remember {
         object : NestedScrollConnection {
+            override fun onPreScroll(
+                available: androidx.compose.ui.geometry.Offset,
+                source: NestedScrollSource
+            ): androidx.compose.ui.geometry.Offset {
+                if (pullDistance.value > 0f && available.y > 0f && source == NestedScrollSource.UserInput) {
+                    val consumedY = minOf(pullDistance.value / 0.5f, available.y)
+                    val newPull = (pullDistance.value - consumedY * 0.5f).coerceAtLeast(0f)
+                    scope.launch { pullDistance.snapTo(newPull) }
+                    return androidx.compose.ui.geometry.Offset(0f, consumedY)
+                }
+                return super.onPreScroll(available, source)
+            }
+
             override fun onPostScroll(
                 consumed: androidx.compose.ui.geometry.Offset,
                 available: androidx.compose.ui.geometry.Offset,
@@ -212,11 +227,39 @@ fun DashboardScreen(
             }
 
             override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
+                val wasPulling = pullDistance.value > 0f
                 if (pullDistance.value >= pullThreshold) {
                     view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
                     vm.moveBack()
+                } else if (wasPulling || topAppBarState.heightOffset != 0f) {
+                    onResetView()
+                    val initialOffset = topAppBarState.heightOffset
+                    if (initialOffset != 0f) {
+                        scope.launch {
+                            val anim = Animatable(initialOffset)
+                            anim.animateTo(
+                                targetValue = 0f,
+                                animationSpec = spring(
+                                    dampingRatio = Spring.DampingRatioLowBouncy,
+                                    stiffness = Spring.StiffnessMedium
+                                )
+                            ) {
+                                topAppBarState.heightOffset = value
+                            }
+                        }
+                    }
+                    topAppBarState.contentOffset = 0f
+                    if (listState.firstVisibleItemIndex != 0 || listState.firstVisibleItemScrollOffset != 0) {
+                        scope.launch { listState.animateScrollToItem(0) }
+                    }
                 }
-                pullDistance.animateTo(0f, spring(Spring.DampingRatioLowBouncy, Spring.StiffnessMediumLow))
+                pullDistance.animateTo(
+                    targetValue = 0f,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioLowBouncy,
+                        stiffness = Spring.StiffnessMedium
+                    )
+                )
                 return super.onPostFling(consumed, available)
             }
         }
@@ -298,7 +341,6 @@ fun DashboardScreen(
                         },
                         label = "dashboard_day_transition"
                     ) { targetOffset ->
-                        val listState = rememberLazyListState()
                         val data = summariesMap[targetOffset]
                         
                         AnimatedContent(

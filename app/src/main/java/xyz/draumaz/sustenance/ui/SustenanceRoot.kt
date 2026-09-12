@@ -32,6 +32,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
@@ -390,6 +391,12 @@ private fun MainNav(
                 bottomBarOffsetHeightPx.floatValue = newOffset.coerceIn(-bottomBarHeightPx, 0f)
                 return super.onPreScroll(available, source)
             }
+
+            override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
+                if (isCameraActive && !isHistoryActive) return super.onPostFling(consumed, available)
+                bottomBarOffsetHeightPx.floatValue = 0f
+                return super.onPostFling(consumed, available)
+            }
         }
     }
 
@@ -445,7 +452,10 @@ private fun MainNav(
             if (showBar) {
                 val animatedOffset by animateIntAsState(
                     targetValue = bottomBarOffsetHeightPx.floatValue.roundToInt(),
-                    animationSpec = spring(stiffness = Spring.StiffnessMedium),
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioLowBouncy,
+                        stiffness = Spring.StiffnessMedium
+                    ),
                     label = "bottom_bar_offset"
                 )
 
@@ -578,6 +588,9 @@ private fun MainNav(
                         onManagePermissions = onManagePermissions,
                         onDateChanged = { 
                             dashboardDateOffset = it
+                            bottomBarOffsetHeightPx.floatValue = 0f
+                        },
+                        onResetView = {
                             bottomBarOffsetHeightPx.floatValue = 0f
                         }
                     )
