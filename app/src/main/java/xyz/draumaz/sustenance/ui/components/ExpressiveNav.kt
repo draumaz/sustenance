@@ -256,7 +256,7 @@ fun ExpressiveNavigationBar(
                 .wrapContentWidth()
                 .animateContentSize(
                     animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioLowBouncy,
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
                         stiffness = Spring.StiffnessMedium
                     )
                 ),
@@ -399,12 +399,12 @@ fun ExpressiveNavigationBar(
                         AnimatedContent(
                             targetState = Triple(if (isOnDetail) detailMetric else null, dateOffset, isLogState),
                             transitionSpec = {
-                                (fadeIn(animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessMedium)) + scaleIn(initialScale = 0.92f))
-                                    .togetherWith(fadeOut(animationSpec = spring(dampingRatio = Spring.DampingRatioLowBouncy, stiffness = Spring.StiffnessMedium)) + scaleOut(targetScale = 0.92f))
+                                (fadeIn(animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium)) + scaleIn(initialScale = 0.92f))
+                                    .togetherWith(fadeOut(animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium)) + scaleOut(targetScale = 0.92f))
                                     .using(
                                         SizeTransform(clip = false) { _, _ ->
                                             spring(
-                                                dampingRatio = Spring.DampingRatioLowBouncy,
+                                                dampingRatio = Spring.DampingRatioMediumBouncy,
                                                 stiffness = Spring.StiffnessMedium
                                             )
                                         }
@@ -494,7 +494,7 @@ fun ExpressiveNavItem(
             scale.animateTo(
                 1f,
                 animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioLowBouncy,
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
                     stiffness = Spring.StiffnessMedium
                 )
             )
@@ -504,7 +504,7 @@ fun ExpressiveNavItem(
     val animatedAlpha by animateFloatAsState(
         targetValue = if (isSelected) 1f else 0f,
         animationSpec = spring(
-            dampingRatio = Spring.DampingRatioLowBouncy,
+            dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = Spring.StiffnessMedium
         ),
         label = "selection_alpha"
@@ -513,7 +513,7 @@ fun ExpressiveNavItem(
     val iconScale by animateFloatAsState(
         targetValue = if (isSelected) 1.15f else 1f,
         animationSpec = spring(
-            dampingRatio = Spring.DampingRatioLowBouncy,
+            dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = Spring.StiffnessMedium
         ),
         label = "icon_scale"
@@ -548,7 +548,7 @@ fun ExpressiveNavItem(
             )
             .animateContentSize(
                 animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioLowBouncy,
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
                     stiffness = Spring.StiffnessMedium
                 )
             )
