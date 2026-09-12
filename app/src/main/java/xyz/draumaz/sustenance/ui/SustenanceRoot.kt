@@ -455,8 +455,7 @@ private fun MainNav(
         Scaffold(
             modifier = Modifier
                 .fillMaxSize()
-                .nestedScroll(nestedScrollConnection)
-                .blur(rootBlur),
+                .nestedScroll(nestedScrollConnection),
         bottomBar = {
             if (showBar) {
                 val animatedOffset by animateIntAsState(
@@ -572,7 +571,9 @@ private fun MainNav(
             NavHost(
                 navController = navController,
                 startDestination = Dest.TODAY.route,
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier
+                    .fillMaxSize()
+                    .blur(rootBlur),
             ) {
                 composable(
                     Dest.TODAY.route,

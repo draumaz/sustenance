@@ -124,7 +124,6 @@ fun DashboardScreen(
     val app = context.applicationContext as xyz.draumaz.sustenance.SustenanceApp
     val vm: DashboardViewModel = viewModel(factory = DashboardViewModel.factory(app, manager, goalsRepo, settingsRepo))
     val summariesMap by vm.summariesMap.collectAsStateWithLifecycle()
-    val longestFastingMap by vm.longestFastingMap.collectAsStateWithLifecycle()
     val refreshing by vm.refreshing.collectAsStateWithLifecycle()
     val dateOffset by vm.dateOffset.collectAsStateWithLifecycle()
     val lastLogTime by vm.lastLogTime.collectAsStateWithLifecycle()
@@ -405,7 +404,7 @@ fun DashboardScreen(
                                                         )
                                                     }
                                                 }
-                                                if (lastLogTimerEnabled) {
+                                                if (lastLogTimerEnabled && targetOffset == 0) {
                                                     Box(
                                                         Modifier.opticalDepthCard(
                                                             sectionIndex = 0,
@@ -414,14 +413,7 @@ fun DashboardScreen(
                                                             cornerRadius = 16.dp
                                                         )
                                                     ) {
-                                                        TimerChip(
-                                                            dateOffset = targetOffset,
-                                                            lastLogTime = lastLogTime,
-                                                            fastingStretch = longestFastingMap[targetOffset],
-                                                            goalHours = fastingGoalHours,
-                                                            currentTime = currentTime,
-                                                            onClick = onTimerClick
-                                                        )
+                                                        TimerChip(lastLogTime, fastingGoalHours, currentTime, onClick = onTimerClick)
                                                     }
                                                 }
                                             }
@@ -569,38 +561,14 @@ private fun MetricSection(
 }
 
 @Composable
-private fun TimerChip(
-    dateOffset: Int,
-    lastLogTime: Instant?,
-    fastingStretch: xyz.draumaz.sustenance.data.FastingStretch?,
-    goalHours: Float,
-    currentTime: Instant,
-    onClick: () -> Unit = {}
-) {
+private fun TimerChip(lastLogTime: Instant?, goalHours: Float, currentTime: Instant, onClick: () -> Unit = {}) {
     val view = LocalView.current
-    val (formatted, progress) = if (dateOffset == 0) {
-        val duration = lastLogTime?.let { Duration.between(it, currentTime) } ?: Duration.ZERO
-        val hours = duration.toHours()
-        val minutes = duration.toMinutes() % 60
-        val text = stringResource(R.string.hour_minute_format, hours, minutes)
-        val prog = if (goalHours > 0f) (duration.toMinutes().toFloat() / (goalHours * 60f)).coerceIn(0f, 1f) else 0f
-        text to prog
-    } else {
-        if (fastingStretch != null) {
-            val hours = fastingStretch.duration.toHours()
-            val minutes = fastingStretch.duration.toMinutes() % 60
-            val zone = java.time.ZoneId.systemDefault()
-            val timeFormatter = java.time.format.DateTimeFormatter.ofPattern("HH:mm")
-            val startStr = fastingStretch.startTime.atZone(zone).format(timeFormatter)
-            val endStr = fastingStretch.endTime.atZone(zone).format(timeFormatter)
-            val durationText = stringResource(R.string.hour_minute_format, hours, minutes)
-            val text = "$durationText ($startStr - $endStr)"
-            val prog = if (goalHours > 0f) (fastingStretch.duration.toMinutes().toFloat() / (goalHours * 60f)).coerceIn(0f, 1f) else 0f
-            text to prog
-        } else {
-            "-" to 0f
-        }
-    }
+    val duration = lastLogTime?.let { Duration.between(it, currentTime) } ?: Duration.ZERO
+    val hours = duration.toHours()
+    val minutes = duration.toMinutes() % 60
+    val formatted = stringResource(R.string.hour_minute_format, hours, minutes)
+
+    val progress = if (goalHours > 0f) (duration.toMinutes().toFloat() / (goalHours * 60f)).coerceIn(0f, 1f) else 0f
     
     val accent = MaterialTheme.colorScheme.primary
     val progressColor = accent.copy(alpha = 0.7f)
