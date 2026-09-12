@@ -351,43 +351,18 @@ class HealthConnectManager(internal val context: Context) {
                 .distinct()
                 .sorted()
 
+            val dayMealTimes = mealTimes.filter { it >= dayStart && it < effectiveDayEnd }
+            if (dayMealTimes.isEmpty()) return@runCatching null
+
+            val firstMeal = dayMealTimes.first()
             val intervals = mutableListOf<FastingStretch>()
 
-            if (mealTimes.isEmpty()) {
-                if (dayStart < effectiveDayEnd) {
-                    intervals.add(FastingStretch(dayStart, effectiveDayEnd))
-                }
-            } else {
-                // Gap before first meal
-                val firstMeal = mealTimes.first()
-                if (firstMeal > dayStart) {
-                    val start = dayStart
-                    val end = if (firstMeal < effectiveDayEnd) firstMeal else effectiveDayEnd
-                    if (start < end) {
-                        intervals.add(FastingStretch(start, end))
-                    }
-                }
-
-                // Gaps between consecutive meals
-                for (i in 0 until mealTimes.size - 1) {
-                    val m1 = mealTimes[i]
-                    val m2 = mealTimes[i + 1]
-                    if (m1 < effectiveDayEnd && m2 > dayStart) {
-                        val start = if (m1 > dayStart) m1 else dayStart
-                        val end = if (m2 < effectiveDayEnd) m2 else effectiveDayEnd
-                        if (start < end) {
-                            intervals.add(FastingStretch(start, end))
-                        }
-                    }
-                }
-
-                // Gap after last meal
-                val lastMeal = mealTimes.last()
-                if (lastMeal < effectiveDayEnd) {
-                    val start = if (lastMeal > dayStart) lastMeal else dayStart
-                    val end = effectiveDayEnd
-                    if (start < end) {
-                        intervals.add(FastingStretch(start, end))
+            for (i in 0 until mealTimes.size - 1) {
+                val m1 = mealTimes[i]
+                val m2 = mealTimes[i + 1]
+                if (m1 >= firstMeal && m1 < effectiveDayEnd && m2 < effectiveDayEnd) {
+                    if (m1 < m2) {
+                        intervals.add(FastingStretch(m1, m2))
                     }
                 }
             }
