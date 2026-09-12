@@ -36,7 +36,7 @@ class DashboardViewModel(
 
     private val _longestFastingMap = MutableStateFlow<Map<Int, FastingStretch?>>(emptyMap())
     val longestFastingMap = _longestFastingMap.asStateFlow()
-    
+
     private val _dateOffset = MutableStateFlow(0)
     val dateOffset = _dateOffset.asStateFlow()
 

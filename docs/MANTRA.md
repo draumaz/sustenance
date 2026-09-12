@@ -1,0 +1,1 @@
+# This document contains 'mantras', pieces of information that describe facets of the software that should be considered complete, set in stone, and should not be adjusted unless explicitly specified by the user.
