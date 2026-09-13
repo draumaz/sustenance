@@ -205,10 +205,11 @@ fun DashboardScreen(
     }
 
     val pullDistance = remember { Animatable(0f) }
-    val pullThreshold = 60f
+    val pullThreshold = 130f
     val pullProgress = (pullDistance.value / pullThreshold)
     val scope = rememberCoroutineScope()
     val listState = rememberLazyListState()
+    var triggeredMoveBack by remember { mutableStateOf(false) }
 
     val nestedScrollConnection = remember {
         object : NestedScrollConnection {
@@ -216,11 +217,35 @@ fun DashboardScreen(
                 available: androidx.compose.ui.geometry.Offset,
                 source: NestedScrollSource
             ): androidx.compose.ui.geometry.Offset {
-                if (pullDistance.value > 0f && available.y > 0f && source == NestedScrollSource.UserInput) {
-                    val consumedY = minOf(pullDistance.value / 0.5f, available.y)
-                    val newPull = (pullDistance.value - consumedY * 0.5f).coerceAtLeast(0f)
-                    scope.launch { pullDistance.snapTo(newPull) }
-                    return androidx.compose.ui.geometry.Offset(0f, consumedY)
+                if (source == NestedScrollSource.UserInput) {
+                    if (available.y < 0f) {
+                        // Swiping UP: start optical illusion pull immediately
+                        val newPull = (pullDistance.value - (available.y * 0.35f)).coerceAtMost(pullThreshold * 1.2f)
+                        scope.launch { pullDistance.snapTo(newPull) }
+
+                        // Preload yesterday's data as we pull up
+                        if (newPull > pullThreshold * 0.25f) {
+                            vm.preload(dateOffset + 1)
+                        }
+
+                        if (newPull >= pullThreshold && !triggeredMoveBack) {
+                            triggeredMoveBack = true
+                            view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                            view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                            vm.moveBack()
+                            scope.launch {
+                                pullDistance.snapTo(0f)
+                                triggeredMoveBack = false
+                            }
+                        }
+
+                        return androidx.compose.ui.geometry.Offset(0f, available.y)
+                    } else if (pullDistance.value > 0f && available.y > 0f) {
+                        val consumedY = minOf(pullDistance.value / 0.35f, available.y)
+                        val newPull = (pullDistance.value - consumedY * 0.35f).coerceAtLeast(0f)
+                        scope.launch { pullDistance.snapTo(newPull) }
+                        return androidx.compose.ui.geometry.Offset(0f, consumedY)
+                    }
                 }
                 return super.onPreScroll(available, source)
             }
@@ -230,56 +255,50 @@ fun DashboardScreen(
                 available: androidx.compose.ui.geometry.Offset,
                 source: NestedScrollSource
             ): androidx.compose.ui.geometry.Offset {
-                // If we are at the bottom and pulling UP (finger moves UP, available.y < 0)
-                if ((source == NestedScrollSource.UserInput) && (available.y < 0)) {
-                    val newPull = (pullDistance.value - (available.y * 0.5f)).coerceAtMost(pullThreshold * 1.5f)
-                    scope.launch { pullDistance.snapTo(newPull) }
-                    
-                    // Preload yesterday's data as we pull up
-                    if (newPull > pullThreshold * 0.4f) {
-                        vm.preload(dateOffset + 1)
-                    }
-
-                    return androidx.compose.ui.geometry.Offset(0f, available.y)
-                }
                 return super.onPostScroll(consumed, available, source)
             }
 
             override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
                 val wasPulling = pullDistance.value > 0f
-                if (pullDistance.value >= pullThreshold) {
+                if (pullDistance.value >= pullThreshold && !triggeredMoveBack) {
+                    triggeredMoveBack = true
                     view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
                     view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                     vm.moveBack()
-                } else if (wasPulling || topAppBarState.heightOffset != 0f) {
-                    onResetView()
-                    val initialOffset = topAppBarState.heightOffset
-                    if (initialOffset != 0f) {
-                        scope.launch {
-                            val anim = Animatable(initialOffset)
-                            anim.animateTo(
-                                targetValue = 0f,
-                                animationSpec = spring(
-                                    dampingRatio = Spring.DampingRatioLowBouncy,
-                                    stiffness = Spring.StiffnessMedium
-                                )
-                            ) {
-                                topAppBarState.heightOffset = value
+                    pullDistance.snapTo(0f)
+                    triggeredMoveBack = false
+                } else {
+                    if (wasPulling || topAppBarState.heightOffset != 0f) {
+                        onResetView()
+                        val initialOffset = topAppBarState.heightOffset
+                        if (initialOffset != 0f) {
+                            scope.launch {
+                                val anim = Animatable(initialOffset)
+                                anim.animateTo(
+                                    targetValue = 0f,
+                                    animationSpec = spring(
+                                        dampingRatio = Spring.DampingRatioLowBouncy,
+                                        stiffness = Spring.StiffnessMedium
+                                    )
+                                ) {
+                                    topAppBarState.heightOffset = value
+                                }
                             }
                         }
+                        topAppBarState.contentOffset = 0f
+                        if (listState.firstVisibleItemIndex != 0 || listState.firstVisibleItemScrollOffset != 0) {
+                            scope.launch { listState.animateScrollToItem(0) }
+                        }
                     }
-                    topAppBarState.contentOffset = 0f
-                    if (listState.firstVisibleItemIndex != 0 || listState.firstVisibleItemScrollOffset != 0) {
-                        scope.launch { listState.animateScrollToItem(0) }
-                    }
-                }
-                pullDistance.animateTo(
-                    targetValue = 0f,
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioLowBouncy,
-                        stiffness = Spring.StiffnessMedium
+                    pullDistance.animateTo(
+                        targetValue = 0f,
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioLowBouncy,
+                            stiffness = Spring.StiffnessMedium
+                        )
                     )
-                )
+                }
+                triggeredMoveBack = false
                 return super.onPostFling(consumed, available)
             }
         }
