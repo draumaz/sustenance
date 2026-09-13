@@ -148,6 +148,13 @@ fun DashboardScreen(
         onLoadingChanged(isLoading)
     }
 
+    val pullDistance = remember { Animatable(0f) }
+    val pullThreshold = 130f
+    val pullProgress = (pullDistance.value / pullThreshold)
+    val scope = rememberCoroutineScope()
+    val listState = rememberLazyListState()
+    var triggeredMoveBack by remember { mutableStateOf(false) }
+
     var hapticTriggered by remember { mutableStateOf(value = false) }
     LaunchedEffect(pullToRefreshState.distanceFraction) {
         if (pullToRefreshState.distanceFraction >= 1f) {
@@ -163,6 +170,8 @@ fun DashboardScreen(
     LaunchedEffect(dateOffset) {
         topAppBarState.heightOffset = 0f
         topAppBarState.contentOffset = 0f
+        pullDistance.snapTo(0f)
+        triggeredMoveBack = false
         onDateChanged(dateOffset)
     }
 
@@ -204,19 +213,15 @@ fun DashboardScreen(
         onPauseOrDispose { }
     }
 
-    val pullDistance = remember { Animatable(0f) }
-    val pullThreshold = 130f
-    val pullProgress = (pullDistance.value / pullThreshold)
-    val scope = rememberCoroutineScope()
-    val listState = rememberLazyListState()
-    var triggeredMoveBack by remember { mutableStateOf(false) }
-
     val nestedScrollConnection = remember {
         object : NestedScrollConnection {
             override fun onPreScroll(
                 available: androidx.compose.ui.geometry.Offset,
                 source: NestedScrollSource
             ): androidx.compose.ui.geometry.Offset {
+                if (triggeredMoveBack) {
+                    return androidx.compose.ui.geometry.Offset.Zero
+                }
                 if (source == NestedScrollSource.UserInput) {
                     if (available.y < 0f) {
                         // Swiping UP: start optical illusion pull immediately
@@ -233,10 +238,6 @@ fun DashboardScreen(
                             view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
                             view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                             vm.moveBack()
-                            scope.launch {
-                                pullDistance.snapTo(0f)
-                                triggeredMoveBack = false
-                            }
                         }
 
                         return androidx.compose.ui.geometry.Offset(0f, available.y)

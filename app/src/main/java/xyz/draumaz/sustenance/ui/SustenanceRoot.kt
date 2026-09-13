@@ -464,7 +464,7 @@ private fun MainNav(
         }
     }
 
-    var isDashboardLoading by remember { mutableStateOf(true) }
+    var isDashboardLoading by remember { mutableStateOf(deepLinkMetric == null) }
 
     val rootBlur by animateDpAsState(
         targetValue = if (isDashboardLoading || isCameraActive || isAnalyzing || pendingNutrients != null) 16.dp else 0.dp,
