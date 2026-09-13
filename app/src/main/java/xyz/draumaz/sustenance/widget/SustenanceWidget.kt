@@ -115,8 +115,7 @@ private fun WidgetContent(tiles: List<MetricSummary>) {
             .fillMaxSize()
             .background(GlanceTheme.colors.widgetBackground)
             .cornerRadius(20.dp)
-            .padding(padding)
-            .clickable(actionStartActivity(Intent(context, MainActivity::class.java))),
+            .padding(padding),
     ) {
         val rows = displayTiles.chunked(2)
         rows.forEachIndexed { i, rowTiles ->
