@@ -138,13 +138,16 @@ class HealthConnectManager(internal val context: Context) {
     ): List<MetricSummary> {
         val granted = runCatching { grantedPermissions() }.getOrDefault(emptySet())
         val rawSummaries = Metric.entries.map { metric ->
-            val has = granted.contains(permissionFor(metric))
+            val has = granted.isEmpty() || granted.contains(permissionFor(metric))
             val goal = goals[metric]
             if (!has) {
                 MetricSummary(metric, "-", null, hasData = false, granted = false, goal = goal)
             } else {
                 runCatching { summarize(metric, goal, dateOffset) }
-                    .getOrElse { MetricSummary(metric, "-", context.getString(R.string.no_data), hasData = false, granted = true, goal = goal) }
+                    .getOrElse { e ->
+                        val isSecurity = e is SecurityException || e.javaClass.name.contains("Security") || e.message?.contains("permission", ignoreCase = true) == true
+                        MetricSummary(metric, "-", context.getString(R.string.no_data), hasData = false, granted = !isSecurity, goal = goal)
+                    }
             }
         }
 
