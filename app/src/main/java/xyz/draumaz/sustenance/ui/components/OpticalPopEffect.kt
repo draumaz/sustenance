@@ -17,10 +17,12 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import kotlin.math.sin
 
 /**
- * Modifier that applies 3D depth, separation, texture sheen, and dissipation
- * to cards as the user pulls up to swipe to yesterday.
+ * Modifier that applies Material 3 Expressive 3D depth, springy fanning separation,
+ * holographic sheen, tactile micro-texture, and elastic response
+ * as the user pulls up to swipe to yesterday.
  */
 fun Modifier.opticalDepthCard(
     sectionIndex: Int,
@@ -33,7 +35,7 @@ fun Modifier.opticalDepthCard(
 ): Modifier = this.then(
     Modifier
         .graphicsLayer {
-            val p = pullProgress.coerceIn(0f, 1.8f)
+            val p = pullProgress.coerceIn(0f, 2.0f)
 
             val shapeRadius = RoundedCornerShape(cornerRadius)
             shape = shapeRadius
@@ -53,72 +55,81 @@ fun Modifier.opticalDepthCard(
 
             clip = true
             val density = density
-            cameraDistance = 14f * density
+            cameraDistance = 12f * density
 
-            // 1. Vertical & Horizontal Depth Separation (Fanning out)
+            // Expressive spring elastic damping & stagger based on cardIndex and sectionIndex
+            val staggerOffset = (cardIndex * 0.04f).coerceAtMost(0.2f)
+            val elasticP = (p - staggerOffset).coerceAtLeast(0f)
+            val bounceMultiplier = 1f + 0.12f * sin(elasticP * Math.PI.toFloat() * 1.5f).coerceAtLeast(0f)
+
+            // 1. Expressive Vertical & Horizontal Depth Separation (Accordion Fanning)
             val sectionOffsetY = when (sectionIndex) {
-                0 -> -p * 45f // Top section pulls UP faster
-                1 -> -p * 15f // Middle section stays steady
-                else -> p * 30f // Bottom section pulls DOWN (creating physical depth gap!)
+                0 -> -elasticP * 55f * bounceMultiplier // Top section pulls UP with spring bounce
+                1 -> -elasticP * 18f * bounceMultiplier // Middle section floats
+                else -> elasticP * 40f * bounceMultiplier // Bottom section drops down
             }
 
-            // Sub-card horizontal & vertical separation centered on Y axis
+            // Staggered card horizontal & vertical separation
             val cardOffsetX: Float
             val cardOffsetY: Float
             val cardRotationY: Float
+            val cardRotationX: Float
 
             if (isFullWidth || columns <= 1) {
                 cardOffsetX = 0f
-                cardOffsetY = cardIndex * p * 5f
+                cardOffsetY = cardIndex * elasticP * 7f
                 cardRotationY = 0f
+                cardRotationX = (cardIndex * 1.5f) * elasticP
             } else {
                 val col = cardIndex % columns
                 val row = cardIndex / columns
                 val isLeft = col < columns / 2.0f
-                cardOffsetX = if (isLeft) -p * 12f else p * 12f
-                cardOffsetY = row * p * 6f
-                cardRotationY = if (isLeft) 3f * p else -3f * p
+                cardOffsetX = if (isLeft) -elasticP * 16f else elasticP * 16f
+                cardOffsetY = row * elasticP * 8f
+                cardRotationY = if (isLeft) 4.5f * elasticP else -4.5f * elasticP
+                cardRotationX = (row * 2f - 1f) * elasticP * 3f
             }
 
             translationY = (sectionOffsetY + cardOffsetY) * density
             translationX = cardOffsetX * density
 
-            // 2. 3D Perspective Rotation (Tilt)
+            // 2. 3D Perspective Tilt with Expressive Rotation
             val baseRotationX = when (sectionIndex) {
-                0 -> -12f * p
-                1 -> -5f * p
-                else -> 8f * p
+                0 -> -15f * elasticP
+                1 -> -6f * elasticP
+                else -> 10f * elasticP
             }
 
-            rotationX = baseRotationX
-            rotationY = cardRotationY
+            rotationX = (baseRotationX + cardRotationX).coerceIn(-25f, 25f)
+            rotationY = cardRotationY.coerceIn(-20f, 20f)
 
-            // 3. Depth Scale Recede
+            // 3. Elastic Scale Pop & Recede (Expressive Depth Scale)
             val baseScale = when (sectionIndex) {
-                0 -> 1f - p * 0.04f
-                1 -> 1f - p * 0.02f
-                else -> 1f - p * 0.05f
+                0 -> 1f + (0.04f * elasticP) - (elasticP * 0.06f)
+                1 -> 1f + (0.02f * elasticP) - (elasticP * 0.03f)
+                else -> 1f - (elasticP * 0.07f)
             }
 
-            scaleX = baseScale
-            scaleY = baseScale
+            val finalScale = baseScale.coerceIn(0.85f, 1.08f)
+            scaleX = finalScale
+            scaleY = finalScale
 
-            // 4. Alpha Dissipation as progress approaches & exceeds 1.0
-            val alphaDissipate = if (p > 0.25f) {
-                (1f - (p - 0.25f) * 0.4f).coerceIn(0.45f, 1f)
+            // 4. Smooth Alpha Dissipation for depth fading
+            val alphaDissipate = if (p > 0.3f) {
+                (1f - (p - 0.3f) * 0.35f).coerceIn(0.5f, 1f)
             } else 1f
 
             alpha = alphaDissipate
 
-            // 5. Dynamic Depth Shadow Elevation
-            shadowElevation = (6.dp + (12.dp * p)).toPx()
+            // 5. Dynamic High-Elevation Shadow (Casting depth onto layers below)
+            shadowElevation = (8.dp + (18.dp * p * bounceMultiplier)).toPx()
         }
         .drawWithContent {
             drawContent()
 
-            // Apply texture sheen & optical specular highlight overlay when pulling
-            if (pullProgress > 0.02f) {
-                val p = pullProgress.coerceIn(0f, 1.5f)
+            // Apply holographic sheen, refractive specular lighting, and tactile micro-texture
+            if (pullProgress > 0.01f) {
+                val p = pullProgress.coerceIn(0f, 2.0f)
                 val width = size.width
                 val height = size.height
                 val radiusPx = cornerRadius.toPx()
@@ -136,16 +147,17 @@ fun Modifier.opticalDepthCard(
                 }
 
                 clipPath(clipPath) {
-                    // A. Specular Refraction Light Sweep Across Surface
-                    val sweepX = (p * 1.6f - 0.3f) * width
-                    val sweepWidth = width * 0.6f
+                    // A. Holographic Refractive Light Sweep
+                    val sweepX = (p * 1.8f - 0.4f) * width
+                    val sweepWidth = width * 0.7f
 
+                    val resolvedAccent = accentColor.takeOrElse { Color(0xFF5EDDC4) }
                     val sheenBrush = Brush.linearGradient(
                         colors = listOf(
                             Color.Transparent,
-                            accentColor.takeOrElse { Color.White }.copy(alpha = 0.2f * p),
-                            Color.White.copy(alpha = 0.38f * p),
-                            accentColor.takeOrElse { Color.White }.copy(alpha = 0.2f * p),
+                            resolvedAccent.copy(alpha = 0.25f * p),
+                            Color.White.copy(alpha = 0.45f * p),
+                            resolvedAccent.copy(alpha = 0.25f * p),
                             Color.Transparent
                         ),
                         start = Offset(sweepX - sweepWidth, 0f),
@@ -157,16 +169,16 @@ fun Modifier.opticalDepthCard(
                         blendMode = BlendMode.SrcOver
                     )
 
-                    // B. Optical Micro-Texture Grain Grid (Tactile Texture Feel)
-                    val gridAlpha = (p * 0.22f).coerceIn(0f, 0.22f)
-                    val dotSpacing = 16.dp.toPx()
-                    var x = 8.dp.toPx()
+                    // B. Tactile Micro-Texture Grain Grid (M3 Expressive tactile feel)
+                    val gridAlpha = (p * 0.28f).coerceIn(0f, 0.28f)
+                    val dotSpacing = 14.dp.toPx()
+                    var x = 6.dp.toPx()
                     while (x < width) {
-                        var y = 8.dp.toPx()
+                        var y = 6.dp.toPx()
                         while (y < height) {
                             drawCircle(
-                                color = Color.White.copy(alpha = gridAlpha * 0.65f),
-                                radius = 1.25.dp.toPx(),
+                                color = Color.White.copy(alpha = gridAlpha * 0.7f),
+                                radius = 1.35.dp.toPx(),
                                 center = Offset(x, y)
                             )
                             y += dotSpacing
@@ -175,10 +187,10 @@ fun Modifier.opticalDepthCard(
                     }
 
                     // C. Glowing Specular Rim
-                    val rimWidth = 1.5.dp.toPx()
+                    val rimWidth = 2.dp.toPx()
                     val rimRadius = (radiusPx - rimWidth / 2f).coerceAtLeast(0f)
                     drawRoundRect(
-                        color = Color.White.copy(alpha = 0.45f * p),
+                        color = Color.White.copy(alpha = 0.55f * p),
                         size = Size(width - rimWidth, height - rimWidth),
                         topLeft = Offset(rimWidth / 2f, rimWidth / 2f),
                         cornerRadius = CornerRadius(rimRadius),
