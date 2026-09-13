@@ -371,7 +371,7 @@ fun DashboardScreen(
                             val data = summariesMap[targetOffset]
 
                             val currentData = data ?: summariesMap[dateOffset] ?: summariesMap[0] ?: manager.initialSummaries()
-                            val activePullProgress = if (targetOffset == dateOffset) pullProgress else 0f
+                            val activePullProgress = if (targetOffset == dateOffset && !triggeredMoveBack) pullProgress else 0f
                             val energyMetrics = listOf(Metric.TOTAL_CALORIES, Metric.CALORIC_BALANCE)
                             val foodMetric = listOf(Metric.FOOD)
                             val microMetrics = listOf(Metric.SUGAR, Metric.SATURATED_FAT, Metric.SODIUM)

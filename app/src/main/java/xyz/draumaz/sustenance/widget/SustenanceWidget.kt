@@ -60,7 +60,22 @@ class SustenanceWidget : GlanceAppWidget() {
         } else emptyList()
 
         val tiles = WIDGET_METRICS
-            .mapNotNull { m -> summaries.firstOrNull { it.metric == m && it.granted && it.hasData } }
+            .map { m ->
+                val summary = summaries.firstOrNull { it.metric == m }
+                if (summary != null && summary.hasData) {
+                    summary
+                } else {
+                    MetricSummary(
+                        metric = m,
+                        value = "0",
+                        caption = null,
+                        hasData = true,
+                        granted = true,
+                        spark = listOf(0f),
+                        goal = goals[m]
+                    )
+                }
+            }
             .take(6)
 
         provideContent {
@@ -103,66 +118,16 @@ private fun WidgetContent(tiles: List<MetricSummary>) {
             .padding(padding)
             .clickable(actionStartActivity(Intent(context, MainActivity::class.java))),
     ) {
-        if (displayTiles.isEmpty()) {
-            val isCompact = size.height < 90.dp
-            val isSmall = size.width < 150.dp || size.height < 150.dp
-            Box(
-                modifier = GlanceModifier.fillMaxSize(),
-                contentAlignment = Alignment.Center,
-            ) {
-                if (isCompact) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            text = "🍽️",
-                            style = TextStyle(fontSize = 14.sp),
-                        )
-                        Spacer(GlanceModifier.width(4.dp))
-                        Text(
-                            text = context.getString(xyz.draumaz.sustenance.R.string.tap_to_connect),
-                            style = TextStyle(
-                                color = GlanceTheme.colors.onSurfaceVariant,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Medium,
-                            ),
-                        )
-                    }
-                } else {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        Text(
-                            text = "🍽️",
-                            style = TextStyle(fontSize = if (isSmall) 18.sp else 26.sp),
-                        )
-                        Spacer(GlanceModifier.height(4.dp))
-                        Text(
-                            text = context.getString(
-                                if (isSmall) xyz.draumaz.sustenance.R.string.tap_to_connect
-                                else xyz.draumaz.sustenance.R.string.widget_connect_prompt
-                            ),
-                            style = TextStyle(
-                                color = GlanceTheme.colors.onSurfaceVariant,
-                                fontSize = if (isSmall) 11.sp else 12.sp,
-                                fontWeight = FontWeight.Medium,
-                            ),
-                        )
-                    }
+        val rows = displayTiles.chunked(2)
+        rows.forEachIndexed { i, rowTiles ->
+            Row(modifier = GlanceModifier.fillMaxWidth().defaultWeight()) {
+                rowTiles.forEachIndexed { j, tile ->
+                    Tile(tile, GlanceModifier.defaultWeight().fillMaxHeight(), tileWidth, uniformFontSize, effectiveTileHeight)
+                    if (j == 0 && rowTiles.size > 1) Spacer(GlanceModifier.width(spacing))
                 }
+                if (rowTiles.size == 1) Spacer(GlanceModifier.defaultWeight())
             }
-        } else {
-            val rows = displayTiles.chunked(2)
-            rows.forEachIndexed { i, rowTiles ->
-                Row(modifier = GlanceModifier.fillMaxWidth().defaultWeight()) {
-                    rowTiles.forEachIndexed { j, tile ->
-                        Tile(tile, GlanceModifier.defaultWeight().fillMaxHeight(), tileWidth, uniformFontSize, effectiveTileHeight)
-                        if (j == 0 && rowTiles.size > 1) Spacer(GlanceModifier.width(spacing))
-                    }
-                    if (rowTiles.size == 1) Spacer(GlanceModifier.defaultWeight())
-                }
-                if (i < rows.size - 1) Spacer(GlanceModifier.height(spacing))
-            }
+            if (i < rows.size - 1) Spacer(GlanceModifier.height(spacing))
         }
     }
 }
