@@ -103,28 +103,5 @@
                 android:resource="@xml/vitals_widget_info" />
         </receiver>
 
-        <!-- Single configurable metric widget -->
-        <receiver
-            android:name=".widget.MetricWidgetReceiver"
-            android:exported="true"
-            android:label="@string/widget_metric_name">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-            </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/metric_widget_info" />
-        </receiver>
-
-        <activity
-            android:name=".widget.MetricWidgetConfigActivity"
-            android:exported="true"
-            android:label="@string/widget_metric_name"
-            android:theme="@style/Theme.Sustenance">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
-            </intent-filter>
-        </activity>
-
     </application>
 </manifest>

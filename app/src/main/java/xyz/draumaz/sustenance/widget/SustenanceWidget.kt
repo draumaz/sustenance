@@ -75,29 +75,88 @@ class SustenanceWidget : GlanceAppWidget() {
 private fun WidgetContent(tiles: List<MetricSummary>) {
     val context = LocalContext.current
     val size = LocalSize.current
-    val padding = 12.dp
-    val spacing = 8.dp
+    val padding = 8.dp
+    val spacing = 6.dp
     val tileWidth = (size.width - padding * 2 - spacing) / 2
+
+    // Always show all 6 available metrics, using a horizontal row layout per tile to fit any height.
+    val displayTiles = tiles.take(6)
+    val effectiveTileWidth = if (tileWidth > 0.dp) tileWidth else 80.dp
+    val effectiveTileHeight = (size.height - padding * 2 - spacing * 2) / 3
+
+    val maxDisplayLen = displayTiles.maxOfOrNull { tile ->
+        val unit = context.getString(tile.metric.unitRes)
+        tile.value.substringBefore(unit).trim().length
+    } ?: 0
+
+    val uniformFontSize = when {
+        effectiveTileWidth < 75.dp || effectiveTileHeight < 30.dp || maxDisplayLen >= 5 -> 11.sp
+        effectiveTileWidth < 90.dp || effectiveTileHeight < 40.dp || maxDisplayLen >= 4 -> 12.sp
+        else -> 15.sp
+    }
 
     Column(
         modifier = GlanceModifier
             .fillMaxSize()
             .background(GlanceTheme.colors.widgetBackground)
-            .cornerRadius(24.dp)
+            .cornerRadius(20.dp)
             .padding(padding)
             .clickable(actionStartActivity(Intent(context, MainActivity::class.java))),
     ) {
-        if (tiles.isEmpty()) {
-            Text(
-                text = context.getString(xyz.draumaz.sustenance.R.string.widget_connect_prompt),
-                style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 13.sp),
-            )
+        if (displayTiles.isEmpty()) {
+            val isCompact = size.height < 90.dp
+            val isSmall = size.width < 150.dp || size.height < 150.dp
+            Box(
+                modifier = GlanceModifier.fillMaxSize(),
+                contentAlignment = Alignment.Center,
+            ) {
+                if (isCompact) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = "🍽️",
+                            style = TextStyle(fontSize = 14.sp),
+                        )
+                        Spacer(GlanceModifier.width(4.dp))
+                        Text(
+                            text = context.getString(xyz.draumaz.sustenance.R.string.tap_to_connect),
+                            style = TextStyle(
+                                color = GlanceTheme.colors.onSurfaceVariant,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium,
+                            ),
+                        )
+                    }
+                } else {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Text(
+                            text = "🍽️",
+                            style = TextStyle(fontSize = if (isSmall) 18.sp else 26.sp),
+                        )
+                        Spacer(GlanceModifier.height(4.dp))
+                        Text(
+                            text = context.getString(
+                                if (isSmall) xyz.draumaz.sustenance.R.string.tap_to_connect
+                                else xyz.draumaz.sustenance.R.string.widget_connect_prompt
+                            ),
+                            style = TextStyle(
+                                color = GlanceTheme.colors.onSurfaceVariant,
+                                fontSize = if (isSmall) 11.sp else 12.sp,
+                                fontWeight = FontWeight.Medium,
+                            ),
+                        )
+                    }
+                }
+            }
         } else {
-            val rows = tiles.chunked(2)
+            val rows = displayTiles.chunked(2)
             rows.forEachIndexed { i, rowTiles ->
                 Row(modifier = GlanceModifier.fillMaxWidth().defaultWeight()) {
                     rowTiles.forEachIndexed { j, tile ->
-                        Tile(tile, GlanceModifier.defaultWeight().fillMaxHeight(), tileWidth)
+                        Tile(tile, GlanceModifier.defaultWeight().fillMaxHeight(), tileWidth, uniformFontSize, effectiveTileHeight)
                         if (j == 0 && rowTiles.size > 1) Spacer(GlanceModifier.width(spacing))
                     }
                     if (rowTiles.size == 1) Spacer(GlanceModifier.defaultWeight())
@@ -109,7 +168,13 @@ private fun WidgetContent(tiles: List<MetricSummary>) {
 }
 
 @Composable
-private fun Tile(tile: MetricSummary, modifier: GlanceModifier, tileWidth: Dp) {
+private fun Tile(
+    tile: MetricSummary,
+    modifier: GlanceModifier,
+    tileWidth: Dp,
+    fontSize: androidx.compose.ui.unit.TextUnit,
+    tileHeight: Dp,
+) {
     val context = LocalContext.current
     val unit = context.getString(tile.metric.unitRes)
     val displayValue = tile.value.substringBefore(unit).trim()
@@ -139,10 +204,14 @@ private fun Tile(tile: MetricSummary, modifier: GlanceModifier, tileWidth: Dp) {
         tile.metric.accent
     }
 
+    val isVeryShort = tileHeight < 35.dp
+    val horizontalPadding = if (isVeryShort) 4.dp else 8.dp
+    val verticalPadding = if (isVeryShort) 2.dp else 6.dp
+
     Box(
         modifier = modifier
             .background(GlanceTheme.colors.secondaryContainer)
-            .cornerRadius(18.dp)
+            .cornerRadius(12.dp)
             .clickable(
                 actionStartActivity(
                     Intent(context, MainActivity::class.java)
@@ -159,29 +228,26 @@ private fun Tile(tile: MetricSummary, modifier: GlanceModifier, tileWidth: Dp) {
                     .background(fillColor.copy(alpha = 0.5f))
             ) {}
         }
-        Column(
+        Row(
             modifier = GlanceModifier
                 .fillMaxSize()
-                .padding(8.dp),
+                .padding(horizontal = horizontalPadding, vertical = verticalPadding),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
                 text = emoji,
-                style = TextStyle(fontSize = 12.sp),
+                style = TextStyle(fontSize = if (isVeryShort) 10.sp else 12.sp),
             )
-            Spacer(GlanceModifier.defaultWeight())
-            Row(verticalAlignment = Alignment.Bottom) {
-                Text(
-                    text = displayValue,
-                    maxLines = 1,
-                    style = TextStyle(
-                        color = GlanceTheme.colors.onSecondaryContainer,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 17.sp,
-                    ),
-                )
-            }
+            Spacer(GlanceModifier.width(4.dp))
+            Text(
+                text = displayValue,
+                maxLines = 1,
+                style = TextStyle(
+                    color = GlanceTheme.colors.onSecondaryContainer,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = fontSize,
+                ),
+            )
         }
     }
 }
-
-

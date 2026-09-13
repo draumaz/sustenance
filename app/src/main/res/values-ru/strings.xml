@@ -2,9 +2,7 @@
 <resources>
     <string name="app_name">Sustenance</string>
     <string name="widget_dashboard_name">Панель Sustenance</string>
-    <string name="widget_metric_name">Метрика Sustenance</string>
     <string name="widget_description">Наглядные показатели здоровья из Health Connect.</string>
-    <string name="metric_widget_description">Одиночный показатель здоровья с графиком на ваш выбор.</string>
 
     <string name="cancel">Отмена</string>
     <string name="save">Сохранить</string>
