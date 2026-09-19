@@ -123,7 +123,6 @@ fun DashboardScreen(
     onTimerClick: () -> Unit = {},
     onDateChanged: (Int) -> Unit = {},
     onResetView: () -> Unit = {},
-    onLoadingChanged: (Boolean) -> Unit = {},
 ) {
     val context = LocalContext.current
     val app = context.applicationContext as xyz.draumaz.sustenance.SustenanceApp
@@ -140,13 +139,6 @@ fun DashboardScreen(
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(topAppBarState)
     val view = LocalView.current
     val pullToRefreshState = rememberPullToRefreshState()
-
-    val currentSummaryData = summariesMap[dateOffset]
-    val isLoading = currentSummaryData == null || currentSummaryData.all { it.value == "-" }
-
-    LaunchedEffect(isLoading) {
-        onLoadingChanged(isLoading)
-    }
 
 
 

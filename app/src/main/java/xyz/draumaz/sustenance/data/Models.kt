@@ -4,6 +4,8 @@ import androidx.compose.ui.graphics.Color
 import xyz.draumaz.sustenance.util.FoodNutrients
 import java.time.Duration
 import java.time.Instant
+import org.json.JSONArray
+import org.json.JSONObject
 
 /** Represents a fasting stretch between two food logs. */
 data class FastingStretch(
@@ -23,6 +25,61 @@ data class MetricSummary(
     val goal: Float? = null,
     val titleOverride: String? = null,
 )
+
+fun summariesToJson(summaries: List<MetricSummary>): String {
+    val array = JSONArray()
+    for (s in summaries) {
+        val obj = JSONObject()
+        obj.put("metric", s.metric.key)
+        obj.put("value", s.value)
+        if (s.caption != null) obj.put("caption", s.caption)
+        obj.put("hasData", s.hasData)
+        obj.put("granted", s.granted)
+        val sparkArray = JSONArray()
+        s.spark.forEach { sparkArray.put(it.toDouble()) }
+        obj.put("spark", sparkArray)
+        if (s.goal != null) obj.put("goal", s.goal.toDouble())
+        if (s.titleOverride != null) obj.put("titleOverride", s.titleOverride)
+        array.put(obj)
+    }
+    return array.toString()
+}
+
+fun summariesFromJson(jsonStr: String): List<MetricSummary>? {
+    return runCatching {
+        val array = JSONArray(jsonStr)
+        val list = mutableListOf<MetricSummary>()
+        for (i in 0 until array.length()) {
+            val obj = array.getJSONObject(i)
+            val metricKey = obj.getString("metric")
+            val metric = Metric.fromKey(metricKey) ?: continue
+            val value = obj.getString("value")
+            val caption = if (obj.has("caption") && !obj.isNull("caption")) obj.getString("caption") else null
+            val hasData = obj.getBoolean("hasData")
+            val granted = obj.getBoolean("granted")
+            val sparkArray = obj.getJSONArray("spark")
+            val spark = mutableListOf<Float>()
+            for (j in 0 until sparkArray.length()) {
+                spark.add(sparkArray.getDouble(j).toFloat())
+            }
+            val goal = if (obj.has("goal") && !obj.isNull("goal")) obj.getDouble("goal").toFloat() else null
+            val titleOverride = if (obj.has("titleOverride") && !obj.isNull("titleOverride")) obj.getString("titleOverride") else null
+            list.add(
+                MetricSummary(
+                    metric = metric,
+                    value = value,
+                    caption = caption,
+                    hasData = hasData,
+                    granted = granted,
+                    spark = spark,
+                    goal = goal,
+                    titleOverride = titleOverride
+                )
+            )
+        }
+        list
+    }.getOrNull()
+}
 
 /** A single charted data point. */
 data class SeriesPoint(

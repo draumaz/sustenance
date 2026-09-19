@@ -462,10 +462,8 @@ private fun MainNav(
         }
     }
 
-    var isDashboardLoading by remember { mutableStateOf(deepLinkMetric == null) }
-
     val rootBlur by animateDpAsState(
-        targetValue = if (isDashboardLoading || isCameraActive || isAnalyzing || pendingNutrients != null) 16.dp else 0.dp,
+        targetValue = if (isCameraActive || isAnalyzing || pendingNutrients != null) 16.dp else 0.dp,
         animationSpec = if (!isCameraActive && !isAnalyzing && pendingNutrients == null) tween(0) else spring(),
         label = "root_blur"
     )
@@ -627,9 +625,6 @@ private fun MainNav(
                         },
                         onResetView = {
                             bottomBarOffsetHeightPx.floatValue = 0f
-                        },
-                        onLoadingChanged = {
-                            isDashboardLoading = it
                         }
                     )
                 }
@@ -699,21 +694,7 @@ private fun MainNav(
                 )
             }
 
-            androidx.compose.animation.AnimatedVisibility(
-                visible = isDashboardLoading,
-                enter = fadeIn(tween(200)),
-                exit = fadeOut(tween(200)),
-                modifier = Modifier.align(Alignment.Center)
-            ) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    ScallopedLoadingAnimation(
-                        size = DpSize(200.dp, 200.dp)
-                    )
-                }
-            }
+
 
 
 

@@ -183,4 +183,21 @@ class SettingsRepository(private val context: Context) {
             }
         }
     }
+
+    fun getCachedDashboardSummaries(): List<MetricSummary>? {
+        val prefs = context.getSharedPreferences("sustenance_dashboard_cache", Context.MODE_PRIVATE)
+        val cachedDate = prefs.getString("date", null) ?: return null
+        if (cachedDate != java.time.LocalDate.now().toString()) return null
+        val json = prefs.getString("json", null) ?: return null
+        return summariesFromJson(json)
+    }
+
+    fun saveCachedDashboardSummaries(summaries: List<MetricSummary>) {
+        val prefs = context.getSharedPreferences("sustenance_dashboard_cache", Context.MODE_PRIVATE)
+        val json = summariesToJson(summaries)
+        prefs.edit()
+            .putString("date", java.time.LocalDate.now().toString())
+            .putString("json", json)
+            .apply()
+    }
 }

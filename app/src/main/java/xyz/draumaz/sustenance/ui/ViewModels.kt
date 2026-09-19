@@ -32,7 +32,7 @@ class DashboardViewModel(
     private val settingsRepo: SettingsRepository,
 ) : AndroidViewModel(application) {
     private val _summariesMap = MutableStateFlow<Map<Int, List<MetricSummary>>>(
-        mapOf(0 to manager.initialSummaries())
+        mapOf(0 to (settingsRepo.getCachedDashboardSummaries() ?: manager.initialSummaries()))
     )
     val summariesMap = _summariesMap.asStateFlow()
 
@@ -146,7 +146,9 @@ class DashboardViewModel(
         val threshold = settingsRepo.fastBreakingCalories.first().toDouble()
         if (offset == 0) {
             val lastLogDeferred = async { manager.readLastFoodLogTime(threshold) }
-            _summariesMap.value = _summariesMap.value + (offset to dataDeferred.await())
+            val data = dataDeferred.await()
+            _summariesMap.value = _summariesMap.value + (offset to data)
+            settingsRepo.saveCachedDashboardSummaries(data)
             _lastLogTime.value = lastLogDeferred.await()
         } else {
             val stretchDeferred = async { manager.readLongestFastingStretch(offset, threshold) }
