@@ -63,8 +63,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.ui.unit.DpSize
-import xyz.draumaz.sustenance.ui.components.ScallopedLoadingAnimation
-import androidx.compose.animation.core.tween
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.input.pointer.pointerInput
@@ -712,10 +710,12 @@ private fun MainNav(
                     contentAlignment = Alignment.Center
                 ) {
                     ScallopedLoadingAnimation(
-                        size = androidx.compose.ui.unit.DpSize(200.dp, 200.dp)
+                        size = DpSize(200.dp, 200.dp)
                     )
                 }
             }
+
+
 
             androidx.compose.animation.AnimatedVisibility(
                 visible = isCameraActive && !isHistoryActive && pendingNutrients == null,

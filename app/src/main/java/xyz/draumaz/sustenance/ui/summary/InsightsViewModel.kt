@@ -19,6 +19,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlin.time.Duration.Companion.milliseconds
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -122,9 +125,13 @@ class InsightsViewModel(
         viewModelScope.launch {
             if (showIndicator) _refreshing.value = true
             val granted = runCatching { manager.grantedPermissions() }.getOrDefault(emptySet())
-            series.value = GoalCatalog.metrics
-                .filter { manager.permissionFor(it) in granted }
-                .associateWith { runCatching { manager.readDailySeries(it, 7) }.getOrDefault(emptyList()) }
+            val metrics = GoalCatalog.metrics.filter { manager.permissionFor(it) in granted }
+            val seriesMap = coroutineScope {
+                metrics.map { metric ->
+                    async { metric to runCatching { manager.readDailySeries(metric, 7) }.getOrDefault(emptyList()) }
+                }.awaitAll().toMap()
+            }
+            series.value = seriesMap
             
             if (granted.contains(manager.permissionFor(Metric.FOOD))) {
                 todayLogs.value = runCatching { manager.readTodayNutrition() }.getOrDefault(emptyList())

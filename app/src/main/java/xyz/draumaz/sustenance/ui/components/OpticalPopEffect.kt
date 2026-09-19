@@ -27,7 +27,7 @@ import kotlin.math.sin
 fun Modifier.opticalDepthCard(
     sectionIndex: Int,
     cardIndex: Int = 0,
-    pullProgress: Float, // 0.0 when idle, 1.0 at threshold, >1.0 over-drag
+    pullProgressProvider: () -> Float, // Lambda to avoid recomposition during drag
     accentColor: Color = Color.Unspecified,
     cornerRadius: Dp = 28.dp,
     columns: Int = 2,
@@ -35,7 +35,7 @@ fun Modifier.opticalDepthCard(
 ): Modifier = this.then(
     Modifier
         .graphicsLayer {
-            val p = pullProgress.coerceIn(0f, 2.0f)
+            val p = pullProgressProvider().coerceIn(0f, 2.0f)
 
             val shapeRadius = RoundedCornerShape(cornerRadius)
             shape = shapeRadius
@@ -128,8 +128,9 @@ fun Modifier.opticalDepthCard(
             drawContent()
 
             // Apply holographic sheen, refractive specular lighting, and tactile micro-texture
-            if (pullProgress > 0.01f) {
-                val p = pullProgress.coerceIn(0f, 2.0f)
+            val p = pullProgressProvider()
+            if (p > 0.01f) {
+                val clampedP = p.coerceIn(0f, 2.0f)
                 val width = size.width
                 val height = size.height
                 val radiusPx = cornerRadius.toPx()
@@ -148,16 +149,16 @@ fun Modifier.opticalDepthCard(
 
                 clipPath(clipPath) {
                     // A. Holographic Refractive Light Sweep
-                    val sweepX = (p * 1.8f - 0.4f) * width
+                    val sweepX = (clampedP * 1.8f - 0.4f) * width
                     val sweepWidth = width * 0.7f
 
                     val resolvedAccent = accentColor.takeOrElse { Color(0xFF5EDDC4) }
                     val sheenBrush = Brush.linearGradient(
                         colors = listOf(
                             Color.Transparent,
-                            resolvedAccent.copy(alpha = 0.25f * p),
-                            Color.White.copy(alpha = 0.45f * p),
-                            resolvedAccent.copy(alpha = 0.25f * p),
+                            resolvedAccent.copy(alpha = 0.25f * clampedP),
+                            Color.White.copy(alpha = 0.45f * clampedP),
+                            resolvedAccent.copy(alpha = 0.25f * clampedP),
                             Color.Transparent
                         ),
                         start = Offset(sweepX - sweepWidth, 0f),
@@ -170,7 +171,7 @@ fun Modifier.opticalDepthCard(
                     )
 
                     // B. Tactile Micro-Texture Grain Grid (M3 Expressive tactile feel)
-                    val gridAlpha = (p * 0.28f).coerceIn(0f, 0.28f)
+                    val gridAlpha = (clampedP * 0.28f).coerceIn(0f, 0.28f)
                     val dotSpacing = 14.dp.toPx()
                     var x = 6.dp.toPx()
                     while (x < width) {
@@ -190,7 +191,7 @@ fun Modifier.opticalDepthCard(
                     val rimWidth = 2.dp.toPx()
                     val rimRadius = (radiusPx - rimWidth / 2f).coerceAtLeast(0f)
                     drawRoundRect(
-                        color = Color.White.copy(alpha = 0.55f * p),
+                        color = Color.White.copy(alpha = 0.55f * clampedP),
                         size = Size(width - rimWidth, height - rimWidth),
                         topLeft = Offset(rimWidth / 2f, rimWidth / 2f),
                         cornerRadius = CornerRadius(rimRadius),
@@ -200,3 +201,22 @@ fun Modifier.opticalDepthCard(
             }
         }
 )
+
+fun Modifier.opticalDepthCard(
+    sectionIndex: Int,
+    cardIndex: Int = 0,
+    pullProgress: Float,
+    accentColor: Color = Color.Unspecified,
+    cornerRadius: Dp = 28.dp,
+    columns: Int = 2,
+    isFullWidth: Boolean = false
+): Modifier = opticalDepthCard(
+    sectionIndex = sectionIndex,
+    cardIndex = cardIndex,
+    pullProgressProvider = { pullProgress },
+    accentColor = accentColor,
+    cornerRadius = cornerRadius,
+    columns = columns,
+    isFullWidth = isFullWidth
+)
+

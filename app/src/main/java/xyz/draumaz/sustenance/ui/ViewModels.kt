@@ -18,6 +18,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import android.app.Application
@@ -128,7 +130,7 @@ class DashboardViewModel(
         }
     }
 
-    private suspend fun fetchForOffset(offset: Int) {
+    private suspend fun fetchForOffset(offset: Int) = coroutineScope {
         val goals = goalsRepo.goals.first()
         val isKeto = settingsRepo.ketoMode.first()
         
@@ -140,15 +142,18 @@ class DashboardViewModel(
                 finalGoals = goals + (Metric.FOOD to (energyOnDay - deficitAmount).coerceAtLeast(0f))
             }
         }
-        val data = manager.readDashboard(finalGoals, isKeto, offset)
+        val dataDeferred = async { manager.readDashboard(finalGoals, isKeto, offset) }
         val threshold = settingsRepo.fastBreakingCalories.first().toDouble()
         if (offset == 0) {
-            _lastLogTime.value = manager.readLastFoodLogTime(threshold)
+            val lastLogDeferred = async { manager.readLastFoodLogTime(threshold) }
+            _summariesMap.value = _summariesMap.value + (offset to dataDeferred.await())
+            _lastLogTime.value = lastLogDeferred.await()
         } else {
-            val stretch = manager.readLongestFastingStretch(offset, threshold)
+            val stretchDeferred = async { manager.readLongestFastingStretch(offset, threshold) }
+            _summariesMap.value = _summariesMap.value + (offset to dataDeferred.await())
+            val stretch = stretchDeferred.await()
             _longestFastingMap.value = _longestFastingMap.value + (offset to stretch)
         }
-        _summariesMap.value = _summariesMap.value + (offset to data)
     }
 
     fun refresh(showIndicator: Boolean = true) {

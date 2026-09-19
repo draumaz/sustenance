@@ -2,7 +2,6 @@ package xyz.draumaz.sustenance.ui.dashboard
 
 import android.view.HapticFeedbackConstants
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.minutes
@@ -19,7 +18,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -93,6 +91,8 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.draw.blur
@@ -148,12 +148,13 @@ fun DashboardScreen(
         onLoadingChanged(isLoading)
     }
 
+
+
     val pullDistance = remember { Animatable(0f) }
     val pullThreshold = 130f
-    val pullProgress = (pullDistance.value / pullThreshold)
     val scope = rememberCoroutineScope()
     val listState = rememberLazyListState()
-    var triggeredMoveBack by remember { mutableStateOf(false) }
+    val dayChangedInCurrentGesture = remember { mutableStateOf(false) }
 
     var hapticTriggered by remember { mutableStateOf(value = false) }
     LaunchedEffect(pullToRefreshState.distanceFraction) {
@@ -171,7 +172,6 @@ fun DashboardScreen(
         topAppBarState.heightOffset = 0f
         topAppBarState.contentOffset = 0f
         pullDistance.snapTo(0f)
-        triggeredMoveBack = false
         onDateChanged(dateOffset)
     }
 
@@ -219,28 +219,28 @@ fun DashboardScreen(
                 available: androidx.compose.ui.geometry.Offset,
                 source: NestedScrollSource
             ): androidx.compose.ui.geometry.Offset {
-                if (triggeredMoveBack) {
-                    return androidx.compose.ui.geometry.Offset.Zero
-                }
                 if (source == NestedScrollSource.UserInput) {
                     if (available.y < 0f) {
-                        // Swiping UP: start optical illusion pull immediately
-                        val newPull = (pullDistance.value - (available.y * 0.35f)).coerceAtMost(pullThreshold * 1.2f)
-                        scope.launch { pullDistance.snapTo(newPull) }
+                        // Swiping UP: start optical illusion pull immediately if day hasn't changed yet
+                        if (!dayChangedInCurrentGesture.value) {
+                            val newPull = (pullDistance.value - (available.y * 0.35f)).coerceAtMost(pullThreshold * 1.2f)
+                            scope.launch { pullDistance.snapTo(newPull) }
 
-                        // Preload yesterday's data as we pull up
-                        if (newPull > pullThreshold * 0.25f) {
-                            vm.preload(dateOffset + 1)
+                            // Preload yesterday's data as we pull up
+                            if (newPull > pullThreshold * 0.25f) {
+                                vm.preload(dateOffset + 1)
+                            }
+
+                            if (newPull >= pullThreshold) {
+                                dayChangedInCurrentGesture.value = true
+                                view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                                view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                                vm.moveBack()
+                                scope.launch { pullDistance.snapTo(0f) }
+                            }
+
+                            return androidx.compose.ui.geometry.Offset(0f, available.y)
                         }
-
-                        if (newPull >= pullThreshold && !triggeredMoveBack) {
-                            triggeredMoveBack = true
-                            view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-                            view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-                            vm.moveBack()
-                        }
-
-                        return androidx.compose.ui.geometry.Offset(0f, available.y)
                     } else if (pullDistance.value > 0f && available.y > 0f) {
                         val consumedY = minOf(pullDistance.value / 0.35f, available.y)
                         val newPull = (pullDistance.value - consumedY * 0.35f).coerceAtLeast(0f)
@@ -251,25 +251,9 @@ fun DashboardScreen(
                 return super.onPreScroll(available, source)
             }
 
-            override fun onPostScroll(
-                consumed: androidx.compose.ui.geometry.Offset,
-                available: androidx.compose.ui.geometry.Offset,
-                source: NestedScrollSource
-            ): androidx.compose.ui.geometry.Offset {
-                return super.onPostScroll(consumed, available, source)
-            }
-
             override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
-                val wasPulling = pullDistance.value > 0f
-                if (pullDistance.value >= pullThreshold && !triggeredMoveBack) {
-                    triggeredMoveBack = true
-                    view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-                    view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-                    vm.moveBack()
-                    pullDistance.snapTo(0f)
-                    triggeredMoveBack = false
-                } else {
-                    if (wasPulling || topAppBarState.heightOffset != 0f) {
+                if (pullDistance.value > 0f) {
+                    if (topAppBarState.heightOffset != 0f) {
                         onResetView()
                         val initialOffset = topAppBarState.heightOffset
                         if (initialOffset != 0f) {
@@ -299,13 +283,41 @@ fun DashboardScreen(
                         )
                     )
                 }
-                triggeredMoveBack = false
                 return super.onPostFling(consumed, available)
             }
         }
     }
 
-    Box(Modifier.fillMaxSize()) {
+    Box(
+        Modifier
+            .fillMaxSize()
+            .pointerInput(Unit) {
+                awaitPointerEventScope {
+                    while (true) {
+                        awaitFirstDown(requireUnconsumed = false)
+                        try {
+                            do {
+                                val event = awaitPointerEvent(PointerEventPass.Initial)
+                            } while (event.changes.any { it.pressed })
+                        } finally {
+                            // Touch gesture finished (all fingers lifted or cancelled)
+                            dayChangedInCurrentGesture.value = false
+                            if (pullDistance.value > 0f) {
+                                scope.launch {
+                                    pullDistance.animateTo(
+                                        targetValue = 0f,
+                                        animationSpec = spring(
+                                            dampingRatio = Spring.DampingRatioLowBouncy,
+                                            stiffness = Spring.StiffnessMedium
+                                        )
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+    ) {
         Scaffold(
             modifier = Modifier
                 .fillMaxSize()
@@ -371,7 +383,14 @@ fun DashboardScreen(
                             val data = summariesMap[targetOffset]
 
                             val currentData = data ?: summariesMap[dateOffset] ?: summariesMap[0] ?: manager.initialSummaries()
-                            val activePullProgress = if (targetOffset == dateOffset && !triggeredMoveBack) pullProgress else 0f
+                            val activePullProgressProvider: () -> Float = {
+                                if (targetOffset == dateOffset) {
+                                    if (dayChangedInCurrentGesture.value) 0f else (pullDistance.value / pullThreshold)
+                                } else {
+                                    if (dayChangedInCurrentGesture.value) 1f else 0f
+                                }
+                            }
+
                             val energyMetrics = listOf(Metric.TOTAL_CALORIES, Metric.CALORIC_BALANCE)
                             val foodMetric = listOf(Metric.FOOD)
                             val microMetrics = listOf(Metric.SUGAR, Metric.SATURATED_FAT, Metric.SODIUM)
@@ -388,7 +407,7 @@ fun DashboardScreen(
                                     .nestedScroll(scrollBehavior.nestedScrollConnection)
                                     .graphicsLayer {
                                         // Base pull UP offset
-                                        translationY = -activePullProgress * pullThreshold * 0.15f
+                                        translationY = -activePullProgressProvider() * pullThreshold * 0.15f
                                     },
                                 contentPadding = PaddingValues(
                                     start = 16.dp, end = 16.dp,
@@ -404,7 +423,7 @@ fun DashboardScreen(
                                             items = energyGroup,
                                             columns = 2,
                                             sectionIndex = 0,
-                                            pullProgress = activePullProgress,
+                                            pullProgressProvider = activePullProgressProvider,
                                             onOpenMetric = { onOpenMetric(it, targetOffset) },
                                             onManagePermissions = onManagePermissions,
                                             bottomContent = {
@@ -413,7 +432,7 @@ fun DashboardScreen(
                                                         Modifier.opticalDepthCard(
                                                             sectionIndex = 0,
                                                             cardIndex = energyGroup.size + foodIdx,
-                                                            pullProgress = activePullProgress,
+                                                            pullProgressProvider = activePullProgressProvider,
                                                             accentColor = summary.metric.accent,
                                                             cornerRadius = 16.dp,
                                                             isFullWidth = true
@@ -436,7 +455,7 @@ fun DashboardScreen(
                                                         Modifier.opticalDepthCard(
                                                             sectionIndex = 0,
                                                             cardIndex = energyGroup.size + foodGroup.size,
-                                                            pullProgress = activePullProgress,
+                                                            pullProgressProvider = activePullProgressProvider,
                                                             cornerRadius = 16.dp,
                                                             isFullWidth = true
                                                         )
@@ -462,7 +481,7 @@ fun DashboardScreen(
                                             items = macrosGroup,
                                             columns = 2,
                                             sectionIndex = 1,
-                                            pullProgress = activePullProgress,
+                                            pullProgressProvider = activePullProgressProvider,
                                             onOpenMetric = { onOpenMetric(it, targetOffset) },
                                             onManagePermissions = onManagePermissions
                                         )
@@ -475,7 +494,7 @@ fun DashboardScreen(
                                             items = microsGroup,
                                             columns = 1,
                                             sectionIndex = 2,
-                                            pullProgress = activePullProgress,
+                                            pullProgressProvider = activePullProgressProvider,
                                             onOpenMetric = { onOpenMetric(it, targetOffset) },
                                             onManagePermissions = onManagePermissions
                                         )
@@ -500,7 +519,7 @@ private fun MetricSection(
     onManagePermissions: () -> Unit,
     modifier: Modifier = Modifier,
     sectionIndex: Int = 0,
-    pullProgress: Float = 0f,
+    pullProgressProvider: () -> Float = { 0f },
     extraContent: (@Composable () -> Unit)? = null,
     bottomContent: (@Composable ColumnScope.() -> Unit)? = null
 ) {
@@ -510,7 +529,7 @@ private fun MetricSection(
             .opticalDepthCard(
                 sectionIndex = sectionIndex,
                 cardIndex = 0,
-                pullProgress = pullProgress,
+                pullProgressProvider = pullProgressProvider,
                 cornerRadius = 28.dp,
                 isFullWidth = true
             ),
@@ -543,7 +562,7 @@ private fun MetricSection(
                                 .opticalDepthCard(
                                     sectionIndex = sectionIndex,
                                     cardIndex = cardIdx,
-                                    pullProgress = pullProgress,
+                                    pullProgressProvider = pullProgressProvider,
                                     accentColor = summary.metric.accent,
                                     cornerRadius = 16.dp,
                                     columns = columns
@@ -564,7 +583,7 @@ private fun MetricSection(
                                 .opticalDepthCard(
                                     sectionIndex = sectionIndex,
                                     cardIndex = items.size,
-                                    pullProgress = pullProgress,
+                                    pullProgressProvider = pullProgressProvider,
                                     cornerRadius = 16.dp
                                 )
                         ) {

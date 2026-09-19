@@ -14,6 +14,9 @@ import androidx.health.connect.client.units.Energy
 import androidx.health.connect.client.units.Mass
 import xyz.draumaz.sustenance.util.FoodNutrients
 import xyz.draumaz.sustenance.R
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import java.time.Instant
@@ -135,23 +138,26 @@ class HealthConnectManager(internal val context: Context) {
         goals: Map<Metric, Float> = emptyMap(),
         isKeto: Boolean = false,
         dateOffset: Int = 0
-    ): List<MetricSummary> {
+    ): List<MetricSummary> = coroutineScope {
         val granted = runCatching { grantedPermissions() }.getOrDefault(emptySet())
-        val rawSummaries = Metric.entries.map { metric ->
-            val has = granted.isEmpty() || granted.contains(permissionFor(metric))
-            val goal = goals[metric]
-            if (!has) {
-                MetricSummary(metric, "-", null, hasData = false, granted = false, goal = goal)
-            } else {
-                runCatching { summarize(metric, goal, dateOffset) }
-                    .getOrElse { e ->
-                        val isSecurity = e is SecurityException || e.javaClass.name.contains("Security") || e.message?.contains("permission", ignoreCase = true) == true
-                        MetricSummary(metric, "-", context.getString(R.string.no_data), hasData = false, granted = !isSecurity, goal = goal)
-                    }
+        val deferredSummaries = Metric.entries.map { metric ->
+            async {
+                val has = granted.isEmpty() || granted.contains(permissionFor(metric))
+                val goal = goals[metric]
+                if (!has) {
+                    MetricSummary(metric, "-", null, hasData = false, granted = false, goal = goal)
+                } else {
+                    runCatching { summarize(metric, goal, dateOffset) }
+                        .getOrElse { e ->
+                            val isSecurity = e is SecurityException || e.javaClass.name.contains("Security") || e.message?.contains("permission", ignoreCase = true) == true
+                            MetricSummary(metric, "-", context.getString(R.string.no_data), hasData = false, granted = !isSecurity, goal = goal)
+                        }
+                }
             }
         }
+        val rawSummaries = deferredSummaries.awaitAll()
 
-        if (!isKeto) return rawSummaries
+        if (!isKeto) return@coroutineScope rawSummaries
 
         // Keto logic: Transform Carbs into Net Carbs (Carbs - Fiber)
         val fiberSummary = rawSummaries.find { it.metric == Metric.FIBER }
@@ -177,10 +183,10 @@ class HealthConnectManager(internal val context: Context) {
                 spark = carbsSummary.spark.zip(fiberSummary.spark.ifEmpty { List(carbsSummary.spark.size) { 0f } }) { c, f -> (c - f).coerceAtLeast(0f) }
             )
 
-            return rawSummaries.map { if (it.metric == Metric.CARBS) netCarbsSummary else it }
+            return@coroutineScope rawSummaries.map { if (it.metric == Metric.CARBS) netCarbsSummary else it }
         }
 
-        return rawSummaries
+        return@coroutineScope rawSummaries
     }
 
     private suspend fun summarize(metric: Metric, goal: Float?, dateOffset: Int): MetricSummary {
@@ -557,12 +563,14 @@ class HealthConnectManager(internal val context: Context) {
             MetricKind.LATEST -> latestSeries(metric, days, dateOffset)
         }
 
-    private suspend fun caloricBalanceSeries(days: Int, dateOffset: Int = 0): List<SeriesPoint> {
-        val energy = dailyTotalSeries(Metric.TOTAL_CALORIES, days, dateOffset)
-        val food = dailyTotalSeries(Metric.FOOD, days, dateOffset)
-        if (energy.isEmpty() && food.isEmpty()) return emptyList()
+    private suspend fun caloricBalanceSeries(days: Int, dateOffset: Int = 0): List<SeriesPoint> = coroutineScope {
+        val energyDeferred = async { dailyTotalSeries(Metric.TOTAL_CALORIES, days, dateOffset) }
+        val foodDeferred = async { dailyTotalSeries(Metric.FOOD, days, dateOffset) }
+        val energy = energyDeferred.await()
+        val food = foodDeferred.await()
+        if (energy.isEmpty() && food.isEmpty()) return@coroutineScope emptyList()
 
-        return (0 until days).map { i ->
+        (0 until days).map { i ->
             val date = LocalDate.now().minusDays(dateOffset.toLong()).minusDays((days - 1 - i).toLong())
             val label = dowFmt.format(date)
             val eVal = energy.getOrNull(i)?.value ?: 0f
