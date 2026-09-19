@@ -647,8 +647,18 @@ private fun TimerChip(
         }
     }
 
-    val progress = if (goalHours > 0f) (duration.toMinutes().toFloat() / (goalHours * 60f)).coerceIn(0f, 1f) else 0f
+    val rawProgress = if (goalHours > 0f) (duration.toMinutes().toFloat() / (goalHours * 60f)).coerceIn(0f, 1f) else 0f
     
+    val animatedProgress by animateFloatAsState(
+        targetValue = if (rawProgress > 0.01f) rawProgress else 0f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioLowBouncy,
+            stiffness = Spring.StiffnessMediumLow
+        ),
+        label = "timer_progress_morph"
+    )
+
+    val hasFill = animatedProgress > 0.05f
     val accent = MaterialTheme.colorScheme.primary
     val progressColor = accent.copy(alpha = 0.7f)
     val textShadow = androidx.compose.ui.graphics.Shadow(
@@ -669,10 +679,10 @@ private fun TimerChip(
         color = MaterialTheme.colorScheme.surfaceContainerLow,
     ) {
         Box(Modifier.fillMaxSize().clip(RoundedCornerShape(16.dp))) {
-            if (progress > 0.01f) {
+            if (animatedProgress > 0.001f) {
                 Box(
                     Modifier
-                        .fillMaxWidth(progress)
+                        .fillMaxWidth(animatedProgress.coerceIn(0.01f, 1f))
                         .fillMaxHeight()
                         .background(progressColor)
                 )
@@ -688,13 +698,13 @@ private fun TimerChip(
                     Modifier
                         .size(28.dp)
                         .clip(CircleShape)
-                        .background(if (progress > 0.05f) Color.Black.copy(alpha = 0.25f) else accent.copy(alpha = 0.2f)),
+                        .background(if (hasFill) Color.Black.copy(alpha = 0.25f) else accent.copy(alpha = 0.2f)),
                     contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.History,
                         contentDescription = null,
-                        tint = if (progress > 0.05f) Color.White else accent,
+                        tint = if (hasFill) Color.White else accent,
                         modifier = Modifier.size(16.dp),
                     )
                 }
@@ -703,22 +713,32 @@ private fun TimerChip(
                     Text(
                         text = stringResource(R.string.time_since_last_ate),
                         style = MaterialTheme.typography.labelSmall.copy(
-                            shadow = if (progress > 0.05f) textShadow else null
+                            shadow = if (hasFill) textShadow else null
                         ),
                         fontWeight = FontWeight.Medium,
-                        color = if (progress > 0.05f) Color.White.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = if (hasFill) Color.White.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                     )
-                    Text(
-                        text = formatted,
-                        style = MaterialTheme.typography.labelMedium.copy(
-                            shadow = if (progress > 0.05f) textShadow else null
-                        ),
-                        fontWeight = FontWeight.Bold,
-                        color = if (progress > 0.05f) Color.White else MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
+                    AnimatedContent(
+                        targetState = formatted,
+                        transitionSpec = {
+                            (fadeIn(animationSpec = tween(220)) + scaleIn(initialScale = 0.96f))
+                                .togetherWith(fadeOut(animationSpec = tween(160)) + scaleOut(targetScale = 1.04f))
+                                .using(SizeTransform(clip = false))
+                        },
+                        label = "timer_value_morph"
+                    ) { valueText ->
+                        Text(
+                            text = valueText,
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                shadow = if (hasFill) textShadow else null
+                            ),
+                            fontWeight = FontWeight.Bold,
+                            color = if (hasFill) Color.White else MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
             }
         }

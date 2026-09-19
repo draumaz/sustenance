@@ -42,7 +42,7 @@ class DashboardViewModel(
     private val _dateOffset = MutableStateFlow(0)
     val dateOffset = _dateOffset.asStateFlow()
 
-    private val _lastLogTime = MutableStateFlow<java.time.Instant?>(null)
+    private val _lastLogTime = MutableStateFlow<java.time.Instant?>(settingsRepo.getCachedLastLogTime())
     val lastLogTime = _lastLogTime.asStateFlow()
 
     val lastLogTimerEnabled = settingsRepo.lastLogTimerEnabled
@@ -149,7 +149,9 @@ class DashboardViewModel(
             val data = dataDeferred.await()
             _summariesMap.value = _summariesMap.value + (offset to data)
             settingsRepo.saveCachedDashboardSummaries(data)
-            _lastLogTime.value = lastLogDeferred.await()
+            val lastLog = lastLogDeferred.await()
+            _lastLogTime.value = lastLog
+            settingsRepo.saveCachedLastLogTime(lastLog)
         } else {
             val stretchDeferred = async { manager.readLongestFastingStretch(offset, threshold) }
             _summariesMap.value = _summariesMap.value + (offset to dataDeferred.await())

@@ -200,4 +200,21 @@ class SettingsRepository(private val context: Context) {
             .putString("json", json)
             .apply()
     }
+
+    fun getCachedLastLogTime(): java.time.Instant? {
+        val prefs = context.getSharedPreferences("sustenance_dashboard_cache", Context.MODE_PRIVATE)
+        val epochMilli = prefs.getLong("last_log_time", -1L)
+        return if (epochMilli != -1L) java.time.Instant.ofEpochMilli(epochMilli) else null
+    }
+
+    fun saveCachedLastLogTime(instant: java.time.Instant?) {
+        val prefs = context.getSharedPreferences("sustenance_dashboard_cache", Context.MODE_PRIVATE)
+        prefs.edit().apply {
+            if (instant != null) {
+                putLong("last_log_time", instant.toEpochMilli())
+            } else {
+                remove("last_log_time")
+            }
+        }.apply()
+    }
 }
