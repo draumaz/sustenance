@@ -11,9 +11,51 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.ExperimentalTextApi
+import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import xyz.draumaz.sustenance.R
+
+@OptIn(ExperimentalTextApi::class)
+private fun createGoogleSansFlexFont(
+    weight: FontWeight = FontWeight.Normal,
+): Font {
+    return Font(
+        resId = R.font.google_sans_flex,
+        weight = weight,
+        variationSettings = FontVariation.Settings(
+            FontVariation.weight(weight.weight),
+            FontVariation.width(100f),
+            FontVariation.slant(0f),
+            FontVariation.Setting("ROND", 0f),
+        )
+    )
+}
+
+val GoogleSansFlexFontFamily = FontFamily(
+    createGoogleSansFlexFont(FontWeight.Thin),
+    createGoogleSansFlexFont(FontWeight.ExtraLight),
+    createGoogleSansFlexFont(FontWeight.Light),
+    createGoogleSansFlexFont(FontWeight.Normal),
+    createGoogleSansFlexFont(FontWeight.Medium),
+    createGoogleSansFlexFont(FontWeight.SemiBold),
+    createGoogleSansFlexFont(FontWeight.Bold),
+    createGoogleSansFlexFont(FontWeight.ExtraBold),
+    createGoogleSansFlexFont(FontWeight.Black),
+)
+
+@OptIn(ExperimentalTextApi::class)
+val GoogleSansFlexVariationSettings = FontVariation.Settings(
+    FontVariation.weight(400),
+    FontVariation.width(100f),
+    FontVariation.slant(0f),
+    FontVariation.Setting("ROND", 0f),
+)
 
 // Fallback palette (teal "vitals" brand) used on devices without Material You dynamic color.
 private val BrandDark = darkColorScheme(
@@ -52,15 +94,48 @@ private val BrandLight = lightColorScheme(
     outlineVariant = Color(0xFFBFC9C3),
 )
 
-private val VitalsTypography = Typography().run {
-    copy(
-        displaySmall = displaySmall.copy(fontWeight = FontWeight.Black, letterSpacing = (-1).sp),
-        headlineLarge = headlineLarge.copy(fontWeight = FontWeight.Black, letterSpacing = (-1.5).sp, fontSize = 42.sp, lineHeight = 48.sp),
-        headlineMedium = headlineMedium.copy(fontWeight = FontWeight.ExtraBold, letterSpacing = (-0.5).sp),
-        titleLarge = titleLarge.copy(fontWeight = FontWeight.Bold),
-        labelMedium = labelMedium.copy(fontWeight = FontWeight.ExtraBold, letterSpacing = 0.5.sp),
+@OptIn(ExperimentalTextApi::class)
+private fun TextStyle.withGoogleSansFlex(
+    weight: FontWeight? = null
+): TextStyle {
+    val targetWeight = weight ?: this.fontWeight ?: FontWeight.Normal
+    return this.copy(
+        fontFamily = GoogleSansFlexFontFamily,
+        fontWeight = targetWeight,
+        platformStyle = PlatformTextStyle(includeFontPadding = false),
+        fontFeatureSettings = "'wght' ${targetWeight.weight}, 'wdth' 100, 'slnt' 0, 'ROND' 0",
     )
 }
+
+private val defaultTypography = Typography()
+
+private val VitalsTypography = Typography(
+    displayLarge = defaultTypography.displayLarge.withGoogleSansFlex(),
+    displayMedium = defaultTypography.displayMedium.withGoogleSansFlex(),
+    displaySmall = defaultTypography.displaySmall.withGoogleSansFlex(FontWeight.Black).copy(
+        letterSpacing = (-1).sp
+    ),
+    headlineLarge = defaultTypography.headlineLarge.withGoogleSansFlex(FontWeight.Black).copy(
+        letterSpacing = (-1.5).sp,
+        fontSize = 42.sp,
+        lineHeight = 48.sp
+    ),
+    headlineMedium = defaultTypography.headlineMedium.withGoogleSansFlex(FontWeight.ExtraBold).copy(
+        letterSpacing = (-0.5).sp
+    ),
+    headlineSmall = defaultTypography.headlineSmall.withGoogleSansFlex(),
+    titleLarge = defaultTypography.titleLarge.withGoogleSansFlex(FontWeight.Bold),
+    titleMedium = defaultTypography.titleMedium.withGoogleSansFlex(),
+    titleSmall = defaultTypography.titleSmall.withGoogleSansFlex(),
+    bodyLarge = defaultTypography.bodyLarge.withGoogleSansFlex(),
+    bodyMedium = defaultTypography.bodyMedium.withGoogleSansFlex(),
+    bodySmall = defaultTypography.bodySmall.withGoogleSansFlex(),
+    labelLarge = defaultTypography.labelLarge.withGoogleSansFlex(),
+    labelMedium = defaultTypography.labelMedium.withGoogleSansFlex(FontWeight.ExtraBold).copy(
+        letterSpacing = 0.5.sp
+    ),
+    labelSmall = defaultTypography.labelSmall.withGoogleSansFlex(),
+)
 
 @Composable
 fun SustenanceTheme(

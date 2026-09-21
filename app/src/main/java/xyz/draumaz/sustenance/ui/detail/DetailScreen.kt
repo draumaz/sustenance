@@ -475,15 +475,16 @@ private fun HeaderCard(d: MetricDetail, onEditGoal: () -> Unit) {
                 }
                 Spacer(Modifier.size(20.dp))
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.Center) {
-                    var textStyle by remember(d.headline) {
+                    val baseHeadlineStyle = MaterialTheme.typography.headlineLarge
+                    var textStyle by remember(d.headline, baseHeadlineStyle) {
                         mutableStateOf(if (d.headline.contains("/")) {
-                            TextStyle(
+                            baseHeadlineStyle.copy(
                                 fontSize = 24.sp,
                                 fontWeight = FontWeight.Black,
                                 letterSpacing = 0.sp
                             )
                         } else {
-                            TextStyle(
+                            baseHeadlineStyle.copy(
                                 fontSize = 32.sp,
                                 fontWeight = FontWeight.Black,
                                 letterSpacing = (-1).sp

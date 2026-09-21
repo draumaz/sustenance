@@ -534,7 +534,7 @@ private fun NutritionFactsLabel(
             ) {
                 Text(
                     text = stringResource(R.string.nutrition_facts),
-                    style = TextStyle(
+                    style = MaterialTheme.typography.titleLarge.copy(
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Black,
                         letterSpacing = (-0.5).sp
@@ -543,7 +543,7 @@ private fun NutritionFactsLabel(
                 )
                 Text(
                     text = stringResource(R.string.per_serving, currentGrams.roundToInt()),
-                    style = TextStyle(
+                    style = MaterialTheme.typography.bodyMedium.copy(
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold
                     ),
@@ -564,7 +564,7 @@ private fun NutritionFactsLabel(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = stringResource(R.string.nutrition_calories),
-                        style = TextStyle(
+                        style = MaterialTheme.typography.titleMedium.copy(
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Black
                         ),
@@ -574,7 +574,7 @@ private fun NutritionFactsLabel(
                     EditableNutrientValue(
                         value = cal,
                         onValueChange = onCalChange,
-                        textStyle = TextStyle(
+                        textStyle = MaterialTheme.typography.titleMedium.copy(
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Black
                         ),
@@ -584,7 +584,7 @@ private fun NutritionFactsLabel(
 
                 Text(
                     text = stringResource(R.string.daily_value_header),
-                    style = TextStyle(
+                    style = MaterialTheme.typography.labelSmall.copy(
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold
                     ),
@@ -691,7 +691,7 @@ private fun NutritionFactsLabel(
 
             Text(
                 text = footnoteText,
-                style = TextStyle(
+                style = MaterialTheme.typography.bodySmall.copy(
                     fontSize = 10.5.sp,
                     lineHeight = 13.sp
                 ),
@@ -731,7 +731,7 @@ private fun NutritionFactsRow(
         ) {
             Text(
                 text = label,
-                style = TextStyle(
+                style = MaterialTheme.typography.bodyMedium.copy(
                     fontSize = 13.sp,
                     fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal
                 ),
@@ -741,7 +741,7 @@ private fun NutritionFactsRow(
             EditableNutrientValue(
                 value = value,
                 onValueChange = onValueChange,
-                textStyle = TextStyle(
+                textStyle = MaterialTheme.typography.bodyMedium.copy(
                     fontSize = 13.sp,
                     fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal
                 ),
@@ -750,7 +750,7 @@ private fun NutritionFactsRow(
             Spacer(Modifier.width(2.dp))
             Text(
                 text = unit,
-                style = TextStyle(
+                style = MaterialTheme.typography.bodyMedium.copy(
                     fontSize = 13.sp,
                     fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal
                 ),
@@ -761,7 +761,7 @@ private fun NutritionFactsRow(
         if (percentage != null) {
             Text(
                 text = "$percentage %",
-                style = TextStyle(
+                style = MaterialTheme.typography.bodyMedium.copy(
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Bold
                 ),

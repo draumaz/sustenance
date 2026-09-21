@@ -13,6 +13,7 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -45,7 +46,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -154,18 +154,28 @@ fun MetricItemContent(
         Spacer(Modifier.width(8.dp))
         val textColor = if (hasFill) Color.White else MaterialTheme.colorScheme.onSurface
         val titleColor = if (hasFill) Color.White.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant
-        Column(Modifier.weight(1f)) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.Center
+        ) {
             Text(
                 text = summary.titleOverride ?: stringResource(summary.metric.titleRes),
-                style = if (hasFill) MaterialTheme.typography.labelSmall.copy(shadow = textShadow) else MaterialTheme.typography.labelSmall,
+                style = if (hasFill) {
+                    MaterialTheme.typography.labelSmall.copy(shadow = textShadow, lineHeight = 13.sp)
+                } else {
+                    MaterialTheme.typography.labelSmall.copy(lineHeight = 13.sp)
+                },
                 fontWeight = FontWeight.Medium,
                 color = titleColor,
                 maxLines = 1,
+                modifier = Modifier.padding(top = 1.dp)
             )
 
-            var textStyle by remember(summary.value, hasFill, textColor) {
-                mutableStateOf(TextStyle(
+            val baseStyle = MaterialTheme.typography.bodyLarge
+            var textStyle by remember(summary.value, hasFill, textColor, baseStyle) {
+                mutableStateOf(baseStyle.copy(
                     fontSize = if (isCompact) 13.sp else 16.sp,
+                    lineHeight = if (isCompact) 15.sp else 18.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = (-0.5).sp,
                     color = textColor,
