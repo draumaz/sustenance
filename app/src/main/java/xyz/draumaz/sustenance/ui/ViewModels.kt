@@ -12,6 +12,7 @@ import xyz.draumaz.sustenance.data.MetricDetail
 import xyz.draumaz.sustenance.data.MetricSummary
 import xyz.draumaz.sustenance.data.SettingsRepository
 import xyz.draumaz.sustenance.notifications.FastingNotificationScheduler
+import xyz.draumaz.sustenance.widget.WidgetUpdateWorker
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
@@ -152,6 +153,7 @@ class DashboardViewModel(
             val lastLog = lastLogDeferred.await()
             _lastLogTime.value = lastLog
             settingsRepo.saveCachedLastLogTime(lastLog)
+            WidgetUpdateWorker.enqueue(getApplication())
         } else {
             val stretchDeferred = async { manager.readLongestFastingStretch(offset, threshold) }
             _summariesMap.value = _summariesMap.value + (offset to dataDeferred.await())

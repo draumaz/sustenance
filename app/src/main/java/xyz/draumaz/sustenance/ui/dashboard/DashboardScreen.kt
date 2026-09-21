@@ -340,7 +340,10 @@ fun DashboardScreen(
         ) { inner ->
             PullToRefreshBox(
                 isRefreshing = refreshing,
-                onRefresh = vm::refresh,
+                onRefresh = {
+                    currentTime = Instant.now()
+                    vm.refresh()
+                },
                 state = pullToRefreshState,
                 indicator = {
                     Box(
