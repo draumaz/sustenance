@@ -220,7 +220,7 @@ private fun InsightCard(stat: WeeklyStat, onEdit: () -> Unit, editEnabled: Boole
     }
 
     Card(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+        modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.extraLarge,
         colors = CardDefaults.cardColors(containerColor = accent.copy(alpha = 0.18f)),
     ) {

@@ -291,7 +291,7 @@ private fun FoodItemsCard(
     onDelete: (String) -> Unit
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+        modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.extraLarge,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
     ) {
@@ -466,7 +466,7 @@ private fun HeaderCard(d: MetricDetail, onEditGoal: () -> Unit) {
         }
     }
     Card(
-        modifier = Modifier.fillMaxWidth().height(100.dp).padding(horizontal = 16.dp),
+        modifier = Modifier.fillMaxWidth().height(100.dp),
         shape = MaterialTheme.shapes.extraLarge,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
     ) {
@@ -554,7 +554,7 @@ private fun HeaderCard(d: MetricDetail, onEditGoal: () -> Unit) {
 @Composable
 private fun ChartCard(d: MetricDetail, selectedIndex: Int?, onSelectedIndexChange: (Int?) -> Unit) {
     Card(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+        modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.extraLarge,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
     ) {
@@ -575,7 +575,7 @@ private fun ChartCard(d: MetricDetail, selectedIndex: Int?, onSelectedIndexChang
 @Composable
 private fun StatsCard(d: MetricDetail) {
     Card(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+        modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.extraLarge,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
     ) {
