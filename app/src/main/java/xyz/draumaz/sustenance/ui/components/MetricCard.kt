@@ -176,7 +176,7 @@ fun MetricItemContent(
                 mutableStateOf(baseStyle.copy(
                     fontSize = if (isCompact) 13.sp else 16.sp,
                     lineHeight = if (isCompact) 15.sp else 18.sp,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.SemiBold,
                     letterSpacing = (-0.5).sp,
                     color = textColor,
                     shadow = if (hasFill) textShadow else null
