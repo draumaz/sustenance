@@ -54,6 +54,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -338,7 +339,8 @@ fun DashboardScreen(
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = Color.Transparent,
                         scrolledContainerColor = Color.Transparent
-                    )
+                    ),
+                    modifier = Modifier.zIndex(0f)
                 )
             },
         ) { inner ->
@@ -354,6 +356,7 @@ fun DashboardScreen(
                         modifier = Modifier
                             .align(Alignment.TopCenter)
                             .padding(top = inner.calculateTopPadding() + 12.dp)
+                            .zIndex(2f)
                             .graphicsLayer {
                                 val pullProgress = pullToRefreshState.distanceFraction.coerceIn(0f, 1f)
                                 translationY = (pullProgress * 40.dp.toPx()) - 35.dp.toPx()
@@ -372,12 +375,13 @@ fun DashboardScreen(
             ) {
                 Box(Modifier.fillMaxSize()) {
                     AnimatedContent(
-                            targetState = dateOffset,
-                            transitionSpec = {
-                                fadeIn(tween(220)) togetherWith fadeOut(tween(180))
-                            },
-                            label = "dashboard_day_transition"
-                        ) { targetOffset ->
+                        targetState = dateOffset,
+                        modifier = Modifier.zIndex(1f),
+                        transitionSpec = {
+                            fadeIn(tween(220)) togetherWith fadeOut(tween(180))
+                        },
+                        label = "dashboard_day_transition"
+                    ) { targetOffset ->
                             val data = summariesMap[targetOffset]
 
                             val currentData = data ?: summariesMap[dateOffset] ?: summariesMap[0] ?: manager.initialSummaries()
