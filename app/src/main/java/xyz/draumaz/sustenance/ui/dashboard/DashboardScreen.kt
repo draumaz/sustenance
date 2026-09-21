@@ -371,8 +371,7 @@ fun DashboardScreen(
                 modifier = Modifier.fillMaxSize()
             ) {
                 Box(Modifier.fillMaxSize()) {
-                    Box(Modifier.padding(top = inner.calculateTopPadding()).fillMaxSize()) {
-                        AnimatedContent(
+                    AnimatedContent(
                             targetState = dateOffset,
                             transitionSpec = {
                                 fadeIn(tween(220)) togetherWith fadeOut(tween(180))
@@ -410,7 +409,7 @@ fun DashboardScreen(
                                     },
                                 contentPadding = PaddingValues(
                                     start = 16.dp, end = 16.dp,
-                                    top = 3.dp,
+                                    top = inner.calculateTopPadding() + 3.dp,
                                     bottom = bottomInset + 16.dp,
                                 ),
                                 verticalArrangement = Arrangement.SpaceBetween,
@@ -505,7 +504,6 @@ fun DashboardScreen(
                 }
             }
         }
-    }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
