@@ -174,6 +174,10 @@ fun SettingsScreen(
                     }
                 },
                 scrollBehavior = scrollBehavior,
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent,
+                    scrolledContainerColor = Color.Transparent
+                )
             )
         },
         //topBar = { LargeTopAppBar(title = { Text("Settings") }, scrollBehavior = scrollBehavior) },
@@ -181,8 +185,15 @@ fun SettingsScreen(
     ) { inner ->
         LazyColumn(
             state = listState,
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(top = inner.calculateTopPadding(), bottom = bottomInset + 24.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .nestedScroll(scrollBehavior.nestedScrollConnection),
+            contentPadding = PaddingValues(
+                start = 16.dp,
+                end = 16.dp,
+                top = inner.calculateTopPadding() + 16.dp,
+                bottom = bottomInset + 100.dp
+            ),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             item { SectionLabel(stringResource(R.string.section_appearance)) }

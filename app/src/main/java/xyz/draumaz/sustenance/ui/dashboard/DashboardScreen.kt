@@ -335,6 +335,10 @@ fun DashboardScreen(
                         }
                     },
                     scrollBehavior = scrollBehavior,
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Transparent,
+                        scrolledContainerColor = Color.Transparent
+                    )
                 )
             },
         ) { inner ->

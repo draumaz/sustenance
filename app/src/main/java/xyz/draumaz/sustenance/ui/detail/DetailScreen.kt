@@ -32,6 +32,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -212,7 +213,7 @@ fun DetailScreen(
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
                         containerColor = Color.Transparent,
-                        scrolledContainerColor = MaterialTheme.colorScheme.surface
+                        scrolledContainerColor = Color.Transparent
                     )
                 )
             },
@@ -228,11 +229,25 @@ fun DetailScreen(
                 state = pullToRefreshState,
                 isRefreshing = refreshing,
                 onRefresh = vm::refresh,
-                modifier = Modifier.padding(top = inner.calculateTopPadding())
+                indicator = {
+                    PullToRefreshDefaults.Indicator(
+                        state = pullToRefreshState,
+                        isRefreshing = refreshing,
+                        modifier = Modifier
+                            .align(Alignment.TopCenter)
+                            .padding(top = inner.calculateTopPadding() + 12.dp)
+                    )
+                },
+                modifier = Modifier.fillMaxSize()
             ) {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(top = 16.dp, bottom = 16.dp),
+                    contentPadding = PaddingValues(
+                        start = 16.dp,
+                        end = 16.dp,
+                        top = inner.calculateTopPadding() + 16.dp,
+                        bottom = 16.dp
+                    ),
                     verticalArrangement = Arrangement.spacedBy(20.dp),
                 ) {
                     item { HeaderCard(d, onEditGoal = { showGoalDialog = true }) }
