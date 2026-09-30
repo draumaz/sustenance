@@ -549,10 +549,15 @@ private fun MainNav(
                                 if (result.isSuccess) {
                                     result.getOrNull()?.let { onAnalysisSuccess(it) }
                                 } else {
-                                    val errorMsg = result.exceptionOrNull()?.message ?: ""
+                                    val rawError = result.exceptionOrNull()?.localizedMessage ?: result.exceptionOrNull()?.message ?: ""
+                                    val toastMsg = if (rawError.isBlank() || rawError.contains("Unexpected Response", ignoreCase = true) || rawError.contains("No response", ignoreCase = true)) {
+                                        appContext.getString(R.string.no_response_from_gemini)
+                                    } else {
+                                        appContext.getString(R.string.analysis_failed, rawError)
+                                    }
                                     Toast.makeText(
                                         currentContext,
-                                        appContext.getString(R.string.analysis_failed, errorMsg),
+                                        toastMsg,
                                         Toast.LENGTH_LONG
                                     ).show()
                                 }
@@ -781,12 +786,15 @@ private fun MainNav(
                                                 if (result.isSuccess) {
                                                     result.getOrNull()?.let { onAnalysisSuccess(it) }
                                                 } else {
-                                                    val errorMsg =
-                                                        result.exceptionOrNull()?.localizedMessage
-                                                            ?: ""
+                                                    val rawError = result.exceptionOrNull()?.localizedMessage ?: result.exceptionOrNull()?.message ?: ""
+                                                    val toastMsg = if (rawError.isBlank() || rawError.contains("Unexpected Response", ignoreCase = true) || rawError.contains("No response", ignoreCase = true)) {
+                                                        appContext.getString(R.string.no_response_from_gemini)
+                                                    } else {
+                                                        appContext.getString(R.string.analysis_failed, rawError)
+                                                    }
                                                     Toast.makeText(
                                                         currentContext,
-                                                        appContext.getString(R.string.analysis_failed, errorMsg),
+                                                        toastMsg,
                                                         Toast.LENGTH_LONG
                                                     ).show()
                                                     isCapturing = false

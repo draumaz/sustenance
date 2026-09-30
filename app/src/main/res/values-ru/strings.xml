@@ -168,6 +168,7 @@
     <string name="api_key_missing">API-ключ отсутствует.</string>
     <string name="api_key_invalid">API-ключ отсутствует или недействителен.</string>
     <string name="analysis_failed">Ошибка анализа: %s</string>
+    <string name="no_response_from_gemini">Нет ответа от Gemini</string>
     <string name="write_permission_required">Требуется разрешение на запись. Пожалуйста, включите его.</string>
     <string name="failed_to_log_food">Не удалось записать еду</string>
     <string name="are_you_sure">Вы уверены?</string>

@@ -168,6 +168,7 @@
     <string name="api_key_missing">API Key missing.</string>
     <string name="api_key_invalid">API Key is missing or invalid.</string>
     <string name="analysis_failed">Analysis failed: %s</string>
+    <string name="no_response_from_gemini">No response from Gemini</string>
     <string name="write_permission_required">Write permission required. Please enable it.</string>
     <string name="failed_to_log_food">Failed to log food</string>
     <string name="are_you_sure">Are You Sure?</string>

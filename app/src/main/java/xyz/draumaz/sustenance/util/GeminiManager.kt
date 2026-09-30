@@ -94,16 +94,17 @@ class GeminiManager(
                 val reason = candidate?.finishReason
                 val msg = e.localizedMessage ?: e.message ?: e.toString()
                 return@withContext Result.failure(Exception(
-                    if (reason != null) "Gemini error ($reason): $msg" else "Gemini error: $msg"
+                    if (msg.contains("Unexpected Response", ignoreCase = true)) "No response from Gemini"
+                    else if (reason != null) "Gemini error ($reason): $msg" else "Gemini error: $msg"
                 ))
-            } ?: return@withContext Result.failure(Exception("Empty response from Gemini"))
+            } ?: return@withContext Result.failure(Exception("No response from Gemini"))
             
             Log.d("GeminiManager", "Response: $text")
             
             val jsonStart = text.indexOf("{")
             val jsonEnd = text.lastIndexOf("}")
             if (jsonStart == -1 || jsonEnd == -1) {
-                return@withContext Result.failure(Exception("No JSON found in response"))
+                return@withContext Result.failure(Exception("No response from Gemini"))
             }
             
             val json = JSONObject(text.substring(jsonStart, jsonEnd + 1))
@@ -122,7 +123,7 @@ class GeminiManager(
         } catch (e: Exception) {
             Log.e("GeminiManager", "Analysis failed", e)
             val msg = e.localizedMessage ?: e.message
-            val displayError = if (!msg.isNullOrBlank()) msg else e.javaClass.simpleName
+            val displayError = if (!msg.isNullOrBlank() && !msg.contains("Unexpected Response", ignoreCase = true)) msg else "No response from Gemini"
             Result.failure(Exception(displayError))
         }
     }
