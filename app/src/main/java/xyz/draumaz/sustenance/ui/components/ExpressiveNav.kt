@@ -86,6 +86,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -111,7 +112,10 @@ class PredictiveBackState {
     var isSwipeActive by mutableStateOf(value = false)
 }
 
-class ScallopedPillShape(private val isScalloped: Boolean = false) : Shape {
+class ScallopedPillShape(
+    private val isScalloped: Boolean = false,
+    private val maxRadius: Dp = 36.dp,
+) : Shape {
     override fun createOutline(
         size: Size,
         layoutDirection: LayoutDirection,
@@ -120,7 +124,8 @@ class ScallopedPillShape(private val isScalloped: Boolean = false) : Shape {
         val path = Path()
         val width = size.width
         val height = size.height
-        val radius = height / 2f
+        val maxRadiusPx = with(density) { maxRadius.toPx() }
+        val radius = (height / 2f).coerceAtMost(maxRadiusPx)
 
         if (!isScalloped) {
             return Outline.Rounded(
