@@ -186,5 +186,5 @@
 
     <string name="about_credit_prefix">"Sustenance основано на "</string>
     <string name="about_credit_heartwood">Heartwood</string>
-    <string name="about_credit_suffix">, приложении для просмотра данных Health Connect от Eason Huang.\n\nБольшая часть нового кода была написана с помощью gemini-3-flash-preview.</string>
+    <string name="about_credit_suffix">, приложении для просмотра данных Health Connect от Eason Huang.\n\nБольшая часть нового кода была написана с помощью Gemini.</string>
 </resources>
