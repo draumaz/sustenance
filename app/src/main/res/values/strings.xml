@@ -109,7 +109,7 @@
     <string name="verify_api_key">Verify API Key</string>
     <string name="invalid_model_name">Invalid model name</string>
     <string name="launch_hc">Launch Health Connect</string>
-    <string name="launch_hc_summary">Verify Sustenance can see your health data.</string>
+    <string name="launch_hc_summary">Verify that Sustenance can see your health data.</string>
     <string name="about_summary">Your beautiful, offline nutrition summary, powered by Health Connect.</string>
     <string name="export_no_data">No accessible data to export</string>
     <string name="export_success">Exported %1$d records as %2$s</string>
@@ -184,6 +184,7 @@
     <string name="tap_to_connect">Tap to connect</string>
     <string name="no_recent_data">No recent data</string>
 
+    <string name="about_author">Developer</string>
     <string name="about_credit_prefix">"Sustenance is based on "</string>
     <string name="about_credit_heartwood">Heartwood</string>
     <string name="about_credit_suffix">, a Health Connect viewer by Eason Huang.\n\nThe majority of new code was written with the help of Gemini.</string>

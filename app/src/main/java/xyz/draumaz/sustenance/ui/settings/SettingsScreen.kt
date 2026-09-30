@@ -7,6 +7,7 @@ import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -88,6 +89,9 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import xyz.draumaz.sustenance.R
 import xyz.draumaz.sustenance.BuildConfig
@@ -102,6 +106,7 @@ import kotlinx.coroutines.launch
 import androidx.core.net.toUri
 import androidx.health.connect.client.HealthConnectClient
 
+private const val AUTHOR_URL = "https://github.com/draumaz"
 private const val REPO_URL = "https://github.com/draumaz/sustenance"
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -208,6 +213,8 @@ fun SettingsScreen(
                         Switch(checked = dynamicColor, onCheckedChange = null)
                     }
 
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+
                     SettingRow(
                         icon = Icons.Rounded.Language,
                         title = stringResource(R.string.app_language),
@@ -247,6 +254,8 @@ fun SettingsScreen(
                     ) {
                         Switch(checked = ketoMode, onCheckedChange = null)
                     }
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
 
                     val lastLogTimerEnabled by vm.lastLogTimerEnabled.collectAsState(initial = false)
                     SettingRow(
@@ -324,6 +333,8 @@ fun SettingsScreen(
                             }
                         }
 
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+
                         SettingRow(
                             icon = Icons.Rounded.Notifications,
                             title = stringResource(R.string.fasting_notifications),
@@ -369,6 +380,7 @@ fun SettingsScreen(
                     }
 
                     if (apiKeyEnabled) {
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
                         val greenColor = Color(0xFF4CAF50)
 
                         val modelOutlineColors = when (geminiModelVerificationStatus) {
@@ -601,6 +613,8 @@ fun SettingsScreen(
                             Spacer(Modifier.size(8.dp))
                         }
 
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+
                         val judgementalMode by vm.judgementalMode.collectAsState(initial = false)
                         SettingRow(
                             icon = Icons.Rounded.Psychology,
@@ -632,6 +646,19 @@ fun SettingsScreen(
             item { SectionLabel(stringResource(R.string.section_about)) }
             item {
                 SettingsCard {
+                    SettingRow(
+                        painter = painterResource(R.drawable.draumaz),
+                        title = "draumaz",
+                        subtitle = stringResource(R.string.about_author),
+                        onClick = {
+                            runCatching {
+                                context.startActivity(Intent(Intent.ACTION_VIEW, AUTHOR_URL.toUri()))
+                            }
+                        }
+                    )
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+
                     SettingRow(
                         icon = Icons.AutoMirrored.Rounded.OpenInNew,
                         title = "Sustenance ${BuildConfig.VERSION_NAME}",
@@ -701,6 +728,41 @@ private fun SettingsCard(content: @Composable () -> Unit) {
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
     ) {
         Column(Modifier.padding(vertical = 6.dp)) { content() }
+    }
+}
+
+@Composable
+private fun SettingRow(
+    painter: Painter,
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit,
+    content: (@Composable () -> Unit)? = null
+) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Image(
+            painter = painter,
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .size(40.dp)
+                .clip(CircleShape),
+        )
+        Spacer(Modifier.size(16.dp))
+        Column(Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+            Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        if (content != null) {
+            Spacer(Modifier.size(16.dp))
+            content()
+        }
     }
 }
 
