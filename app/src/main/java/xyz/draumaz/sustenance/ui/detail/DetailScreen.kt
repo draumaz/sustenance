@@ -41,7 +41,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
@@ -470,24 +469,14 @@ private fun HeaderCard(d: MetricDetail, onEditGoal: () -> Unit) {
         shape = MaterialTheme.shapes.extraLarge,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
     ) {
-        Box(Modifier.fillMaxSize()) {
+        Row(Modifier.padding(horizontal = 24.dp, vertical = 16.dp).fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
             Box(
-                Modifier
-                    .matchParentSize()
-                    .background(
-                        Brush.verticalGradient(
-                            listOf(accent.copy(alpha = 0.12f), Color.Transparent)
-                        )
-                    )
-            )
-            Row(Modifier.padding(horizontal = 24.dp, vertical = 16.dp).fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    Modifier.size(64.dp).clip(CircleShape)
-                        .background(Brush.linearGradient(listOf(accent.copy(alpha = 0.30f), accent.copy(alpha = 0.14f)))),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(d.metric.icon, null, tint = accent, modifier = Modifier.size(32.dp))
-                }
+                Modifier.size(64.dp).clip(CircleShape)
+                    .background(accent.copy(alpha = 0.15f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(d.metric.icon, null, tint = accent, modifier = Modifier.size(32.dp))
+            }
                 Spacer(Modifier.size(20.dp))
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.Center) {
                     val baseHeadlineStyle = MaterialTheme.typography.headlineLarge
@@ -546,7 +535,6 @@ private fun HeaderCard(d: MetricDetail, onEditGoal: () -> Unit) {
                         Icon(Icons.Rounded.Edit, contentDescription = editDesc, tint = accent.copy(alpha = 0.6f))
                     }
                 }
-            }
         }
     }
 }

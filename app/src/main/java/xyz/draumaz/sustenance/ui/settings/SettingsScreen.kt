@@ -213,7 +213,7 @@ fun SettingsScreen(
                         Switch(checked = dynamicColor, onCheckedChange = null)
                     }
 
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f))
 
                     SettingRow(
                         icon = Icons.Rounded.Language,
@@ -255,7 +255,7 @@ fun SettingsScreen(
                         Switch(checked = ketoMode, onCheckedChange = null)
                     }
 
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f))
 
                     val lastLogTimerEnabled by vm.lastLogTimerEnabled.collectAsState(initial = false)
                     SettingRow(
@@ -333,7 +333,7 @@ fun SettingsScreen(
                             }
                         }
 
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f))
 
                         SettingRow(
                             icon = Icons.Rounded.Notifications,
@@ -380,7 +380,7 @@ fun SettingsScreen(
                     }
 
                     if (apiKeyEnabled) {
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f))
                         val greenColor = Color(0xFF4CAF50)
 
                         val modelOutlineColors = when (geminiModelVerificationStatus) {
@@ -613,7 +613,7 @@ fun SettingsScreen(
                             Spacer(Modifier.size(8.dp))
                         }
 
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f))
 
                         val judgementalMode by vm.judgementalMode.collectAsState(initial = false)
                         SettingRow(
@@ -657,7 +657,7 @@ fun SettingsScreen(
                         }
                     )
 
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f))
 
                     SettingRow(
                         icon = Icons.AutoMirrored.Rounded.OpenInNew,
