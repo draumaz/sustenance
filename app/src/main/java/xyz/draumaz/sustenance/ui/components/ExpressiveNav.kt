@@ -217,12 +217,21 @@ fun ExpressiveNavigationBar(
     val batchCount = capturedBitmaps.size
     var isScalloped by remember { mutableStateOf(false) }
 
+    val animatedTranslationY by animateFloatAsState(
+        targetValue = if (isImeVisible) 700f else 0f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "ime_translation_y"
+    )
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .imePadding()
             .graphicsLayer {
-                translationY = if (isImeVisible) 700f else 0f 
+                translationY = animatedTranslationY
             }
             .padding(bottom = 36.dp),
         horizontalAlignment = Alignment.CenterHorizontally
