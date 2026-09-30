@@ -195,7 +195,7 @@ fun ExpressiveNavigationBar(
     onBatchInfoTextChange: (String) -> Unit = {},
     onSelectGallery: () -> Unit = {},
     onToggleTorch: () -> Unit = {},
-    @Suppress("UNUSED_PARAMETER") onCapture: () -> Unit = {},
+    onCapture: () -> Unit = {},
     onCaptureBatch: () -> Unit = {},
     onFinishBatch: () -> Unit = {},
     isHistorySelected: Boolean = false,
@@ -337,7 +337,7 @@ fun ExpressiveNavigationBar(
                                 ),
                                 icon = if (isHistorySelected) Icons.Rounded.Add else Icons.Rounded.FileUpload,
                                 isSelected = !isHistorySelected,
-                                onClick = { if (isHistorySelected) { onHistoryClick(); onLogClick() } else { onCaptureBatch(); onCaptureBatch() } },
+                                onClick = { if (isHistorySelected) { onHistoryClick(); onLogClick() } else { onCapture() } },
                                 onLongHold = onToggleTorch,
                             )
                         }

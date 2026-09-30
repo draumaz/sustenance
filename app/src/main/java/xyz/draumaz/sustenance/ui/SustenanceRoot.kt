@@ -15,6 +15,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Insights
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Today
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateIntAsState
 import androidx.compose.animation.core.spring
@@ -40,8 +43,10 @@ import androidx.compose.ui.unit.dp
 import androidx.annotation.StringRes
 import androidx.compose.ui.res.stringResource
 import androidx.core.net.toUri
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlin.math.roundToInt
 import androidx.health.connect.client.PermissionController
 import androidx.health.connect.client.permission.HealthPermission
@@ -724,52 +729,88 @@ private fun MainNav(
                         },
                     contentAlignment = Alignment.Center
                 ) {
-                    androidx.compose.animation.AnimatedVisibility(
-                        visible = !isAnalyzing,
-                        enter = fadeIn(),
-                        exit = fadeOut()
-                    ) {
-                        Box {
-                            CameraPreview(
-                                modifier = Modifier.blur(cameraBlur),
-                                isCapturing = isCapturing,
-                                isBatchMode = isBatchMode,
-                                isTorchOn = isTorchOn,
-                                onImageCaptured = { imageProxy ->
-                                    scope.launch {
-                                        val rotation = imageProxy.imageInfo.rotationDegrees
-                                        val bitmap = imageProxy.toBitmap()
-                                        imageProxy.close()
-
-                                        val rotatedBitmap = if (rotation != 0) {
-                                            val matrix = Matrix().apply { postRotate(rotation.toFloat()) }
-                                            val rotated = Bitmap.createBitmap(
-                                                bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true
-                                            )
-                                            if (rotated != bitmap) bitmap.recycle()
-                                            rotated
-                                        } else {
-                                            bitmap
+                    AnimatedContent(
+                        targetState = isAnalyzing,
+                        transitionSpec = {
+                            if (targetState) {
+                                (fadeIn(animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMediumLow)) +
+                                 scaleIn(initialScale = 0.5f, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMediumLow)))
+                                    .togetherWith(
+                                        fadeOut(animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMediumLow)) +
+                                        scaleOut(targetScale = 0.4f, animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMediumLow))
+                                    )
+                                    .using(SizeTransform(clip = false) { _, _ ->
+                                        spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMediumLow)
+                                    })
+                            } else {
+                                (fadeIn(animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow)) +
+                                 scaleIn(initialScale = 0.8f, animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow)))
+                                    .togetherWith(
+                                        fadeOut(animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow)) +
+                                        scaleOut(targetScale = 0.8f, animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow))
+                                    )
+                                    .using(SizeTransform(clip = false) { _, _ ->
+                                        spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow)
+                                    })
+                            }
+                        },
+                        label = "camera_to_analyzing"
+                    ) { analyzing ->
+                        if (analyzing) {
+                            ScallopedLoadingAnimation(
+                                size = DpSize(
+                                    200.dp,
+                                    200.dp
+                                )
+                            )
+                        } else {
+                            Box {
+                                CameraPreview(
+                                    modifier = Modifier.blur(cameraBlur),
+                                    isCapturing = isCapturing,
+                                    isBatchMode = isBatchMode,
+                                    isTorchOn = isTorchOn,
+                                    onImageCaptured = { imageProxy ->
+                                        if (!isBatchMode) {
+                                            isAnalyzing = true
                                         }
+                                        analysisJob = scope.launch(Dispatchers.Default) {
+                                            val rotation = imageProxy.imageInfo.rotationDegrees
+                                            val bitmap = imageProxy.toBitmap()
+                                            imageProxy.close()
 
-                                        if (isBatchMode) {
-                                            capturedBitmaps += rotatedBitmap
-                                            isCapturing = false
-                                        } else {
-                                            val trimmedKey = apiKey.trim()
-                                            if (trimmedKey.isBlank()) {
-                                                Toast.makeText(
-                                                    currentContext,
-                                                    R.string.api_key_invalid,
-                                                    Toast.LENGTH_LONG
-                                                ).show()
-                                                isCapturing = false
-                                                isCameraActive = false
-                                                return@launch
+                                            val rotatedBitmap = if (rotation != 0) {
+                                                val matrix = Matrix().apply { postRotate(rotation.toFloat()) }
+                                                val rotated = Bitmap.createBitmap(
+                                                    bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true
+                                                )
+                                                if (rotated != bitmap) bitmap.recycle()
+                                                rotated
+                                            } else {
+                                                bitmap
                                             }
 
-                                            isAnalyzing = true
-                                            analysisJob = scope.launch {
+                                            if (isBatchMode) {
+                                                withContext(Dispatchers.Main) {
+                                                    capturedBitmaps += rotatedBitmap
+                                                    isCapturing = false
+                                                }
+                                            } else {
+                                                val trimmedKey = apiKey.trim()
+                                                if (trimmedKey.isBlank()) {
+                                                    withContext(Dispatchers.Main) {
+                                                        Toast.makeText(
+                                                            currentContext,
+                                                            R.string.api_key_invalid,
+                                                            Toast.LENGTH_LONG
+                                                        ).show()
+                                                        isCapturing = false
+                                                        isAnalyzing = false
+                                                        isCameraActive = false
+                                                    }
+                                                    return@launch
+                                                }
+
                                                 val effectiveModel = if (geminiModel.isNotBlank()) {
                                                     val trimmed = geminiModel.trim()
                                                     if (trimmed.startsWith("gemini-")) trimmed else "gemini-$trimmed"
@@ -780,53 +821,42 @@ private fun MainNav(
                                                     rotatedBitmap,
                                                     batchInfoText
                                                 )
-                                                isAnalyzing = false
-                                                analysisJob = null
+                                                withContext(Dispatchers.Main) {
+                                                    isAnalyzing = false
+                                                    analysisJob = null
 
-                                                if (result.isSuccess) {
-                                                    result.getOrNull()?.let { onAnalysisSuccess(it) }
-                                                } else {
-                                                    val rawError = result.exceptionOrNull()?.localizedMessage ?: result.exceptionOrNull()?.message ?: ""
-                                                    val toastMsg = if (rawError.isBlank() || rawError.contains("Unexpected Response", ignoreCase = true) || rawError.contains("No response", ignoreCase = true)) {
-                                                        appContext.getString(R.string.no_response_from_gemini)
+                                                    if (result.isSuccess) {
+                                                        result.getOrNull()?.let { onAnalysisSuccess(it) }
                                                     } else {
-                                                        appContext.getString(R.string.analysis_failed, rawError)
+                                                        val rawError = result.exceptionOrNull()?.localizedMessage ?: result.exceptionOrNull()?.message ?: ""
+                                                        val toastMsg = if (rawError.isBlank() || rawError.contains("Unexpected Response", ignoreCase = true) || rawError.contains("No response", ignoreCase = true)) {
+                                                            appContext.getString(R.string.no_response_from_gemini)
+                                                        } else {
+                                                            appContext.getString(R.string.analysis_failed, rawError)
+                                                        }
+                                                        Toast.makeText(
+                                                            currentContext,
+                                                            toastMsg,
+                                                            Toast.LENGTH_LONG
+                                                        ).show()
+                                                        isCapturing = false
                                                     }
-                                                    Toast.makeText(
-                                                        currentContext,
-                                                        toastMsg,
-                                                        Toast.LENGTH_LONG
-                                                    ).show()
-                                                    isCapturing = false
                                                 }
                                             }
                                         }
                                     }
-                                }
-                            )
-                            if (cameraBlur > 0.dp) {
-                                Box(
-                                    Modifier
-                                        .matchParentSize()
-                                        .pointerInput(Unit) {
-                                            detectTapGestures { /* Block interactions */ }
-                                        }
                                 )
+                                if (cameraBlur > 0.dp) {
+                                    Box(
+                                        Modifier
+                                            .matchParentSize()
+                                            .pointerInput(Unit) {
+                                                detectTapGestures { /* Block interactions */ }
+                                            }
+                                    )
+                                }
                             }
                         }
-                    }
-
-                    androidx.compose.animation.AnimatedVisibility(
-                        visible = isAnalyzing,
-                        enter = fadeIn() + scaleIn(initialScale = 0.8f),
-                        exit = fadeOut() + scaleOut(targetScale = 0.8f)
-                    ) {
-                        ScallopedLoadingAnimation(
-                            size = androidx.compose.ui.unit.DpSize(
-                                200.dp,
-                                200.dp
-                            )
-                        )
                     }
                 }
             }

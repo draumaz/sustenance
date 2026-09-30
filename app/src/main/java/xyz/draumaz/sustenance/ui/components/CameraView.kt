@@ -10,8 +10,10 @@ import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
@@ -23,9 +25,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
@@ -34,6 +34,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import kotlinx.coroutines.launch
 
 @Composable
 fun CameraPreview(
@@ -54,7 +55,9 @@ fun CameraPreview(
     val previewView = remember { PreviewView(context) }
     var frozenBitmap by remember { mutableStateOf<Bitmap?>(null) }
     var camera by remember { mutableStateOf<androidx.camera.core.Camera?>(null) }
-    val shutterProgress = remember { Animatable(0f) }
+
+    val chompScaleX = remember { Animatable(1f) }
+    val chompScaleY = remember { Animatable(1f) }
 
     DisposableEffect(Unit) {
         onDispose {
@@ -72,7 +75,6 @@ fun CameraPreview(
 
     LaunchedEffect(isCapturing) {
         if (isCapturing) {
-            shutterProgress.animateTo(1f, tween(500))
             frozenBitmap = previewView.bitmap
             imageCapture.takePicture(
                 ContextCompat.getMainExecutor(context),
@@ -86,10 +88,33 @@ fun CameraPreview(
                     }
                 }
             )
-        } else {
-            if (isBatchMode) {
-                shutterProgress.animateTo(0f, tween(500))
+
+            // Playful M3 Expressive "Chomp" squash & stretch animation
+            launch {
+                launch {
+                    chompScaleY.animateTo(0.70f, tween(110, easing = FastOutLinearInEasing))
+                    chompScaleY.animateTo(
+                        1f,
+                        spring(
+                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            stiffness = Spring.StiffnessMedium
+                        )
+                    )
+                }
+                launch {
+                    chompScaleX.animateTo(1.08f, tween(110, easing = FastOutLinearInEasing))
+                    chompScaleX.animateTo(
+                        1f,
+                        spring(
+                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            stiffness = Spring.StiffnessMedium
+                        )
+                    )
+                }
             }
+        } else {
+            chompScaleX.snapTo(1f)
+            chompScaleY.snapTo(1f)
             frozenBitmap = null
         }
     }
@@ -99,6 +124,10 @@ fun CameraPreview(
             modifier = Modifier
                 .fillMaxWidth(0.9f)
                 .aspectRatio(3f / 4f)
+                .graphicsLayer {
+                    scaleX = chompScaleX.value
+                    scaleY = chompScaleY.value
+                }
                 .clip(RoundedCornerShape(28.dp))
                 .border(1.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(28.dp))
         ) {
@@ -141,22 +170,6 @@ fun CameraPreview(
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Fit
                 )
-            }
-
-            if (shutterProgress.value > 0f) {
-                Canvas(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .graphicsLayer(compositingStrategy = CompositingStrategy.Offscreen)
-                ) {
-                    drawRect(Color.Black)
-                    drawCircle(
-                        color = Color.Transparent,
-                        radius = (size.maxDimension) * (1f - shutterProgress.value),
-                        center = center,
-                        blendMode = BlendMode.Clear
-                    )
-                }
             }
         }
     }
