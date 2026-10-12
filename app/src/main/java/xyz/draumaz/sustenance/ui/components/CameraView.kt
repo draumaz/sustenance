@@ -7,6 +7,7 @@ import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
+import androidx.camera.core.ZoomState
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.animation.core.Animatable
@@ -16,6 +17,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -28,12 +30,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Observer
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlinx.coroutines.launch
 
 @Composable
@@ -56,6 +60,11 @@ fun CameraPreview(
     var frozenBitmap by remember { mutableStateOf<Bitmap?>(null) }
     var camera by remember { mutableStateOf<androidx.camera.core.Camera?>(null) }
 
+    var currentZoomRatio by remember { mutableFloatStateOf(1f) }
+    var minZoomRatio by remember { mutableFloatStateOf(1f) }
+    var maxZoomRatio by remember { mutableFloatStateOf(1f) }
+    var accumulatedZoom by remember { mutableFloatStateOf(1f) }
+
     val chompScaleX = remember { Animatable(1f) }
     val chompScaleY = remember { Animatable(1f) }
 
@@ -67,6 +76,23 @@ fun CameraPreview(
                 // Ignore errors on release
             }
         }
+    }
+
+    DisposableEffect(camera) {
+        val cameraInfo = camera?.cameraInfo ?: return@DisposableEffect onDispose {}
+        val observer = Observer<ZoomState> { state ->
+            currentZoomRatio = state.zoomRatio
+            minZoomRatio = state.minZoomRatio
+            maxZoomRatio = state.maxZoomRatio
+        }
+        cameraInfo.zoomState.observe(lifecycleOwner, observer)
+        onDispose {
+            cameraInfo.zoomState.removeObserver(observer)
+        }
+    }
+
+    LaunchedEffect(currentZoomRatio) {
+        accumulatedZoom = currentZoomRatio
     }
 
     LaunchedEffect(isTorchOn) {
@@ -130,6 +156,15 @@ fun CameraPreview(
                 }
                 .clip(RoundedCornerShape(28.dp))
                 .border(1.dp, Color.White.copy(alpha = 0.2f), RoundedCornerShape(28.dp))
+                .pointerInput(camera, minZoomRatio, maxZoomRatio) {
+                    detectTransformGestures { _, _, zoomFactor, _ ->
+                        if (camera != null && maxZoomRatio > minZoomRatio) {
+                            val targetZoom = (accumulatedZoom * zoomFactor).coerceIn(minZoomRatio, maxZoomRatio)
+                            accumulatedZoom = targetZoom
+                            camera?.cameraControl?.setZoomRatio(targetZoom)
+                        }
+                    }
+                }
         ) {
             AndroidView(
                 factory = { _ ->
