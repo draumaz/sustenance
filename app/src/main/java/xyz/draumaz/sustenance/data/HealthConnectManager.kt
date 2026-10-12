@@ -208,9 +208,12 @@ class HealthConnectManager(internal val context: Context) {
                         val sign = if (today > 0) "-" else if (today < 0) "+" else ""
                         val formatted = "$sign${metric.formatValue(absToday)}$unit"
                         if (goal != null && goal > 0) {
-                            val diff = absToday - goal
-                            val absDiff = if (diff < 0) -diff else diff
-                            val label = context.getString(if (diff >= 0) R.string.over else R.string.left)
+                            val diff = goal - today
+                            val (absDiff, label) = if (diff > 0) {
+                                diff to context.getString(R.string.left)
+                            } else {
+                                -diff to context.getString(R.string.over)
+                            }
                             "$formatted (${metric.formatValue(absDiff)} $label)"
                         } else formatted
                     }
@@ -426,8 +429,8 @@ class HealthConnectManager(internal val context: Context) {
                         caption = null
                     }
                     metric == Metric.CALORIC_BALANCE && goal != null && goal > 0 -> {
-                        val absVal = if (points.last().value < 0) -points.last().value else points.last().value
-                        val diff = goal - absVal
+                        val today = points.last().value
+                        val diff = goal - today
                         headline = when {
                             diff > 0 -> context.getString(R.string.to_goal, "${metric.formatValue(diff)}$unit")
                             diff < 0 -> context.getString(R.string.over_goal, "${metric.formatValue(-diff)}$unit")

@@ -12,7 +12,7 @@ data class WeeklyStat(
     /** 0f..1f progress of today toward the goal. */
     val progress: Float get() {
         if (goal <= 0f) return 0f
-        val current = if (metric == Metric.CALORIC_BALANCE) kotlin.math.abs(todayValue) else todayValue
+        val current = if (metric == Metric.CALORIC_BALANCE) todayValue.coerceAtLeast(0f) else todayValue
         return (current / goal).coerceIn(0f, 1f)
     }
 

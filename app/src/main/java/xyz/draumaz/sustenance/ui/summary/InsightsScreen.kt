@@ -204,7 +204,7 @@ fun InsightsScreen(
 
 @Composable
 private fun InsightCard(stat: WeeklyStat, onEdit: () -> Unit, editEnabled: Boolean = true) {
-    val currentVal = if (stat.metric == Metric.CALORIC_BALANCE) kotlin.math.abs(stat.todayValue) else stat.todayValue
+    val currentVal = if (stat.metric == Metric.CALORIC_BALANCE) stat.todayValue.coerceAtLeast(0f) else stat.todayValue
     val isOver = stat.goal > 0 && currentVal > stat.goal
     val progress = stat.progress
     

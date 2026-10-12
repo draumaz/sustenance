@@ -64,7 +64,7 @@ class InsightsViewModel(
                     }
                 }
 
-                val currentVal = if (metric == Metric.CALORIC_BALANCE) kotlin.math.abs(today) else today
+                val currentVal = if (metric == Metric.CALORIC_BALANCE) today.coerceAtLeast(0f) else today
                 val insight = when {
                     goal <= 0f -> null
                     currentVal > goal -> {
