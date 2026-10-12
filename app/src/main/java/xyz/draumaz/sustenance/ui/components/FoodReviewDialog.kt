@@ -81,6 +81,7 @@ fun FoodReviewDialog(
     onDismiss: () -> Unit,
     onLog: (FoodNutrients, Double, Instant) -> Unit,
     judgementalMode: Boolean = false,
+    gramIncrementEnabled: Boolean = false,
     gramIncrement: Int = 1,
     currentTotals: Map<Metric, Float> = emptyMap(),
     goals: Map<Metric, Float> = emptyMap(),
@@ -300,9 +301,10 @@ fun FoodReviewDialog(
                                     .repeatingClickable(
                                         interactionSource = minusInteractionSource,
                                         onAdjust = { multiplier ->
-                                            if (currentGrams > 1.0) {
+                                            if (currentGrams > 0.0) {
                                                 view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                                                val next = (currentGrams - (gramIncrement * multiplier)).coerceAtLeast(1.0)
+                                                val step = if (gramIncrementEnabled) (gramIncrement * multiplier).toDouble() else (baseGrams * multiplier)
+                                                val next = (currentGrams - step).coerceAtLeast(0.0)
                                                 scaleNutrients(next)
                                                 currentGrams = next
                                             }
@@ -354,7 +356,8 @@ fun FoodReviewDialog(
                                         interactionSource = plusInteractionSource,
                                         onAdjust = { multiplier ->
                                             view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                                            val next = currentGrams + (gramIncrement * multiplier)
+                                            val step = if (gramIncrementEnabled) (gramIncrement * multiplier).toDouble() else (baseGrams * multiplier)
+                                            val next = currentGrams + step
                                             scaleNutrients(next)
                                             currentGrams = next
                                         }

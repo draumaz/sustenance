@@ -32,6 +32,7 @@ import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Psychology
+import androidx.compose.material.icons.rounded.Scale
 import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material.icons.rounded.Whatshot
@@ -585,32 +586,43 @@ fun SettingsScreen(
                             Spacer(Modifier.size(8.dp))
                         }
 
+                        val gramIncrementEnabled by vm.gramIncrementEnabled.collectAsState(initial = false)
                         val gramIncrement by vm.gramIncrement.collectAsState(initial = 1)
                         var tempIncrement by remember(gramIncrement) { mutableStateOf(gramIncrement.toString()) }
 
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                        SettingRow(
+                            icon = Icons.Rounded.Scale,
+                            title = stringResource(R.string.gram_increment),
+                            subtitle = stringResource(R.string.gram_increment_summary),
+                            onClick = { vm.setGramIncrementEnabled(!gramIncrementEnabled) }
                         ) {
-                            OutlinedTextField(
-                                value = tempIncrement,
-                                onValueChange = { newValue ->
-                                    if (newValue.isEmpty() || newValue.all { it.isDigit() }) {
-                                        tempIncrement = newValue
-                                        newValue.toIntOrNull()?.takeIf { it > 0 }?.let { vm.setGramIncrement(it) }
-                                    }
-                                },
-                                modifier = Modifier.weight(1f),
-                                singleLine = true,
-                                label = { Text(stringResource(R.string.gram_increment)) },
-                                placeholder = { Text("1") },
-                                suffix = { Text(stringResource(R.string.unit_g)) },
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                supportingText = { Text(stringResource(R.string.gram_increment_summary)) }
-                            )
-                            Spacer(Modifier.size(8.dp))
+                            Switch(checked = gramIncrementEnabled, onCheckedChange = null)
+                        }
+
+                        if (gramIncrementEnabled) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                OutlinedTextField(
+                                    value = tempIncrement,
+                                    onValueChange = { newValue ->
+                                        if (newValue.isEmpty() || newValue.all { it.isDigit() }) {
+                                            tempIncrement = newValue
+                                            newValue.toIntOrNull()?.takeIf { it > 0 }?.let { vm.setGramIncrement(it) }
+                                        }
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    singleLine = true,
+                                    label = { Text(stringResource(R.string.gram_increment_amount)) },
+                                    placeholder = { Text("1") },
+                                    suffix = { Text(stringResource(R.string.unit_g)) },
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                                )
+                                Spacer(Modifier.size(8.dp))
+                            }
                         }
 
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f))

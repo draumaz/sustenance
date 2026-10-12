@@ -84,6 +84,7 @@
     <string name="keto_mode_summary">Display Net Carbs (Carbs - Fiber)</string>
     <string name="gram_increment">Gram increment</string>
     <string name="gram_increment_summary">Amount changed by plus/minus buttons in food review</string>
+    <string name="gram_increment_amount">Gram increment amount</string>
     <string name="judgemental_mode">Judgemental Mode</string>
     <string name="judgemental_mode_summary">Get immediate feedback on logged items relative to your goals</string>
     <string name="show_last_log_timer">Show last log timer</string>

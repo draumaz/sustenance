@@ -305,6 +305,7 @@ private fun MainNav(
 
     val goals by goalsRepo.goals.collectAsState(initial = emptyMap())
     val judgementalMode by settingsRepo.judgementalMode.collectAsState(initial = false)
+    val gramIncrementEnabled by settingsRepo.gramIncrementEnabled.collectAsState(initial = false)
     val gramIncrement by settingsRepo.gramIncrement.collectAsState(initial = 1)
     val ketoMode by settingsRepo.ketoMode.collectAsState(initial = false)
     val currentTotals by produceState(initialValue = emptyMap<Metric, Float>(), goals, ketoMode, manager) {
@@ -886,6 +887,7 @@ private fun MainNav(
                     nutrients = nutrients,
                     onDismiss = { pendingNutrients = null },
                     judgementalMode = judgementalMode,
+                    gramIncrementEnabled = gramIncrementEnabled,
                     gramIncrement = gramIncrement,
                     currentTotals = currentTotals,
                     goals = goals,

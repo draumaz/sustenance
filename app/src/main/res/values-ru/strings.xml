@@ -84,6 +84,7 @@
     <string name="keto_mode_summary">Показывать чистые углеводы (Углеводы - Клетчатка)</string>
     <string name="gram_increment">Шаг изменения в граммах</string>
     <string name="gram_increment_summary">Величина изменения кнопками +/- при просмотре еды</string>
+    <string name="gram_increment_amount">Величина шага в граммах</string>
     <string name="judgemental_mode">Осуждающий режим</string>
     <string name="judgemental_mode_summary">Получайте мгновенную обратную связь по записанным продуктам относительно ваших целей</string>
     <string name="show_last_log_timer">Показывать таймер последнего приема пищи</string>
