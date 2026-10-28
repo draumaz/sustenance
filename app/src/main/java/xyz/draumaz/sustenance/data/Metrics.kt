@@ -31,8 +31,8 @@ enum class MetricKind {
  */
 enum class Metric(
     val key: String,
-    @StringRes val titleRes: Int,
-    @StringRes val unitRes: Int,
+    @param:StringRes val titleRes: Int,
+    @param:StringRes val unitRes: Int,
     val kind: MetricKind,
     val accent: Color,
     val icon: ImageVector,

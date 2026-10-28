@@ -50,13 +50,6 @@ val GoogleSansFlexFontFamily = FontFamily(
 )
 
 @OptIn(ExperimentalTextApi::class)
-val GoogleSansFlexVariationSettings = FontVariation.Settings(
-    FontVariation.weight(400),
-    FontVariation.width(100f),
-    FontVariation.slant(0f),
-    FontVariation.Setting("ROND", 0f),
-)
-
 // Fallback palette (teal "vitals" brand) used on devices without Material You dynamic color.
 private val BrandDark = darkColorScheme(
     primary = Color(0xFF5EDDC4),

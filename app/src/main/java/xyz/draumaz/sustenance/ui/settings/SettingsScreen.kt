@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -23,12 +24,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.OpenInNew
 import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.HealthAndSafety
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Key
 import androidx.compose.material.icons.rounded.Language
-import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Psychology
@@ -39,14 +38,12 @@ import androidx.compose.material.icons.rounded.Whatshot
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Checkbox
 import android.widget.Toast
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -59,7 +56,6 @@ import xyz.draumaz.sustenance.util.GeminiManager
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -76,7 +72,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.LinkAnnotation
@@ -94,14 +89,15 @@ import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.annotation.StringRes
 import xyz.draumaz.sustenance.R
+import xyz.draumaz.sustenance.data.VerificationStatus
 import xyz.draumaz.sustenance.BuildConfig
 import xyz.draumaz.sustenance.data.ExportFormat
 import xyz.draumaz.sustenance.data.ExportManager
 import xyz.draumaz.sustenance.data.HealthConnectManager
 import xyz.draumaz.sustenance.data.Metric
 import xyz.draumaz.sustenance.data.SettingsRepository
-import xyz.draumaz.sustenance.ui.components.PredictiveBackState
 import xyz.draumaz.sustenance.ui.SettingsViewModel
 import kotlinx.coroutines.launch
 import androidx.core.net.toUri
@@ -124,7 +120,7 @@ fun SettingsScreen(
     val context = LocalContext.current
     val appContext = context.applicationContext as xyz.draumaz.sustenance.SustenanceApp
     val scope = rememberCoroutineScope()
-    val vm: SettingsViewModel = viewModel(factory = SettingsViewModel.factory(appContext, settingsRepo))
+    val vm: SettingsViewModel = viewModel(factory = SettingsViewModel.factory(settingsRepo))
     val dynamicColor by vm.dynamicColor.collectAsState(initial = true)
 
     val snackbar = remember { SnackbarHostState() }
@@ -145,7 +141,7 @@ fun SettingsScreen(
             snackbar.showSnackbar(appContext.getString(R.string.export_no_data)); return
         }
         exporter.export(uri, metrics, format).fold(
-            onSuccess = { count -> snackbar.showSnackbar(appContext.getString(R.string.export_success, count, format.label)) },
+            onSuccess = { count -> snackbar.showSnackbar(appContext.resources.getQuantityString(R.plurals.export_success, count, count, format.label)) },
             onFailure = { snackbar.showSnackbar(appContext.getString(R.string.export_failed, it.message)) },
         )
     }
@@ -186,13 +182,14 @@ fun SettingsScreen(
                 )
             )
         },
-        //topBar = { LargeTopAppBar(title = { Text("Settings") }, scrollBehavior = scrollBehavior) },
         snackbarHost = { SnackbarHost(snackbar) },
     ) { inner ->
         LazyColumn(
             state = listState,
             modifier = Modifier
                 .fillMaxSize()
+                // Shrink above the keyboard so focused fields can scroll into view (adjustResize).
+                .imePadding()
                 .nestedScroll(scrollBehavior.nestedScrollConnection),
             contentPadding = PaddingValues(
                 start = 16.dp,
@@ -363,13 +360,42 @@ fun SettingsScreen(
                     val apiKeyEnabled by vm.apiKeyEnabled.collectAsState(initial = false)
                     val apiKey by vm.apiKey.collectAsState(initial = "")
                     var tempApiKey by remember(apiKey) { mutableStateOf(apiKey) }
-                    val apiKeyVerificationStatus by vm.apiKeyVerificationStatus.collectAsState(initial = "idle")
+                    val apiKeyVerificationStatus by vm.apiKeyVerificationStatus.collectAsState(initial = VerificationStatus.IDLE)
                     var isApiKeyVerifying by remember { mutableStateOf(false) }
 
-                    val geminiModel by vm.geminiModel.collectAsState(initial = "3.5-flash-lite")
+                    val geminiModel by vm.geminiModel.collectAsState(initial = GeminiManager.DEFAULT_MODEL)
                     var tempGeminiModel by remember(geminiModel) { mutableStateOf(geminiModel.removePrefix("gemini-")) }
-                    val geminiModelVerificationStatus by vm.geminiModelVerificationStatus.collectAsState(initial = "idle")
+                    val geminiModelVerificationStatus by vm.geminiModelVerificationStatus.collectAsState(initial = VerificationStatus.IDLE)
                     var isModelVerifying by remember { mutableStateOf(false) }
+
+                    // Both verify buttons make the same test call with the current key + model;
+                    // they differ only in which status they update and the failure message.
+                    fun verifyGemini(
+                        @StringRes failureMessage: Int,
+                        setStatus: (VerificationStatus) -> Unit,
+                        setVerifying: (Boolean) -> Unit,
+                    ) {
+                        val key = tempApiKey.trim()
+                        if (key.isBlank()) {
+                            Toast.makeText(context, R.string.api_key_missing, Toast.LENGTH_SHORT).show()
+                            setStatus(VerificationStatus.ERROR)
+                            return
+                        }
+                        setVerifying(true)
+                        scope.launch {
+                            val result = GeminiManager(key, GeminiManager.modelName(tempGeminiModel)).verifyModel()
+                            setVerifying(false)
+                            if (result.isSuccess) {
+                                setStatus(VerificationStatus.SUCCESS)
+                            } else {
+                                setStatus(VerificationStatus.ERROR)
+                                val base = appContext.getString(failureMessage)
+                                val details = result.exceptionOrNull()?.localizedMessage
+                                val msg = if (details.isNullOrBlank()) base else "$base ($details)"
+                                Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+                            }
+                        }
+                    }
 
                     SettingRow(
                         icon = Icons.Rounded.Key,
@@ -382,20 +408,6 @@ fun SettingsScreen(
 
                     if (apiKeyEnabled) {
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f))
-                        val greenColor = Color(0xFF4CAF50)
-
-                        val modelOutlineColors = when (geminiModelVerificationStatus) {
-                            "success" -> OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = greenColor,
-                                unfocusedBorderColor = greenColor
-                            )
-                            "error" -> OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = MaterialTheme.colorScheme.error,
-                                unfocusedBorderColor = MaterialTheme.colorScheme.error
-                            )
-                            else -> OutlinedTextFieldDefaults.colors()
-                        }
-
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -408,88 +420,31 @@ fun SettingsScreen(
                                     val cleaned = if (newValue.startsWith("gemini-")) newValue.removePrefix("gemini-") else newValue
                                     tempGeminiModel = cleaned
                                     vm.setGeminiModel(cleaned)
-                                    if (geminiModelVerificationStatus != "idle") {
-                                        vm.setGeminiModelVerificationStatus("idle")
+                                    if (geminiModelVerificationStatus != VerificationStatus.IDLE) {
+                                        vm.setGeminiModelVerificationStatus(VerificationStatus.IDLE)
                                     }
                                 },
                                 modifier = Modifier.weight(1f),
                                 prefix = { Text("gemini-") },
-                                placeholder = { Text("3.5-flash-lite", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)) },
+                                placeholder = { Text(GeminiManager.DEFAULT_MODEL, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)) },
                                 singleLine = true,
                                 label = { Text(stringResource(R.string.gemini_model)) },
-                                colors = modelOutlineColors,
+                                colors = verificationFieldColors(geminiModelVerificationStatus),
                                 trailingIcon = {
-                                    if (isModelVerifying) {
-                                        CircularProgressIndicator(
-                                            modifier = Modifier.size(24.dp),
-                                            strokeWidth = 2.dp
-                                        )
-                                    } else {
-                                        val (bgColor, contentColor) = when (geminiModelVerificationStatus) {
-                                            "success" -> greenColor.copy(alpha = 0.15f) to greenColor
-                                            "error" -> MaterialTheme.colorScheme.error.copy(alpha = 0.15f) to MaterialTheme.colorScheme.error
-                                            else -> MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) to MaterialTheme.colorScheme.primary
-                                        }
-                                        IconButton(
-                                            onClick = {
-                                                val keyToUse = tempApiKey.trim()
-                                                if (keyToUse.isBlank()) {
-                                                    Toast.makeText(context, R.string.api_key_missing, Toast.LENGTH_SHORT).show()
-                                                    vm.setGeminiModelVerificationStatus("error")
-                                                    return@IconButton
-                                                }
-                                                val modelToTest = if (tempGeminiModel.isBlank()) {
-                                                    "gemini-3.5-flash-lite"
-                                                } else {
-                                                    val trimmed = tempGeminiModel.trim()
-                                                    if (trimmed.startsWith("gemini-")) trimmed else "gemini-$trimmed"
-                                                }
-                                                isModelVerifying = true
-                                                scope.launch {
-                                                    val result = GeminiManager(keyToUse, modelToTest).verifyModel()
-                                                    isModelVerifying = false
-                                                    if (result.isSuccess) {
-                                                        vm.setGeminiModelVerificationStatus("success")
-                                                    } else {
-                                                        vm.setGeminiModelVerificationStatus("error")
-                                                        val errorDetails = result.exceptionOrNull()?.localizedMessage
-                                                        val msg = if (!errorDetails.isNullOrBlank()) {
-                                                            "${appContext.getString(R.string.invalid_model_name)} ($errorDetails)"
-                                                        } else {
-                                                            appContext.getString(R.string.invalid_model_name)
-                                                        }
-                                                        Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
-                                                    }
-                                                }
-                                            }
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Rounded.Check,
-                                                contentDescription = stringResource(R.string.verify_model),
-                                                tint = contentColor,
-                                                modifier = Modifier
-                                                    .size(30.dp)
-                                                    .clip(CircleShape)
-                                                    .background(bgColor)
-                                                    .padding(6.dp)
-                                            )
-                                        }
-                                    }
+                                    VerifyButton(
+                                        status = geminiModelVerificationStatus,
+                                        isVerifying = isModelVerifying,
+                                        contentDescription = stringResource(R.string.verify_model),
+                                        onClick = {
+                                            verifyGemini(
+                                                R.string.invalid_model_name,
+                                                vm::setGeminiModelVerificationStatus,
+                                            ) { isModelVerifying = it }
+                                        },
+                                    )
                                 }
                             )
                             Spacer(Modifier.size(8.dp))
-                        }
-
-                        val apiKeyOutlineColors = when (apiKeyVerificationStatus) {
-                            "success" -> OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = greenColor,
-                                unfocusedBorderColor = greenColor
-                            )
-                            "error" -> OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = MaterialTheme.colorScheme.error,
-                                unfocusedBorderColor = MaterialTheme.colorScheme.error
-                            )
-                            else -> OutlinedTextFieldDefaults.colors()
                         }
 
                         Row(
@@ -504,8 +459,8 @@ fun SettingsScreen(
                                 onValueChange = {
                                     tempApiKey = it
                                     vm.setApiKey(it)
-                                    if (apiKeyVerificationStatus != "idle") {
-                                        vm.setApiKeyVerificationStatus("idle")
+                                    if (apiKeyVerificationStatus != VerificationStatus.IDLE) {
+                                        vm.setApiKeyVerificationStatus(VerificationStatus.IDLE)
                                     }
                                 },
                                 modifier = Modifier.weight(1f),
@@ -513,7 +468,7 @@ fun SettingsScreen(
                                 singleLine = true,
                                 label = { Text(stringResource(R.string.api_key)) },
                                 visualTransformation = if (apiKeyVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                                colors = apiKeyOutlineColors,
+                                colors = verificationFieldColors(apiKeyVerificationStatus),
                                 trailingIcon = {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         IconButton(onClick = { apiKeyVisible = !apiKeyVisible }) {
@@ -522,64 +477,17 @@ fun SettingsScreen(
                                                 contentDescription = if (apiKeyVisible) stringResource(R.string.hide_api_key) else stringResource(R.string.show_api_key)
                                             )
                                         }
-                                        if (isApiKeyVerifying) {
-                                            CircularProgressIndicator(
-                                                modifier = Modifier
-                                                    .size(24.dp)
-                                                    .padding(end = 4.dp),
-                                                strokeWidth = 2.dp
-                                            )
-                                        } else {
-                                            val (bgColor, contentColor) = when (apiKeyVerificationStatus) {
-                                                "success" -> greenColor.copy(alpha = 0.15f) to greenColor
-                                                "error" -> MaterialTheme.colorScheme.error.copy(alpha = 0.15f) to MaterialTheme.colorScheme.error
-                                                else -> MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) to MaterialTheme.colorScheme.primary
-                                            }
-                                            IconButton(
-                                                onClick = {
-                                                    val keyToUse = tempApiKey.trim()
-                                                    if (keyToUse.isBlank()) {
-                                                        Toast.makeText(context, R.string.api_key_missing, Toast.LENGTH_SHORT).show()
-                                                        vm.setApiKeyVerificationStatus("error")
-                                                        return@IconButton
-                                                    }
-                                                    val modelToTest = if (tempGeminiModel.isBlank()) {
-                                                        "gemini-3.5-flash-lite"
-                                                    } else {
-                                                        val trimmed = tempGeminiModel.trim()
-                                                        if (trimmed.startsWith("gemini-")) trimmed else "gemini-$trimmed"
-                                                    }
-                                                    isApiKeyVerifying = true
-                                                    scope.launch {
-                                                        val result = GeminiManager(keyToUse, modelToTest).verifyModel()
-                                                        isApiKeyVerifying = false
-                                                        if (result.isSuccess) {
-                                                            vm.setApiKeyVerificationStatus("success")
-                                                        } else {
-                                                            vm.setApiKeyVerificationStatus("error")
-                                                            val errorDetails = result.exceptionOrNull()?.localizedMessage
-                                                            val msg = if (!errorDetails.isNullOrBlank()) {
-                                                                "${appContext.getString(R.string.api_key_invalid)} ($errorDetails)"
-                                                            } else {
-                                                                appContext.getString(R.string.api_key_invalid)
-                                                            }
-                                                            Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
-                                                        }
-                                                    }
-                                                }
-                                            ) {
-                                                Icon(
-                                                    imageVector = Icons.Rounded.Check,
-                                                    contentDescription = stringResource(R.string.verify_api_key),
-                                                    tint = contentColor,
-                                                    modifier = Modifier
-                                                        .size(30.dp)
-                                                        .clip(CircleShape)
-                                                        .background(bgColor)
-                                                        .padding(6.dp)
-                                                )
-                                            }
-                                        }
+                                        VerifyButton(
+                                            status = apiKeyVerificationStatus,
+                                            isVerifying = isApiKeyVerifying,
+                                            contentDescription = stringResource(R.string.verify_api_key),
+                                            onClick = {
+                                                verifyGemini(
+                                                    R.string.api_key_invalid,
+                                                    vm::setApiKeyVerificationStatus,
+                                                ) { isApiKeyVerifying = it }
+                                            },
+                                        )
                                     }
                                 }
                             )
@@ -811,5 +719,52 @@ private fun SettingRow(
             Spacer(Modifier.size(16.dp))
             content()
         }
+    }
+}
+
+/** Green used to mark a verified API key / model. */
+private val VerifiedColor = Color(0xFF4CAF50)
+
+@Composable
+private fun verificationFieldColors(status: VerificationStatus) = when (status) {
+    VerificationStatus.SUCCESS -> OutlinedTextFieldDefaults.colors(
+        focusedBorderColor = VerifiedColor,
+        unfocusedBorderColor = VerifiedColor,
+    )
+    VerificationStatus.ERROR -> OutlinedTextFieldDefaults.colors(
+        focusedBorderColor = MaterialTheme.colorScheme.error,
+        unfocusedBorderColor = MaterialTheme.colorScheme.error,
+    )
+    VerificationStatus.IDLE -> OutlinedTextFieldDefaults.colors()
+}
+
+/** Check-mark button at the end of a text field, tinted by the last verification result. */
+@Composable
+private fun VerifyButton(
+    status: VerificationStatus,
+    isVerifying: Boolean,
+    contentDescription: String,
+    onClick: () -> Unit,
+) {
+    if (isVerifying) {
+        CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+        return
+    }
+    val (bgColor, contentColor) = when (status) {
+        VerificationStatus.SUCCESS -> VerifiedColor.copy(alpha = 0.15f) to VerifiedColor
+        VerificationStatus.ERROR -> MaterialTheme.colorScheme.error.copy(alpha = 0.15f) to MaterialTheme.colorScheme.error
+        VerificationStatus.IDLE -> MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) to MaterialTheme.colorScheme.primary
+    }
+    IconButton(onClick = onClick) {
+        Icon(
+            imageVector = Icons.Rounded.Check,
+            contentDescription = contentDescription,
+            tint = contentColor,
+            modifier = Modifier
+                .size(30.dp)
+                .clip(CircleShape)
+                .background(bgColor)
+                .padding(6.dp)
+        )
     }
 }

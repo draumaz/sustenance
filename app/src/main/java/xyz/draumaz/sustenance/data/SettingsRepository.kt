@@ -1,15 +1,55 @@
 package xyz.draumaz.sustenance.data
 
 import android.content.Context
+import androidx.datastore.core.DataMigration
+import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
+import xyz.draumaz.sustenance.util.GeminiManager
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 private val Context.settingsDataStore by preferencesDataStore(name = "sustenance_settings")
+
+/** Result of the last "verify" tap in Settings. Stored as its lowercase name. */
+enum class VerificationStatus {
+    IDLE, SUCCESS, ERROR;
+
+    companion object {
+        fun fromStored(value: String?): VerificationStatus =
+            entries.firstOrNull { it.name.equals(value, ignoreCase = true) } ?: IDLE
+    }
+}
+
+private val apiKeyKey = stringPreferencesKey("api_key")
+
+// The Gemini API key lives in its own file so it can be excluded from backups (see
+// res/xml/data_extraction_rules.xml). Older installs kept it in sustenance_settings; move it over.
+private val Context.secretsDataStore by preferencesDataStore(
+    name = "sustenance_secrets",
+    produceMigrations = { context ->
+        listOf(object : DataMigration<Preferences> {
+            override suspend fun shouldMigrate(currentData: Preferences) =
+                currentData[apiKeyKey] == null &&
+                    context.settingsDataStore.data.first()[apiKeyKey] != null
+
+            override suspend fun migrate(currentData: Preferences): Preferences {
+                val legacyKey = context.settingsDataStore.data.first()[apiKeyKey]
+                return currentData.toMutablePreferences().apply {
+                    if (legacyKey != null) this[apiKeyKey] = legacyKey
+                }
+            }
+
+            override suspend fun cleanUp() {
+                context.settingsDataStore.edit { it.remove(apiKeyKey) }
+            }
+        })
+    },
+)
 
 class SettingsRepository(private val context: Context) {
     private val dynamicColorKey = booleanPreferencesKey("dynamic_color")
@@ -24,7 +64,6 @@ class SettingsRepository(private val context: Context) {
     private val fastingNotificationsEnabledKey = booleanPreferencesKey("fasting_notifications_enabled")
     private val lastFastingNotificationTimeKey = androidx.datastore.preferences.core.longPreferencesKey("last_fasting_notification_time")
     private val apiKeyEnabledKey = booleanPreferencesKey("api_key_enabled")
-    private val apiKeyKey = stringPreferencesKey("api_key")
     private val apiKeyVerificationStatusKey = stringPreferencesKey("api_key_verification_status")
     private val geminiModelKey = stringPreferencesKey("gemini_model")
     private val geminiModelVerificationStatusKey = stringPreferencesKey("gemini_model_verification_status")
@@ -74,20 +113,20 @@ class SettingsRepository(private val context: Context) {
         prefs[apiKeyEnabledKey] ?: false
     }
 
-    val apiKey: Flow<String> = context.settingsDataStore.data.map { prefs ->
+    val apiKey: Flow<String> = context.secretsDataStore.data.map { prefs ->
         prefs[apiKeyKey] ?: ""
     }
 
-    val apiKeyVerificationStatus: Flow<String> = context.settingsDataStore.data.map { prefs ->
-        prefs[apiKeyVerificationStatusKey] ?: "idle"
+    val apiKeyVerificationStatus: Flow<VerificationStatus> = context.settingsDataStore.data.map { prefs ->
+        VerificationStatus.fromStored(prefs[apiKeyVerificationStatusKey])
     }
 
     val geminiModel: Flow<String> = context.settingsDataStore.data.map { prefs ->
-        prefs[geminiModelKey] ?: "3.5-flash-lite"
+        prefs[geminiModelKey] ?: GeminiManager.DEFAULT_MODEL
     }
 
-    val geminiModelVerificationStatus: Flow<String> = context.settingsDataStore.data.map { prefs ->
-        prefs[geminiModelVerificationStatusKey] ?: "idle"
+    val geminiModelVerificationStatus: Flow<VerificationStatus> = context.settingsDataStore.data.map { prefs ->
+        VerificationStatus.fromStored(prefs[geminiModelVerificationStatusKey])
     }
 
     val pinnedHistoryItems: Flow<Set<String>> = context.settingsDataStore.data.map { prefs ->
@@ -161,14 +200,14 @@ class SettingsRepository(private val context: Context) {
     }
 
     suspend fun setApiKey(key: String) {
-        context.settingsDataStore.edit { prefs ->
+        context.secretsDataStore.edit { prefs ->
             prefs[apiKeyKey] = key
         }
     }
 
-    suspend fun setApiKeyVerificationStatus(status: String) {
+    suspend fun setApiKeyVerificationStatus(status: VerificationStatus) {
         context.settingsDataStore.edit { prefs ->
-            prefs[apiKeyVerificationStatusKey] = status
+            prefs[apiKeyVerificationStatusKey] = status.name.lowercase()
         }
     }
 
@@ -178,9 +217,9 @@ class SettingsRepository(private val context: Context) {
         }
     }
 
-    suspend fun setGeminiModelVerificationStatus(status: String) {
+    suspend fun setGeminiModelVerificationStatus(status: VerificationStatus) {
         context.settingsDataStore.edit { prefs ->
-            prefs[geminiModelVerificationStatusKey] = status
+            prefs[geminiModelVerificationStatusKey] = status.name.lowercase()
         }
     }
 

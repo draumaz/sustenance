@@ -62,11 +62,8 @@ class HealthConnectManager(internal val context: Context) {
 
     val isAvailable: Boolean get() = availability() == HealthConnectClient.SDK_AVAILABLE
 
-    suspend fun grantedPermissions(): Set<String> {
-        val g = client.permissionController.getGrantedPermissions()
-        android.util.Log.d("HealthConnectManager", "Granted permissions: $g")
-        return g
-    }
+    suspend fun grantedPermissions(): Set<String> =
+        client.permissionController.getGrantedPermissions()
 
     fun permissionFor(metric: Metric): String =
         HealthPermission.getReadPermission(recordClass(metric))
@@ -103,15 +100,23 @@ class HealthConnectManager(internal val context: Context) {
             sodium = Mass.milligrams((nutrients.sodium * servingCount).coerceAtLeast(0.0)),
             metadata = Metadata.manualEntry(),
         )
-        try {
-            client.insertRecords(listOf(record))
-            _changes.tryEmit(Unit)
-        } catch (e: Exception) {
-            throw Exception("Failed to write to Health Connect: ${e.localizedMessage}", e)
-        }
+        // Failures propagate unchanged so callers can tell a SecurityException (missing write
+        // permission) apart from other errors.
+        client.insertRecords(listOf(record))
+        _changes.tryEmit(Unit)
     }
 
     // ---- Dashboard -----------------------------------------------------------------------------
+
+    /**
+     * The food goal implied by a caloric-balance goal on a given day: energy burned that day minus
+     * the target balance. Null when there's no balance goal or no energy data for the day yet.
+     */
+    suspend fun foodGoalForBalance(balanceGoal: Float, dateOffset: Int): Float? {
+        if (balanceGoal == 0f) return null
+        val energyOnDay = readDailySeries(Metric.TOTAL_CALORIES, 1, dateOffset).lastOrNull()?.value ?: 0f
+        return if (energyOnDay > 0) (energyOnDay - balanceGoal).coerceAtLeast(0f) else null
+    }
 
     fun initialSummaries(
         goals: Map<Metric, Float> = emptyMap(),
@@ -263,16 +268,12 @@ class HealthConnectManager(internal val context: Context) {
     // ---- Detail --------------------------------------------------------------------------------
 
     suspend fun deleteRecord(recordId: String) {
-        try {
-            client.deleteRecords(
-                recordType = NutritionRecord::class,
-                recordIdsList = listOf(recordId),
-                clientRecordIdsList = emptyList()
-            )
-            _changes.tryEmit(Unit)
-        } catch (e: Exception) {
-            throw Exception("Failed to delete record: ${e.localizedMessage}")
-        }
+        client.deleteRecords(
+            recordType = NutritionRecord::class,
+            recordIdsList = listOf(recordId),
+            clientRecordIdsList = emptyList()
+        )
+        _changes.tryEmit(Unit)
     }
 
     suspend fun readHistory(): List<HistoryItem> {

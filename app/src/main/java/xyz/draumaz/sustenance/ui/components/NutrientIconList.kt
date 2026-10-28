@@ -19,7 +19,6 @@ import androidx.compose.ui.unit.sp
 import xyz.draumaz.sustenance.data.Metric
 import xyz.draumaz.sustenance.util.FoodNutrients
 import xyz.draumaz.sustenance.data.formatValue
-import xyz.draumaz.sustenance.R
 
 @Composable
 fun NutrientIconList(

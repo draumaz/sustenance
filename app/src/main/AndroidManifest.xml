@@ -34,6 +34,8 @@
     <application
         android:name=".SustenanceApp"
         android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
         android:enableOnBackInvokedCallback="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
@@ -47,6 +49,7 @@
             android:name=".MainActivity"
             android:exported="true"
             android:launchMode="singleTop"
+            android:windowSoftInputMode="adjustResize"
             android:theme="@style/Theme.Sustenance.Splash">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

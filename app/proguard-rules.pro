@@ -9,3 +9,10 @@
 -keep class kotlinx.serialization.** { *; }
 -keepclassmembers class kotlinx.serialization.** { *; }
 
+
+# Strip debug/verbose/info logging from release builds (warnings and errors are kept).
+-assumenosideeffects class android.util.Log {
+    public static int d(...);
+    public static int v(...);
+    public static int i(...);
+}

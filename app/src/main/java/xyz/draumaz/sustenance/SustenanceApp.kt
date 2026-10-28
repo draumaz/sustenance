@@ -1,7 +1,6 @@
 package xyz.draumaz.sustenance
 
 import android.app.Application
-import android.util.Log
 import xyz.draumaz.sustenance.data.ExportManager
 import xyz.draumaz.sustenance.data.GoalsRepository
 import xyz.draumaz.sustenance.data.HealthConnectManager
@@ -17,7 +16,6 @@ class SustenanceApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        Log.d("SustenanceApp", "onCreate")
         WidgetUpdateScheduler.ensureScheduled(this)
         NotificationHelper.createNotificationChannels(this)
     }
