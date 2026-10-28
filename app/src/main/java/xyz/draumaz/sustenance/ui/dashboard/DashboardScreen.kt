@@ -1,6 +1,19 @@
 package xyz.draumaz.sustenance.ui.dashboard
 
 import android.view.HapticFeedbackConstants
+import android.os.Build
+import androidx.compose.animation.core.VisibilityThreshold
+import androidx.compose.animation.core.animate
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
+import kotlinx.coroutines.Job
 import androidx.compose.foundation.background
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
@@ -42,7 +55,6 @@ import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.runtime.LaunchedEffect
@@ -72,7 +84,8 @@ import xyz.draumaz.sustenance.data.MetricSummary
 import xyz.draumaz.sustenance.ui.DashboardViewModel
 import xyz.draumaz.sustenance.ui.components.MetricCard
 import xyz.draumaz.sustenance.ui.components.ScallopedLoadingAnimation
-import xyz.draumaz.sustenance.ui.components.opticalDepthCard
+import xyz.draumaz.sustenance.ui.components.ExpressiveSprings
+import xyz.draumaz.sustenance.ui.components.PreviousDayPullIndicator
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.Duration
@@ -86,9 +99,6 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -112,7 +122,6 @@ fun DashboardScreen(
     onManagePermissions: () -> Unit,
     onTimerClick: () -> Unit = {},
     onDateChanged: (Int) -> Unit = {},
-    onResetView: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val app = context.applicationContext as xyz.draumaz.sustenance.SustenanceApp
@@ -132,11 +141,19 @@ fun DashboardScreen(
 
 
 
-    val pullDistance = remember { Animatable(0f) }
-    val pullThreshold = 130f
+    // Pull-up-to-view-previous-day: distance (px) the content has been pulled up. Commits on
+    // release once past the threshold, like pull-to-refresh.
+    val density = LocalDensity.current
+    val pullThreshold = with(density) { PullThreshold.toPx() }
+    // pullDistance offsets the content of pullDay only, so on commit the outgoing day keeps its
+    // position and slides out from there instead of snapping back. indicatorPull drives the pill.
+    var pullDistance by remember { mutableFloatStateOf(0f) }
+    var pullDay by remember { mutableIntStateOf(0) }
+    var indicatorPull by remember { mutableFloatStateOf(0f) }
+    val pullArmed by remember { derivedStateOf { indicatorPull >= pullThreshold } }
+    var settleJob by remember { mutableStateOf<Job?>(null) }
     val scope = rememberCoroutineScope()
     val listState = rememberLazyListState()
-    val dayChangedInCurrentGesture = remember { mutableStateOf(false) }
 
     var hapticTriggered by remember { mutableStateOf(value = false) }
     LaunchedEffect(pullToRefreshState.distanceFraction) {
@@ -153,7 +170,7 @@ fun DashboardScreen(
     LaunchedEffect(dateOffset) {
         topAppBarState.heightOffset = 0f
         topAppBarState.contentOffset = 0f
-        pullDistance.snapTo(0f)
+        listState.scrollToItem(0)
         onDateChanged(dateOffset)
     }
 
@@ -173,9 +190,9 @@ fun DashboardScreen(
                 else -> stringResource(R.string.greeting_evening)
             }
         }
-        1 -> stringResource(R.string.yesterday)
-        else -> LocalDate.now().minusDays(dateOffset.toLong()).format(DateTimeFormatter.ofPattern("EEEE, MMM d"))
+        else -> dayLabel(dateOffset)
     }
+    val previousDayLabel = dayLabel(dateOffset + 1)
 
     // Refresh when permissions change (e.g. Food just granted) or when returning to the app.
     androidx.compose.runtime.LaunchedEffect(granted, dateOffset) {
@@ -195,111 +212,72 @@ fun DashboardScreen(
         onPauseOrDispose { }
     }
 
-    val nestedScrollConnection = remember {
-        object : NestedScrollConnection {
-            override fun onPreScroll(
-                available: androidx.compose.ui.geometry.Offset,
-                source: NestedScrollSource
-            ): androidx.compose.ui.geometry.Offset {
-                if (source == NestedScrollSource.UserInput) {
-                    if (available.y < 0f) {
-                        // Swiping UP: start optical illusion pull immediately if day hasn't changed yet
-                        if (!dayChangedInCurrentGesture.value) {
-                            val newPull = (pullDistance.value - (available.y * 0.35f)).coerceAtMost(pullThreshold * 1.2f)
-                            scope.launch { pullDistance.snapTo(newPull) }
-
-                            // Preload yesterday's data as we pull up
-                            if (newPull > pullThreshold * 0.25f) {
-                                vm.preload(dateOffset + 1)
-                            }
-
-                            if (newPull >= pullThreshold) {
-                                dayChangedInCurrentGesture.value = true
-                                view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-                                view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-                                vm.moveBack()
-                                scope.launch { pullDistance.snapTo(0f) }
-                            }
-
-                            return androidx.compose.ui.geometry.Offset(0f, available.y)
-                        }
-                    } else if (pullDistance.value > 0f && available.y > 0f) {
-                        val consumedY = minOf(pullDistance.value / 0.35f, available.y)
-                        val newPull = (pullDistance.value - consumedY * 0.35f).coerceAtLeast(0f)
-                        scope.launch { pullDistance.snapTo(newPull) }
-                        return androidx.compose.ui.geometry.Offset(0f, consumedY)
-                    }
-                }
-                return super.onPreScroll(available, source)
-            }
-
-            override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
-                if (pullDistance.value > 0f) {
-                    if (topAppBarState.heightOffset != 0f) {
-                        onResetView()
-                        val initialOffset = topAppBarState.heightOffset
-                        if (initialOffset != 0f) {
-                            scope.launch {
-                                val anim = Animatable(initialOffset)
-                                anim.animateTo(
-                                    targetValue = 0f,
-                                    animationSpec = spring(
-                                        dampingRatio = Spring.DampingRatioLowBouncy,
-                                        stiffness = Spring.StiffnessMedium
-                                    )
-                                ) {
-                                    topAppBarState.heightOffset = value
-                                }
-                            }
-                        }
-                        topAppBarState.contentOffset = 0f
-                        if (listState.firstVisibleItemIndex != 0 || listState.firstVisibleItemScrollOffset != 0) {
-                            scope.launch { listState.animateScrollToItem(0) }
-                        }
-                    }
-                    pullDistance.animateTo(
-                        targetValue = 0f,
-                        animationSpec = spring(
-                            dampingRatio = Spring.DampingRatioLowBouncy,
-                            stiffness = Spring.StiffnessMedium
-                        )
-                    )
-                }
-                return super.onPostFling(consumed, available)
+    fun settlePull() {
+        settleJob?.cancel()
+        settleJob = scope.launch {
+            animate(indicatorPull, 0f, animationSpec = PullSettleSpec) { value, _ ->
+                indicatorPull = value
+                pullDistance = value
             }
         }
     }
 
-    Box(
-        Modifier
-            .fillMaxSize()
-            .pointerInput(Unit) {
-                awaitPointerEventScope {
-                    while (true) {
-                        awaitFirstDown(requireUnconsumed = false)
-                        try {
-                            do {
-                                val event = awaitPointerEvent(PointerEventPass.Initial)
-                            } while (event.changes.any { it.pressed })
-                        } finally {
-                            // Touch gesture finished (all fingers lifted or cancelled)
-                            dayChangedInCurrentGesture.value = false
-                            if (pullDistance.value > 0f) {
-                                scope.launch {
-                                    pullDistance.animateTo(
-                                        targetValue = 0f,
-                                        animationSpec = spring(
-                                            dampingRatio = Spring.DampingRatioLowBouncy,
-                                            stiffness = Spring.StiffnessMedium
-                                        )
-                                    )
-                                }
-                            }
-                        }
-                    }
+    fun commitPull() {
+        view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+        vm.moveBack()
+        settleJob?.cancel()
+        settleJob = scope.launch {
+            animate(indicatorPull, 0f, animationSpec = PullSettleSpec) { value, _ -> indicatorPull = value }
+        }
+    }
+
+    val nestedScrollConnection = remember {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                if (source != NestedScrollSource.UserInput) return Offset.Zero
+                if (pullDay != dateOffset) {
+                    // First drag on a newly shown day: start a fresh pull for it.
+                    settleJob?.cancel()
+                    pullDay = dateOffset
+                    pullDistance = 0f
+                    indicatorPull = 0f
                 }
+                val current = pullDistance
+                val next = when {
+                    // Dragging up with nothing left to scroll: pull the content up.
+                    available.y < 0f && !listState.canScrollForward ->
+                        (current - available.y * PullResistance).coerceAtMost(pullThreshold * 1.25f)
+                    // Dragging back down: release the pull before the list scrolls.
+                    available.y > 0f && current > 0f ->
+                        (current - available.y * PullResistance).coerceAtLeast(0f)
+                    else -> return Offset.Zero
+                }
+                settleJob?.cancel()
+                pullDistance = next
+                indicatorPull = next
+
+                if (current < pullThreshold && next >= pullThreshold) {
+                    view.performHapticFeedback(ThresholdActivateHaptic)
+                } else if (current >= pullThreshold && next < pullThreshold) {
+                    view.performHapticFeedback(ThresholdDeactivateHaptic)
+                }
+                if (next > pullThreshold * 0.25f) vm.preload(dateOffset + 1)
+
+                val consumedY = if (available.y < 0f) available.y else (current - next) / PullResistance
+                return Offset(0f, consumedY)
             }
-    ) {
+
+            // The drag has ended (always dispatched, after its last scroll delta): commit if
+            // armed, settle, and swallow the fling so it doesn't scroll the list.
+            override suspend fun onPreFling(available: Velocity): Velocity {
+                if (pullDay != dateOffset || pullDistance <= 0f) return Velocity.Zero
+                if (pullDistance >= pullThreshold) commitPull() else settlePull()
+                return available
+            }
+        }
+    }
+
+    Box(Modifier.fillMaxSize()) {
         Scaffold(
             modifier = Modifier
                 .fillMaxSize()
@@ -365,22 +343,26 @@ fun DashboardScreen(
                 Box(Modifier.fillMaxSize()) {
                     AnimatedContent(
                         targetState = dateOffset,
-                        modifier = Modifier.zIndex(1f),
+                        modifier = Modifier
+                            .zIndex(1f),
                         transitionSpec = {
-                            fadeIn(tween(220)) togetherWith fadeOut(tween(180))
+                            // Older days enter from below (the direction of the pull); returning
+                            // toward today reverses it. Shared-axis Y with expressive springs.
+                            val dir = if (targetState > initialState) 1 else -1
+                            val slide = ExpressiveSprings.defaultSpatial(IntOffset.VisibilityThreshold)
+                            val fade = ExpressiveSprings.defaultEffects<Float>()
+                            (slideInVertically(slide) { dir * it / 5 } + fadeIn(fade)) togetherWith
+                                (slideOutVertically(slide) { -dir * it / 5 } + fadeOut(fade))
                         },
                         label = "dashboard_day_transition"
                     ) { targetOffset ->
+                            // Once a pulled day has finished sliding out, drop its leftover offset.
+                            DisposableEffect(Unit) {
+                                onDispose { if (pullDay == targetOffset) pullDistance = 0f }
+                            }
                             val data = summariesMap[targetOffset]
 
                             val currentData = data ?: summariesMap[dateOffset] ?: summariesMap[0] ?: manager.initialSummaries()
-                            val activePullProgressProvider: () -> Float = {
-                                if (targetOffset == dateOffset) {
-                                    if (dayChangedInCurrentGesture.value) 0f else (pullDistance.value / pullThreshold)
-                                } else {
-                                    if (dayChangedInCurrentGesture.value) 1f else 0f
-                                }
-                            }
 
                             val energyMetrics = listOf(Metric.TOTAL_CALORIES, Metric.CALORIC_BALANCE)
                             val foodMetric = listOf(Metric.FOOD)
@@ -397,8 +379,7 @@ fun DashboardScreen(
                                     .fillMaxSize()
                                     .nestedScroll(scrollBehavior.nestedScrollConnection)
                                     .graphicsLayer {
-                                        // Base pull UP offset
-                                        translationY = -activePullProgressProvider() * pullThreshold * 0.15f
+                                        translationY = if (targetOffset == pullDay) -pullDistance else 0f
                                     },
                                 contentPadding = PaddingValues(
                                     start = 16.dp, end = 16.dp,
@@ -413,53 +394,30 @@ fun DashboardScreen(
                                             title = stringResource(R.string.section_energy),
                                             items = energyGroup,
                                             columns = 2,
-                                            sectionIndex = 0,
-                                            pullProgressProvider = activePullProgressProvider,
                                             onOpenMetric = { onOpenMetric(it, targetOffset) },
                                             onManagePermissions = onManagePermissions,
                                             bottomContent = {
-                                                foodGroup.forEachIndexed { foodIdx, summary ->
-                                                    Box(
-                                                        Modifier.opticalDepthCard(
-                                                            sectionIndex = 0,
-                                                            cardIndex = energyGroup.size + foodIdx,
-                                                            pullProgressProvider = activePullProgressProvider,
-                                                            accentColor = summary.metric.accent,
-                                                            cornerRadius = 16.dp,
-                                                            isFullWidth = true
-                                                        )
-                                                    ) {
-                                                        MetricCard(
-                                                            summary = summary,
-                                                            onClick = {
-                                                                if (summary.granted) {
-                                                                    onOpenMetric(summary.metric, targetOffset)
-                                                                } else {
-                                                                    onManagePermissions()
-                                                                }
+                                                foodGroup.forEach { summary ->
+                                                    MetricCard(
+                                                        summary = summary,
+                                                        onClick = {
+                                                            if (summary.granted) {
+                                                                onOpenMetric(summary.metric, targetOffset)
+                                                            } else {
+                                                                onManagePermissions()
                                                             }
-                                                        )
-                                                    }
+                                                        }
+                                                    )
                                                 }
                                                 if (lastLogTimerEnabled) {
-                                                    Box(
-                                                        Modifier.opticalDepthCard(
-                                                            sectionIndex = 0,
-                                                            cardIndex = energyGroup.size + foodGroup.size,
-                                                            pullProgressProvider = activePullProgressProvider,
-                                                            cornerRadius = 16.dp,
-                                                            isFullWidth = true
-                                                        )
-                                                    ) {
-                                                        TimerChip(
-                                                            lastLogTime = if (targetOffset == 0) lastLogTime else null,
-                                                            stretch = if (targetOffset > 0) longestFastingMap[targetOffset] else null,
-                                                            isToday = targetOffset == 0,
-                                                            goalHours = fastingGoalHours,
-                                                            currentTime = currentTime,
-                                                            onClick = onTimerClick
-                                                        )
-                                                    }
+                                                    TimerChip(
+                                                        lastLogTime = if (targetOffset == 0) lastLogTime else null,
+                                                        stretch = if (targetOffset > 0) longestFastingMap[targetOffset] else null,
+                                                        isToday = targetOffset == 0,
+                                                        goalHours = fastingGoalHours,
+                                                        currentTime = currentTime,
+                                                        onClick = onTimerClick
+                                                    )
                                                 }
                                             }
                                         )
@@ -471,8 +429,6 @@ fun DashboardScreen(
                                             title = stringResource(R.string.section_macros),
                                             items = macrosGroup,
                                             columns = 2,
-                                            sectionIndex = 1,
-                                            pullProgressProvider = activePullProgressProvider,
                                             onOpenMetric = { onOpenMetric(it, targetOffset) },
                                             onManagePermissions = onManagePermissions
                                         )
@@ -484,8 +440,6 @@ fun DashboardScreen(
                                             title = stringResource(R.string.section_micros),
                                             items = microsGroup,
                                             columns = 1,
-                                            sectionIndex = 2,
-                                            pullProgressProvider = activePullProgressProvider,
                                             onOpenMetric = { onOpenMetric(it, targetOffset) },
                                             onManagePermissions = onManagePermissions
                                         )
@@ -493,11 +447,38 @@ fun DashboardScreen(
                                 }
                             }
                         }
+                    PreviousDayPullIndicator(
+                        label = previousDayLabel,
+                        progressProvider = { indicatorPull / pullThreshold },
+                        armed = pullArmed,
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(bottom = bottomInset + 24.dp)
+                            .zIndex(2f),
+                    )
                     }
                 }
             }
         }
 }
+
+private val PullThreshold = 72.dp
+private const val PullResistance = 0.5f
+
+// Critically damped so a cancelled pull glides back without overshooting past rest.
+private val PullSettleSpec = spring<Float>(Spring.DampingRatioNoBouncy, Spring.StiffnessMediumLow)
+
+private val ThresholdActivateHaptic =
+    if (Build.VERSION.SDK_INT >= 34) HapticFeedbackConstants.GESTURE_THRESHOLD_ACTIVATE
+    else HapticFeedbackConstants.CONTEXT_CLICK
+private val ThresholdDeactivateHaptic =
+    if (Build.VERSION.SDK_INT >= 34) HapticFeedbackConstants.GESTURE_THRESHOLD_DEACTIVATE
+    else HapticFeedbackConstants.CLOCK_TICK
+
+@Composable
+private fun dayLabel(offset: Int): String =
+    if (offset == 1) stringResource(R.string.yesterday)
+    else LocalDate.now().minusDays(offset.toLong()).format(DateTimeFormatter.ofPattern("EEEE, MMM d"))
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -508,21 +489,11 @@ private fun MetricSection(
     onOpenMetric: (Metric) -> Unit,
     onManagePermissions: () -> Unit,
     modifier: Modifier = Modifier,
-    sectionIndex: Int = 0,
-    pullProgressProvider: () -> Float = { 0f },
     extraContent: (@Composable () -> Unit)? = null,
     bottomContent: (@Composable ColumnScope.() -> Unit)? = null
 ) {
     Surface(
-        modifier = modifier
-            .fillMaxWidth()
-            .opticalDepthCard(
-                sectionIndex = sectionIndex,
-                cardIndex = 0,
-                pullProgressProvider = pullProgressProvider,
-                cornerRadius = 28.dp,
-                isFullWidth = true
-            ),
+        modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(28.dp),
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         shadowElevation = 6.dp
@@ -545,19 +516,8 @@ private fun MetricSection(
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                     maxItemsInEachRow = columns
                 ) {
-                    items.forEachIndexed { cardIdx, summary ->
-                        Box(
-                            Modifier
-                                .weight(1f)
-                                .opticalDepthCard(
-                                    sectionIndex = sectionIndex,
-                                    cardIndex = cardIdx,
-                                    pullProgressProvider = pullProgressProvider,
-                                    accentColor = summary.metric.accent,
-                                    cornerRadius = 16.dp,
-                                    columns = columns
-                                )
-                        ) {
+                    items.forEach { summary ->
+                        Box(Modifier.weight(1f)) {
                             MetricCard(
                                 summary = summary,
                                 onClick = {
@@ -567,16 +527,7 @@ private fun MetricSection(
                         }
                     }
                     extraContent?.let {
-                        Box(
-                            Modifier
-                                .weight(1f)
-                                .opticalDepthCard(
-                                    sectionIndex = sectionIndex,
-                                    cardIndex = items.size,
-                                    pullProgressProvider = pullProgressProvider,
-                                    cornerRadius = 16.dp
-                                )
-                        ) {
+                        Box(Modifier.weight(1f)) {
                             it()
                         }
                     }

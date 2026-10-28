@@ -595,9 +595,6 @@ private fun MainNav(
                         onDateChanged = { 
                             dashboardDateOffset = it
                             bottomBarOffsetHeightPx.floatValue = 0f
-                        },
-                        onResetView = {
-                            bottomBarOffsetHeightPx.floatValue = 0f
                         }
                     )
                 }
