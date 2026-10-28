@@ -148,7 +148,6 @@
     <string name="daily_avg">Daily avg</string>
     <string name="highest_day">Highest day</string>
     <string name="seven_day_total">7-day total</string>
-    <string name="fourteen_day_total">14-day total</string>
     <string name="average">Average</string>
     <string name="min">Min</string>
     <string name="max">Max</string>
@@ -183,16 +182,12 @@
     <string name="are_you_sure">Are You Sure?</string>
     <string name="judgement_negative_warning">Eating this will be detrimental to staying within your set goal values.</string>
     <string name="log_anyway">Log Anyway</string>
-    <string name="pick_metric">Choose a metric</string>
     <string name="onboarding_title">Welcome to Sustenance</string>
     <string name="onboarding_subtitle">A private, expressive viewer for your nutritional data. Sustenance only reads—nothing ever leaves your device.</string>
     <string name="onboarding_button">Connect Health Connect</string>
     <string name="unavailable_title">Health Connect needed</string>
     <string name="unavailable_subtitle">Sustenance requires Health Connect to access your nutritional data securely. Please install it to continue.</string>
     <string name="unavailable_button">Get Health Connect</string>
-    <string name="widget_connect_prompt">Tap to connect your health data</string>
-    <string name="tap_to_connect">Tap to connect</string>
-    <string name="no_recent_data">No recent data</string>
 
     <string name="about_author">Developer</string>
     <string name="about_credit_prefix">"Sustenance is based on "</string>

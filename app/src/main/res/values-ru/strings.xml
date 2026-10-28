@@ -150,7 +150,6 @@
     <string name="daily_avg">Среднее за день</string>
     <string name="highest_day">Наилучший день</string>
     <string name="seven_day_total">Всего за 7 дней</string>
-    <string name="fourteen_day_total" translatable="false">Всего за 14 дней</string>
     <string name="average">Среднее</string>
     <string name="min">Мин</string>
     <string name="max">Макс</string>
@@ -187,16 +186,12 @@
     <string name="are_you_sure">Вы уверены?</string>
     <string name="judgement_negative_warning">Употребление этого продукта помешает вам остаться в рамках установленных целей.</string>
     <string name="log_anyway">Все равно записать</string>
-    <string name="pick_metric">Выберите метрику</string>
     <string name="onboarding_title">Добро пожаловать в Sustenance</string>
     <string name="onboarding_subtitle">Приватный и наглядный дневник вашего питания. Sustenance только читает данные — они никогда не покидают ваше устройство.</string>
     <string name="onboarding_button">Подключить Health Connect</string>
     <string name="unavailable_title">Требуется Health Connect</string>
     <string name="unavailable_subtitle">Sustenance требует наличия Health Connect для безопасного доступа к вашим данным о питании. Пожалуйста, установите его.</string>
     <string name="unavailable_button">Скачать Health Connect</string>
-    <string name="widget_connect_prompt">Нажмите, чтобы подключить данные</string>
-    <string name="tap_to_connect">Нажмите, чтобы подключить</string>
-    <string name="no_recent_data">Нет последних данных</string>
 
     <string name="about_author">Разработчик</string>
     <string name="about_credit_prefix">"Sustenance основано на "</string>

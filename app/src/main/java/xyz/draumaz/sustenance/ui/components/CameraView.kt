@@ -1,7 +1,8 @@
 package xyz.draumaz.sustenance.ui.components
 
 import android.graphics.Bitmap
-import androidx.camera.core.AspectRatio
+import androidx.camera.core.resolutionselector.AspectRatioStrategy
+import androidx.camera.core.resolutionselector.ResolutionSelector
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
@@ -40,6 +41,12 @@ import androidx.lifecycle.Observer
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import kotlinx.coroutines.launch
 
+
+/** Prefer 4:3 for both preview and capture so the photo matches what the viewfinder shows. */
+private val FourByThreeSelector = ResolutionSelector.Builder()
+    .setAspectRatioStrategy(AspectRatioStrategy.RATIO_4_3_FALLBACK_AUTO_STRATEGY)
+    .build()
+
 @Composable
 fun CameraPreview(
     modifier: Modifier = Modifier,
@@ -53,7 +60,7 @@ fun CameraPreview(
     val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
     val imageCapture = remember {
         ImageCapture.Builder()
-            .setTargetAspectRatio(AspectRatio.RATIO_4_3)
+            .setResolutionSelector(FourByThreeSelector)
             .build()
     }
     val previewView = remember { PreviewView(context) }
@@ -172,7 +179,7 @@ fun CameraPreview(
                     cameraProviderFuture.addListener({
                         val cameraProvider = cameraProviderFuture.get()
                         val preview = Preview.Builder()
-                            .setTargetAspectRatio(AspectRatio.RATIO_4_3)
+                            .setResolutionSelector(FourByThreeSelector)
                             .build().also {
                                 it.surfaceProvider = previewView.surfaceProvider
                             }

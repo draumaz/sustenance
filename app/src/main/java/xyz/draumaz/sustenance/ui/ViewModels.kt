@@ -118,12 +118,6 @@ class DashboardViewModel(
         _dateOffset.value++
     }
 
-    fun moveForward() {
-        if (_dateOffset.value > 0) {
-            _dateOffset.value--
-        }
-    }
-
     fun resetOffset() {
         _dateOffset.value = 0
     }
@@ -188,7 +182,6 @@ class DashboardViewModel(
 class DetailViewModel(
     private val manager: HealthConnectManager,
     private val goalsRepo: GoalsRepository,
-    private val settingsRepo: SettingsRepository,
     private val metric: Metric,
     private val dateOffset: Int = 0,
 ) : ViewModel() {
@@ -250,16 +243,15 @@ class DetailViewModel(
     }
 
     companion object {
-        fun factory(manager: HealthConnectManager, goalsRepo: GoalsRepository, settingsRepo: SettingsRepository, metric: Metric, dateOffset: Int = 0) = viewModelFactory {
-            initializer { DetailViewModel(manager, goalsRepo, settingsRepo, metric, dateOffset) }
+        fun factory(manager: HealthConnectManager, goalsRepo: GoalsRepository, metric: Metric, dateOffset: Int = 0) = viewModelFactory {
+            initializer { DetailViewModel(manager, goalsRepo, metric, dateOffset) }
         }
     }
 }
 
 class SettingsViewModel(
-    application: Application,
     private val repository: SettingsRepository
-) : AndroidViewModel(application) {
+) : ViewModel() {
     val dynamicColor = repository.dynamicColor
     val ketoMode = repository.ketoMode
     val lastLogTimerEnabled = repository.lastLogTimerEnabled
@@ -332,8 +324,8 @@ class SettingsViewModel(
     }
 
     companion object {
-        fun factory(app: Application, repository: SettingsRepository) = viewModelFactory {
-            initializer { SettingsViewModel(app, repository) }
+        fun factory(repository: SettingsRepository) = viewModelFactory {
+            initializer { SettingsViewModel(repository) }
         }
     }
 }

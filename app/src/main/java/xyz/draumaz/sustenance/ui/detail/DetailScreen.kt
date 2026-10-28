@@ -1,6 +1,5 @@
 package xyz.draumaz.sustenance.ui.detail
 
-import androidx.activity.compose.PredictiveBackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -42,11 +41,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.text.TextStyle
 import xyz.draumaz.sustenance.ui.reportHealthWriteFailure
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -71,21 +68,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.res.stringResource
-import androidx.compose.material.icons.rounded.History
 import android.view.HapticFeedbackConstants
 import xyz.draumaz.sustenance.R
-import java.time.Instant
 import java.time.Duration
 import xyz.draumaz.sustenance.data.GoalsRepository
 import xyz.draumaz.sustenance.data.HealthConnectManager
 import xyz.draumaz.sustenance.data.Metric
 import xyz.draumaz.sustenance.data.MetricDetail
 import xyz.draumaz.sustenance.data.RecordRow
-import xyz.draumaz.sustenance.data.SettingsRepository
 import xyz.draumaz.sustenance.ui.DetailViewModel
 import xyz.draumaz.sustenance.util.FoodNutrients
 import xyz.draumaz.sustenance.ui.components.LineChart
-import xyz.draumaz.sustenance.ui.components.PredictiveBackState
 import androidx.compose.foundation.layout.width
 import androidx.compose.ui.text.style.TextOverflow
 import xyz.draumaz.sustenance.ui.components.NutrientIconList
@@ -96,7 +89,6 @@ import xyz.draumaz.sustenance.data.formatValue
 fun DetailScreen(
     manager: HealthConnectManager,
     goalsRepo: GoalsRepository,
-    settingsRepo: SettingsRepository,
     metric: Metric,
     dateOffset: Int = 0,
     onReLog: (FoodNutrients) -> Unit = {},
@@ -106,7 +98,7 @@ fun DetailScreen(
     val context = LocalContext.current
     val vm: DetailViewModel = viewModel(
         key = "${metric.key}_$dateOffset",
-        factory = DetailViewModel.factory(manager, goalsRepo, settingsRepo, metric, dateOffset),
+        factory = DetailViewModel.factory(manager, goalsRepo, metric, dateOffset),
     )
     val detail by vm.detail.collectAsStateWithLifecycle()
     val refreshing by vm.refreshing.collectAsStateWithLifecycle()

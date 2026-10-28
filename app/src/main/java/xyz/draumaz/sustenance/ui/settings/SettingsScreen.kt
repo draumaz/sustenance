@@ -24,12 +24,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.OpenInNew
 import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.HealthAndSafety
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Key
 import androidx.compose.material.icons.rounded.Language
-import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Psychology
@@ -40,14 +38,12 @@ import androidx.compose.material.icons.rounded.Whatshot
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Checkbox
 import android.widget.Toast
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LargeTopAppBar
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -60,7 +56,6 @@ import xyz.draumaz.sustenance.util.GeminiManager
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.KeyboardOptions
@@ -77,7 +72,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.LinkAnnotation
@@ -104,7 +98,6 @@ import xyz.draumaz.sustenance.data.ExportManager
 import xyz.draumaz.sustenance.data.HealthConnectManager
 import xyz.draumaz.sustenance.data.Metric
 import xyz.draumaz.sustenance.data.SettingsRepository
-import xyz.draumaz.sustenance.ui.components.PredictiveBackState
 import xyz.draumaz.sustenance.ui.SettingsViewModel
 import kotlinx.coroutines.launch
 import androidx.core.net.toUri
@@ -127,7 +120,7 @@ fun SettingsScreen(
     val context = LocalContext.current
     val appContext = context.applicationContext as xyz.draumaz.sustenance.SustenanceApp
     val scope = rememberCoroutineScope()
-    val vm: SettingsViewModel = viewModel(factory = SettingsViewModel.factory(appContext, settingsRepo))
+    val vm: SettingsViewModel = viewModel(factory = SettingsViewModel.factory(settingsRepo))
     val dynamicColor by vm.dynamicColor.collectAsState(initial = true)
 
     val snackbar = remember { SnackbarHostState() }
@@ -189,7 +182,6 @@ fun SettingsScreen(
                 )
             )
         },
-        //topBar = { LargeTopAppBar(title = { Text("Settings") }, scrollBehavior = scrollBehavior) },
         snackbarHost = { SnackbarHost(snackbar) },
     ) { inner ->
         LazyColumn(

@@ -41,7 +41,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.annotation.StringRes
-import androidx.compose.ui.res.stringResource
 import androidx.core.net.toUri
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CancellationException
@@ -50,10 +49,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.roundToInt
 import androidx.health.connect.client.PermissionController
-import androidx.health.connect.client.permission.HealthPermission
-import androidx.health.connect.client.records.NutritionRecord
 import androidx.activity.compose.PredictiveBackHandler
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.animation.fadeIn
@@ -65,8 +61,6 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -95,7 +89,6 @@ import xyz.draumaz.sustenance.ui.onboarding.OnboardingScreen
 import xyz.draumaz.sustenance.ui.onboarding.UnavailableScreen
 import xyz.draumaz.sustenance.ui.settings.SettingsScreen
 import xyz.draumaz.sustenance.ui.summary.InsightsScreen
-import xyz.draumaz.sustenance.ui.summary.InsightsViewModel
 import xyz.draumaz.sustenance.ui.components.FoodReviewDialog
 import xyz.draumaz.sustenance.ui.history.HistoryScreen
 import xyz.draumaz.sustenance.util.FoodNutrients
@@ -654,7 +647,6 @@ private fun MainNav(
                     DetailScreen(
                         manager = manager,
                         goalsRepo = goalsRepo,
-                        settingsRepo = settingsRepo,
                         metric = metric,
                         dateOffset = dashboardDateOffset,
                         onReLog = { pendingNutrients = it },
