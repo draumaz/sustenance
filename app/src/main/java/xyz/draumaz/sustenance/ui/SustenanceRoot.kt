@@ -723,7 +723,9 @@ private fun MainNav(
                         .fillMaxSize()
                         .padding(
                             top = inner.calculateTopPadding(),
-                            bottom = bottomBarHeight
+                            // Track the bar's real height so the viewfinder moves up with it
+                            // when the keyboard lifts the bar in batch mode.
+                            bottom = maxOf(bottomBarHeight, inner.calculateBottomPadding())
                         )
                         .graphicsLayer {
                             alpha = 1f - pbState.progress

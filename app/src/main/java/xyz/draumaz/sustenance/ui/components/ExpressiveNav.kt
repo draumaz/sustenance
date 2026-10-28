@@ -1,26 +1,21 @@
 package xyz.draumaz.sustenance.ui.components
 
 import android.graphics.Bitmap
-import android.view.HapticFeedbackConstants
-import androidx.compose.ui.draw.blur
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.core.FiniteAnimationSpec
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -31,15 +26,15 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.ime
-import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
@@ -47,10 +42,13 @@ import androidx.compose.material.icons.rounded.CameraAlt
 import androidx.compose.material.icons.rounded.FileUpload
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Image
-import androidx.compose.material.icons.rounded.Today
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationItemIconPosition
+import androidx.compose.material3.ShortNavigationBarItem
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -60,51 +58,30 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.RoundRect
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Outline
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.platform.LocalViewConfiguration
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.compose.ui.res.stringResource
+import kotlinx.coroutines.delay
 import xyz.draumaz.sustenance.R
 import xyz.draumaz.sustenance.data.Metric
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlin.math.PI
-import kotlin.math.cos
-import kotlin.math.sin
-import kotlin.time.Duration.Companion.milliseconds
 
 @Stable
 class PredictiveBackState {
@@ -112,74 +89,20 @@ class PredictiveBackState {
     var isSwipeActive by mutableStateOf(value = false)
 }
 
-class ScallopedPillShape(
-    private val isScalloped: Boolean = false,
-    private val maxRadius: Dp = 36.dp,
-) : Shape {
-    override fun createOutline(
-        size: Size,
-        layoutDirection: LayoutDirection,
-        density: Density,
-    ): Outline {
-        val path = Path()
-        val width = size.width
-        val height = size.height
-        val maxRadiusPx = with(density) { maxRadius.toPx() }
-        val radius = (height / 2f).coerceAtMost(maxRadiusPx)
+// M3 Expressive floating toolbar spec.
+private val ToolbarHeight = 64.dp
+private val ToolbarContentPadding = 8.dp
+private val ToolbarItemSpacing = 4.dp
+private val ToolbarElevation = 6.dp // Elevation level 3
+private val ToolbarScreenOffset = 16.dp
 
-        if (!isScalloped) {
-            return Outline.Rounded(
-                RoundRect(
-                    0f, 0f, width, height,
-                    CornerRadius(radius)
-                )
-            )
-        }
+// M3 Expressive motion scheme springs. MotionScheme.expressive() is still internal in
+// material3 1.4.0, so these mirror its ExpressiveMotionTokens.
+private fun <T> expressiveSpatialSpec(): FiniteAnimationSpec<T> =
+    spring(dampingRatio = 0.8f, stiffness = 380f)
 
-        val bumpDepth = with(density) { 2.5.dp.toPx() }
-        val bumpsCount = 12f
-        val numPoints = 120
-
-        fun getPoint(p: Float): Pair<Offset, Offset> {
-            val straight = (width - (2 * radius)).coerceAtLeast(0f)
-            val arc = PI.toFloat() * radius
-            val total = 2 * straight + 2 * arc
-            val d = p * total
-
-            return when {
-                d < straight -> {
-                    Offset(radius + d, 0f) to Offset(0f, -1f)
-                }
-                d < straight + arc -> {
-                    val angle = 1.5f * PI.toFloat() + (d - straight) / radius
-                    val n = Offset(cos(angle), sin(angle))
-                    Offset(width - radius, radius) + n * radius to n
-                }
-                d < 2 * straight + arc -> {
-                    Offset(width - radius - (d - (straight + arc)), height) to Offset(0f, 1f)
-                }
-                else -> {
-                    val angle = 0.5f * PI.toFloat() + (d - (2 * straight + arc)) / radius
-                    val n = Offset(cos(angle), sin(angle))
-                    Offset(radius, radius) + n * radius to n
-                }
-            }
-        }
-
-        for (i in 0..numPoints) {
-            val p = i.toFloat() / numPoints
-            val (pos, normal) = getPoint(p)
-            val bump = sin(p * bumpsCount * 2 * PI.toFloat()) * bumpDepth
-            val finalPos = pos + normal * bump
-            if (i == 0) path.moveTo(finalPos.x, finalPos.y) else path.lineTo(finalPos.x, finalPos.y)
-        }
-
-        path.close()
-        return Outline.Generic(path)
-    }
-}
-
-
+private fun <T> expressiveEffectsSpec(): FiniteAnimationSpec<T> =
+    spring(dampingRatio = 1f, stiffness = 1600f)
 
 @Composable
 fun ExpressiveNavigationBar(
@@ -206,38 +129,42 @@ fun ExpressiveNavigationBar(
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
     val currentRoute = currentDestination?.route
-    
+
     val isOnDetail = currentRoute?.startsWith("detail/") == true
     val detailMetric = if (isOnDetail) {
         navBackStackEntry?.arguments?.getString("metricKey")?.let { Metric.fromKey(it) }
     } else null
 
-    val density = LocalDensity.current
-    val isImeVisible = WindowInsets.ime.getBottom(density) > 0
     val batchCount = capturedBitmaps.size
-    var isScalloped by remember { mutableStateOf(false) }
 
-    val animatedTranslationY by animateFloatAsState(
-        targetValue = if (isImeVisible) 700f else 0f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioNoBouncy,
-            stiffness = Spring.StiffnessMedium
-        ),
-        label = "ime_translation_y"
-    )
+    // In batch mode the bar rides above the keyboard (tracking it frame by frame) so the info
+    // box stays visible while typing. Everywhere else the keyboard simply covers the bar.
+    val bottomInsets = if (isCameraMode && isBatchMode) {
+        WindowInsets.ime.union(WindowInsets.navigationBars)
+    } else {
+        WindowInsets.navigationBars
+    }
+
+    // While a predictive back swipe is past halfway, preview the selection moving to the
+    // destination being returned to.
+    fun previewSelected(isSelected: Boolean, isCurrent: Boolean, isPrevious: Boolean): Boolean =
+        when {
+            !predictiveBackState.isSwipeActive -> isSelected
+            isPrevious -> predictiveBackState.progress > 0.5f
+            isCurrent -> predictiveBackState.progress <= 0.5f
+            else -> isSelected
+        }
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .imePadding()
-            .graphicsLayer {
-                translationY = animatedTranslationY
-            }
-            .padding(bottom = 36.dp),
+            .windowInsetsPadding(bottomInsets)
+            .padding(bottom = ToolbarScreenOffset),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         if (isCameraMode && capturedBitmaps.isNotEmpty()) {
             val lastPhotos = remember(capturedBitmaps) { capturedBitmaps.takeLast(8) }
+            val photoShape = MaterialTheme.shapes.medium
             Row(
                 modifier = Modifier.padding(bottom = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy((-16).dp),
@@ -252,352 +179,307 @@ fun ExpressiveNavigationBar(
                             .graphicsLayer {
                                 rotationZ = (index - (lastPhotos.size / 2f)) * 7f
                                 shadowElevation = 12f
-                                shape = RoundedCornerShape(12.dp)
+                                shape = photoShape
                                 clip = true
                             }
                             .background(MaterialTheme.colorScheme.surface)
-                            .border(
-                                2.dp,
-                                MaterialTheme.colorScheme.surfaceVariant,
-                                RoundedCornerShape(12.dp)
-                            ),
+                            .border(2.dp, MaterialTheme.colorScheme.surfaceVariant, photoShape),
                         contentScale = ContentScale.Crop
                     )
                 }
             }
         }
-        Surface(
-            modifier = Modifier
-                .wrapContentWidth()
-                .animateContentSize(
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessMedium
-                    )
-                ),
-            shape = ScallopedPillShape(isScalloped),
-            color = MaterialTheme.colorScheme.surfaceContainerHighest,
-            shadowElevation = 0.dp
+
+        // Grows up out of the toolbar so it reads as part of it.
+        AnimatedVisibility(
+            visible = isCameraMode && isBatchMode,
+            enter = expandVertically(expressiveSpatialSpec(), expandFrom = Alignment.Bottom) +
+                scaleIn(expressiveSpatialSpec(), initialScale = 0.8f, transformOrigin = TransformOrigin(0.5f, 1f)) +
+                fadeIn(expressiveEffectsSpec()),
+            exit = shrinkVertically(expressiveSpatialSpec(), shrinkTowards = Alignment.Bottom) +
+                scaleOut(expressiveSpatialSpec(), targetScale = 0.8f, transformOrigin = TransformOrigin(0.5f, 1f)) +
+                fadeOut(expressiveEffectsSpec()),
+            label = "batch_info_box"
         ) {
-            Column(
-                modifier = Modifier.padding(8.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+            Surface(
+                modifier = Modifier
+                    .padding(bottom = 8.dp)
+                    .width(320.dp),
+                shape = MaterialTheme.shapes.extraLarge,
+                color = MaterialTheme.colorScheme.surfaceContainer,
+                shadowElevation = ToolbarElevation
             ) {
-                if (isCameraMode && isBatchMode) {
-                    Row(
-                        modifier = Modifier
-                            .width(320.dp)
-                            .heightIn(min = 64.dp, max = 160.dp)
-                            .clip(RoundedCornerShape(28.dp))
-                            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                            .padding(horizontal = 20.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier.weight(1f).width(16.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            if (batchInfoText.isEmpty()) {
-                                Text(
-                                    text = stringResource(R.string.optional_info),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                                )
-                            }
-                            BasicTextField(
-                                value = batchInfoText,
-                                onValueChange = onBatchInfoTextChange,
-                                modifier = Modifier.fillMaxWidth(),
-                                textStyle = MaterialTheme.typography.bodySmall.copy(
-                                    color = MaterialTheme.colorScheme.onSurface
-                                ),
-                                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                                singleLine = false,
-                                maxLines = 5
-                            )
-                        }
-                    }
-                }
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                Box(
+                    modifier = Modifier
+                        .heightIn(min = 56.dp, max = 160.dp)
+                        .padding(horizontal = 20.dp, vertical = 16.dp),
+                    contentAlignment = Alignment.CenterStart
                 ) {
-                    if (isCameraMode) {
-                        if ((batchCount == 0) && !isBatchMode) {
-                            ExpressiveNavItem(
-                                label = stringResource(R.string.history),
-                                icon = Icons.Rounded.History,
-                                isSelected = isHistorySelected,
-                            ) { if (!isHistorySelected) onHistoryClick() }
-                            ExpressiveNavItem(
-                                label = if (isHistorySelected) stringResource(R.string.analyze) else stringResource(
-                                    R.string.analyze
-                                ),
-                                icon = if (isHistorySelected) Icons.Rounded.Add else Icons.Rounded.FileUpload,
-                                isSelected = !isHistorySelected,
-                                onClick = { if (isHistorySelected) { onHistoryClick(); onLogClick() } else { onCapture() } },
-                                onLongHold = onToggleTorch,
-                            )
-                        }
-
-                        if (isBatchMode) {
-                            ExpressiveNavItem(
-                                label = stringResource(R.string.select_from_gallery),
-                                icon = Icons.Rounded.Image,
-                                isSelected = false,
-                                onClick = onSelectGallery
-                            )
-                            ExpressiveNavItem(
-                                label = stringResource(R.string.add_label),
-                                icon = Icons.Rounded.CameraAlt,
-                                isSelected = true,
-                                onClick = onCaptureBatch,
-                                onLongHold = onToggleTorch
-                            )
-                            ExpressiveNavItem(
-                                label = stringResource(R.string.analyze_photos),
-                                icon = Icons.Rounded.FileUpload,
-                                isSelected = false,
-                                onClick = onFinishBatch,
-                                onLongHold = onToggleTorch,
-                            )
-                        } else {
-                            ExpressiveNavItem(
-                                label = stringResource(R.string.add_label),
-                                icon = Icons.Rounded.CameraAlt,
-                                isSelected = false,
-                                onClick = { if (isHistorySelected) { onHistoryClick() }; onCaptureBatch() },
-                                onLongHold = onToggleTorch,
-                            )
-                        }
-                        
-                    } else {
-                        val renderItem = @Composable { dest: xyz.draumaz.sustenance.ui.Dest ->
-                            val isSelected = currentDestination?.hierarchy?.any { 
-                                it.route == dest.route || it.route?.startsWith("${dest.route}?") == true 
-                            } == true
-
-                            var selectionAlphaOverride: Float? = null
-                            if (predictiveBackState.isSwipeActive) {
-                                val previousRoute = navController.previousBackStackEntry?.destination?.route
-                                if (previousRoute == dest.route) {
-                                    selectionAlphaOverride = predictiveBackState.progress
-                                } else if (currentRoute == dest.route) {
-                                    selectionAlphaOverride = 1f - predictiveBackState.progress
-                                }
-                            }
-
-                            ExpressiveNavItem(
-                                label = stringResource(dest.labelRes),
-                                icon = dest.icon,
-                                isSelected = isSelected,
-                                selectionAlphaOverride = selectionAlphaOverride,
-                                onClick = { onNavigate(dest) }
-                            )
-
-                        }
-
-                        val others = destinations.filter { it.route != "today" }
-                        val todayDest = destinations.first { it.route == "today" }
-
-                        // Summary (first item usually)
-                        others.take(1).forEach { renderItem(it) }
-
-                        // Today (Home) item - now transforms into detail metric
-                        val isTodaySelected = (currentDestination?.hierarchy?.any { it.route == "today" } == true)
-                        val isEffectivelySelected = isTodaySelected || isOnDetail
-
-                        val isLogState = (dateOffset == 0) && hasApiKey && isTodaySelected && !isOnDetail
-
-                        AnimatedContent(
-                            targetState = Triple(if (isOnDetail) detailMetric else null, dateOffset, isLogState),
-                            transitionSpec = {
-                                (fadeIn(animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium)) + scaleIn(initialScale = 0.92f))
-                                    .togetherWith(fadeOut(animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium)) + scaleOut(targetScale = 0.92f))
-                                    .using(
-                                        SizeTransform(clip = false) { _, _ ->
-                                            spring(
-                                                dampingRatio = Spring.DampingRatioMediumBouncy,
-                                                stiffness = Spring.StiffnessMedium
-                                            )
-                                        }
-                                    )
-                            },
-                            label = "today_transform"
-                        ) { (targetMetric, offset, isLog) ->
-                            var selectionAlphaOverride: Float? = null
-                            if (predictiveBackState.isSwipeActive) {
-                                val previousRoute = navController.previousBackStackEntry?.destination?.route
-                                if (previousRoute == "today" || previousRoute?.startsWith("detail/") == true) {
-                                    selectionAlphaOverride = predictiveBackState.progress
-                                } else if (currentRoute == "today" || currentRoute?.startsWith("detail/") == true) {
-                                    selectionAlphaOverride = 1f - predictiveBackState.progress
-                                }
-                            }
-
-                            val labelText = when {
-                                targetMetric != null -> stringResource(targetMetric.titleRes)
-                                isLog -> stringResource(R.string.log)
-                                offset == 0 -> stringResource(todayDest.labelRes)
-                                offset == 1 -> stringResource(R.string.yesterday)
-                                else -> LocalDate.now().minusDays(offset.toLong())
-                                    .format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
-                            }
-
-                            ExpressiveNavItem(
-                                label = labelText,
-                                icon = when {
-                                    targetMetric != null -> targetMetric.icon
-                                    isLog -> Icons.Rounded.Add
-                                    else -> todayDest.icon
-                                },
-                                isSelected = isEffectivelySelected,
-                                selectionAlphaOverride = selectionAlphaOverride,
-                                onClick = {
-                                    if (isLog) onLogClick() else onNavigate(todayDest)
-                                },
-                                onLongHold = { if (isLog) {  onSelectGallery(); onLogClick() } },
-                            )
-                        }
-
-                        // Settings and others
-                        others.drop(1).forEach { renderItem(it) }
+                    if (batchInfoText.isEmpty()) {
+                        Text(
+                            text = stringResource(R.string.optional_info),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
+                    BasicTextField(
+                        value = batchInfoText,
+                        onValueChange = onBatchInfoTextChange,
+                        modifier = Modifier.fillMaxWidth(),
+                        textStyle = MaterialTheme.typography.bodyLarge.copy(
+                            color = MaterialTheme.colorScheme.onSurface
+                        ),
+                        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                        singleLine = false,
+                        maxLines = 5
+                    )
+                }
+            }
+        }
+
+        Surface(
+            modifier = Modifier.animateContentSize(expressiveSpatialSpec()),
+            shape = CircleShape,
+            color = MaterialTheme.colorScheme.surfaceContainer,
+            shadowElevation = ToolbarElevation
+        ) {
+            Row(
+                modifier = Modifier
+                    .height(ToolbarHeight)
+                    .padding(horizontal = ToolbarContentPadding),
+                horizontalArrangement = Arrangement.spacedBy(ToolbarItemSpacing),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (isCameraMode) {
+                    if ((batchCount == 0) && !isBatchMode) {
+                        ToolbarAction(
+                            label = stringResource(R.string.history),
+                            icon = Icons.Rounded.History,
+                            emphasized = isHistorySelected,
+                        ) { if (!isHistorySelected) onHistoryClick() }
+                        ToolbarAction(
+                            label = stringResource(R.string.analyze),
+                            icon = if (isHistorySelected) Icons.Rounded.Add else Icons.Rounded.FileUpload,
+                            emphasized = !isHistorySelected,
+                            onLongHold = onToggleTorch,
+                        ) { if (isHistorySelected) { onHistoryClick(); onLogClick() } else { onCapture() } }
+                    }
+
+                    if (isBatchMode) {
+                        ToolbarAction(
+                            label = stringResource(R.string.select_from_gallery),
+                            icon = Icons.Rounded.Image,
+                            emphasized = false,
+                            onClick = onSelectGallery
+                        )
+                        ToolbarAction(
+                            label = stringResource(R.string.add_label),
+                            icon = Icons.Rounded.CameraAlt,
+                            emphasized = true,
+                            onLongHold = onToggleTorch,
+                            onClick = onCaptureBatch
+                        )
+                        ToolbarAction(
+                            label = stringResource(R.string.analyze_photos, batchCount),
+                            icon = Icons.Rounded.FileUpload,
+                            emphasized = false,
+                            onLongHold = onToggleTorch,
+                            onClick = onFinishBatch
+                        )
+                    } else {
+                        ToolbarAction(
+                            label = stringResource(R.string.add_label),
+                            icon = Icons.Rounded.CameraAlt,
+                            emphasized = false,
+                            onLongHold = onToggleTorch,
+                        ) { if (isHistorySelected) { onHistoryClick() }; onCaptureBatch() }
+                    }
+                } else {
+                    val previousRoute = navController.previousBackStackEntry?.destination?.route
+
+                    val renderItem = @Composable { dest: xyz.draumaz.sustenance.ui.Dest ->
+                        val isSelected = currentDestination?.hierarchy?.any {
+                            it.route == dest.route || it.route?.startsWith("${dest.route}?") == true
+                        } == true
+
+                        ExpressiveNavItem(
+                            label = stringResource(dest.labelRes),
+                            icon = dest.icon,
+                            selected = previewSelected(
+                                isSelected = isSelected,
+                                isCurrent = currentRoute == dest.route,
+                                isPrevious = previousRoute == dest.route,
+                            ),
+                            onClick = { onNavigate(dest) }
+                        )
+                    }
+
+                    val others = destinations.filter { it.route != "today" }
+                    val todayDest = destinations.first { it.route == "today" }
+
+                    // Summary (first item usually)
+                    others.take(1).forEach { renderItem(it) }
+
+                    // Today (Home) item - transforms into the detail metric, a past date, or Log
+                    val isTodaySelected = (currentDestination?.hierarchy?.any { it.route == "today" } == true)
+                    val isLog = (dateOffset == 0) && hasApiKey && isTodaySelected && !isOnDetail
+                    val targetMetric = if (isOnDetail) detailMetric else null
+
+                    val labelText = when {
+                        targetMetric != null -> stringResource(targetMetric.titleRes)
+                        isLog -> stringResource(R.string.log)
+                        dateOffset == 0 -> stringResource(todayDest.labelRes)
+                        dateOffset == 1 -> stringResource(R.string.yesterday)
+                        else -> LocalDate.now().minusDays(dateOffset.toLong())
+                            .format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
+                    }
+
+                    fun isTodayRoute(route: String?) = route == "today" || route?.startsWith("detail/") == true
+
+                    ExpressiveNavItem(
+                        label = labelText,
+                        icon = when {
+                            targetMetric != null -> targetMetric.icon
+                            isLog -> Icons.Rounded.Add
+                            else -> todayDest.icon
+                        },
+                        selected = previewSelected(
+                            isSelected = isTodaySelected || isOnDetail,
+                            isCurrent = isTodayRoute(currentRoute),
+                            isPrevious = isTodayRoute(previousRoute),
+                        ),
+                        onLongHold = if (isLog) {
+                            { onSelectGallery(); onLogClick() }
+                        } else null,
+                        onClick = {
+                            if (isLog) onLogClick() else onNavigate(todayDest)
+                        },
+                    )
+
+                    // Settings and others
+                    others.drop(1).forEach { renderItem(it) }
                 }
             }
         }
     }
 }
 
-
+/**
+ * A navigation destination in the floating bar, built on the M3 Expressive
+ * [ShortNavigationBarItem] in its horizontal (icon-start) configuration. The label is only
+ * shown for the selected destination to keep the floating bar compact.
+ */
 @Composable
 fun ExpressiveNavItem(
     label: String,
     icon: ImageVector,
-    isSelected: Boolean,
-    selectionAlphaOverride: Float? = null,
-    onLongHold: () -> Unit = {},
+    selected: Boolean,
+    onLongHold: (() -> Unit)? = null,
     onClick: () -> Unit
 ) {
-    val haptic = LocalHapticFeedback.current
-    val view = LocalView.current
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val scale = remember { Animatable(1f) }
-    var isLongPressed by remember { mutableStateOf(false) }
+    val (interactionSource, handleClick) = rememberLongHoldClick(onClick, onLongHold)
 
-    LaunchedEffect(isPressed) {
-        if (isPressed) {
-            isLongPressed = false
-            val job = launch {
-                delay(500.milliseconds)
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                isLongPressed = true
-                onLongHold()
-            }
-            scale.animateTo(
-                0.85f,
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioNoBouncy,
-                    stiffness = Spring.StiffnessHigh
+    ShortNavigationBarItem(
+        selected = selected,
+        onClick = handleClick,
+        icon = {
+            AnimatedContent(
+                targetState = icon,
+                transitionSpec = { fadeIn(expressiveEffectsSpec()) togetherWith fadeOut(expressiveEffectsSpec()) },
+                label = "nav_item_icon"
+            ) { targetIcon ->
+                Icon(
+                    imageVector = targetIcon,
+                    // The label is announced instead whenever it's visible.
+                    contentDescription = if (selected) null else label
                 )
-            )
-            job.join()
-        } else {
-            scale.animateTo(
-                1f,
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessMedium
-                )
-            )
-        }
-    }
-
-    val animatedAlpha by animateFloatAsState(
-        targetValue = if (isSelected) 1f else 0f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium
-        ),
-        label = "selection_alpha"
-    )
-
-    val iconScale by animateFloatAsState(
-        targetValue = if (isSelected) 1.15f else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium
-        ),
-        label = "icon_scale"
-    )
-
-    val selectionAlpha = selectionAlphaOverride ?: animatedAlpha
-    val containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = selectionAlpha)
-    val contentColor = if (selectionAlpha > 0.5f) {
-        MaterialTheme.colorScheme.onPrimaryContainer
-    } else {
-        MaterialTheme.colorScheme.onSurfaceVariant
-    }
-
-    Box(
-        modifier = Modifier
-            .height(56.dp)
-            .graphicsLayer {
-                scaleX = scale.value
-                scaleY = scale.value
             }
-            .clip(CircleShape)
-            .background(containerColor)
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null,
-                onClick = {
-                    if (!isLongPressed) {
-                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                        onClick()
-                    }
+        },
+        label = if (selected) {
+            {
+                AnimatedContent(
+                    targetState = label,
+                    transitionSpec = { fadeIn(expressiveEffectsSpec()) togetherWith fadeOut(expressiveEffectsSpec()) },
+                    label = "nav_item_label"
+                ) { targetLabel ->
+                    Text(text = targetLabel, maxLines = 1)
                 }
-            )
-            .animateContentSize(
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioMediumBouncy,
-                    stiffness = Spring.StiffnessMedium
-                )
-            )
-            .padding(horizontal = 16.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
+            }
+        } else null,
+        iconPosition = NavigationItemIconPosition.Start,
+        interactionSource = interactionSource,
+    )
+}
+
+/**
+ * An action in the floating toolbar. The emphasized action is a tonal button with its label;
+ * the rest are standard icon buttons.
+ */
+@Composable
+private fun ToolbarAction(
+    label: String,
+    icon: ImageVector,
+    emphasized: Boolean,
+    onLongHold: (() -> Unit)? = null,
+    onClick: () -> Unit
+) {
+    val (interactionSource, handleClick) = rememberLongHoldClick(onClick, onLongHold)
+
+    if (emphasized) {
+        FilledTonalButton(
+            onClick = handleClick,
+            contentPadding = ButtonDefaults.ButtonWithIconContentPadding,
+            interactionSource = interactionSource
         ) {
             Icon(
                 imageVector = icon,
-                contentDescription = label,
-                tint = contentColor,
-                modifier = Modifier
-                    .size(24.dp)
-                    .graphicsLayer {
-                        scaleX = iconScale
-                        scaleY = iconScale
-                    }
+                contentDescription = null,
+                modifier = Modifier.size(ButtonDefaults.IconSize)
             )
+            Spacer(Modifier.width(ButtonDefaults.IconSpacing))
+            Text(text = label, maxLines = 1)
+        }
+    } else {
+        IconButton(onClick = handleClick, interactionSource = interactionSource) {
+            Icon(imageVector = icon, contentDescription = label)
+        }
+    }
+}
 
-            if (selectionAlpha > 0.8f) {
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = label,
-                    color = contentColor,
-                    style = MaterialTheme.typography.labelLarge.copy(
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 0.5.sp
-                    ),
-                    maxLines = 1
-                )
-            }
+/**
+ * Adds tap haptics and an optional long-press action to components that only expose onClick.
+ * Returns the
+ * interaction source to pass to the component and the click handler to use, which ignores the
+ * release that ends a long press.
+ */
+@Composable
+private fun rememberLongHoldClick(
+    onClick: () -> Unit,
+    onLongHold: (() -> Unit)?,
+): Pair<MutableInteractionSource, () -> Unit> {
+    val haptic = LocalHapticFeedback.current
+    val longPressTimeout = LocalViewConfiguration.current.longPressTimeoutMillis
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    var didLongHold by remember { mutableStateOf(false) }
+    val currentOnLongHold by rememberUpdatedState(onLongHold)
+
+    LaunchedEffect(isPressed) {
+        if (!isPressed) return@LaunchedEffect
+        didLongHold = false
+        val longHold = currentOnLongHold ?: return@LaunchedEffect
+        delay(longPressTimeout)
+        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+        didLongHold = true
+        longHold()
+    }
+
+    return interactionSource to {
+        if (didLongHold) {
+            didLongHold = false
+        } else {
+            haptic.performHapticFeedback(HapticFeedbackType.KeyboardTap)
+            onClick()
         }
     }
 }
