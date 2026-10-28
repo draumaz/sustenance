@@ -1,15 +1,44 @@
 package xyz.draumaz.sustenance.data
 
 import android.content.Context
+import androidx.datastore.core.DataMigration
+import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 private val Context.settingsDataStore by preferencesDataStore(name = "sustenance_settings")
+
+private val apiKeyKey = stringPreferencesKey("api_key")
+
+// The Gemini API key lives in its own file so it can be excluded from backups (see
+// res/xml/data_extraction_rules.xml). Older installs kept it in sustenance_settings; move it over.
+private val Context.secretsDataStore by preferencesDataStore(
+    name = "sustenance_secrets",
+    produceMigrations = { context ->
+        listOf(object : DataMigration<Preferences> {
+            override suspend fun shouldMigrate(currentData: Preferences) =
+                currentData[apiKeyKey] == null &&
+                    context.settingsDataStore.data.first()[apiKeyKey] != null
+
+            override suspend fun migrate(currentData: Preferences): Preferences {
+                val legacyKey = context.settingsDataStore.data.first()[apiKeyKey]
+                return currentData.toMutablePreferences().apply {
+                    if (legacyKey != null) this[apiKeyKey] = legacyKey
+                }
+            }
+
+            override suspend fun cleanUp() {
+                context.settingsDataStore.edit { it.remove(apiKeyKey) }
+            }
+        })
+    },
+)
 
 class SettingsRepository(private val context: Context) {
     private val dynamicColorKey = booleanPreferencesKey("dynamic_color")
@@ -24,7 +53,6 @@ class SettingsRepository(private val context: Context) {
     private val fastingNotificationsEnabledKey = booleanPreferencesKey("fasting_notifications_enabled")
     private val lastFastingNotificationTimeKey = androidx.datastore.preferences.core.longPreferencesKey("last_fasting_notification_time")
     private val apiKeyEnabledKey = booleanPreferencesKey("api_key_enabled")
-    private val apiKeyKey = stringPreferencesKey("api_key")
     private val apiKeyVerificationStatusKey = stringPreferencesKey("api_key_verification_status")
     private val geminiModelKey = stringPreferencesKey("gemini_model")
     private val geminiModelVerificationStatusKey = stringPreferencesKey("gemini_model_verification_status")
@@ -74,7 +102,7 @@ class SettingsRepository(private val context: Context) {
         prefs[apiKeyEnabledKey] ?: false
     }
 
-    val apiKey: Flow<String> = context.settingsDataStore.data.map { prefs ->
+    val apiKey: Flow<String> = context.secretsDataStore.data.map { prefs ->
         prefs[apiKeyKey] ?: ""
     }
 
@@ -161,7 +189,7 @@ class SettingsRepository(private val context: Context) {
     }
 
     suspend fun setApiKey(key: String) {
-        context.settingsDataStore.edit { prefs ->
+        context.secretsDataStore.edit { prefs ->
             prefs[apiKeyKey] = key
         }
     }

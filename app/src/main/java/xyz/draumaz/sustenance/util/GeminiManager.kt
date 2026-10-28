@@ -70,12 +70,10 @@ class GeminiManager(
                 } else bitmap
             }
 
-            Log.d("GeminiManager", "Sending ${scaledBitmaps.size} images to Gemini... Info: $additionalInfo")
-            
             val response = model.generateContent(
                 content {
                     scaledBitmaps.forEach { image(it) }
-                    var prompt = "Estimate nutrients for food in image as JSON: food_item, serving_size (weight in grams, e.g. '150g'), calories, protein, carbs, fat, fiber, sugar, saturated_fat, sodium. Use numbers for nutrient values."
+                    var prompt = "Estimate nutrients for food in image as JSON: food_item, serving_size (weight in grams, e.g. '150g'), calories (kcal), protein, carbs, fat, fiber, sugar, saturated_fat (all in grams), sodium (in milligrams). Use plain numbers for nutrient values."
                     if (!additionalInfo.isNullOrBlank()) {
                         prompt += " Context: $additionalInfo"
                     }
@@ -98,8 +96,6 @@ class GeminiManager(
                     else if (reason != null) "Gemini error ($reason): $msg" else "Gemini error: $msg"
                 ))
             } ?: return@withContext Result.failure(Exception("No response from Gemini"))
-            
-            Log.d("GeminiManager", "Response: $text")
             
             val jsonStart = text.indexOf("{")
             val jsonEnd = text.lastIndexOf("}")

@@ -71,6 +71,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalViewConfiguration
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -280,7 +281,7 @@ fun ExpressiveNavigationBar(
                             onClick = onCaptureBatch
                         )
                         ToolbarAction(
-                            label = stringResource(R.string.analyze_photos, batchCount),
+                            label = pluralStringResource(R.plurals.analyze_photos, batchCount, batchCount),
                             icon = Icons.Rounded.FileUpload,
                             emphasized = false,
                             onLongHold = onToggleTorch,

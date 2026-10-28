@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 11 backup rules; mirrors data_extraction_rules.xml. -->
+<full-backup-content>
+    <exclude domain="file" path="datastore/sustenance_secrets.preferences_pb" />
+    <exclude domain="sharedpref" path="sustenance_dashboard_cache.xml" />
+</full-backup-content>

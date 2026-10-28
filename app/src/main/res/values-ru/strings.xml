@@ -43,9 +43,9 @@
     <string name="nutrition_sugars">Сахар</string>
     <string name="nutrition_protein">Белки</string>
     <string name="nutrition_sodium">Натрий</string>
-    <string name="dv_footnote_part1">"* 5% или меньше — "</string>
+    <string name="dv_footnote_part1" formatted="false">"* 5% или меньше — "</string>
     <string name="dv_footnote_a_little">мало</string>
-    <string name="dv_footnote_part2">", 15% или больше — "</string>
+    <string name="dv_footnote_part2" formatted="false">", 15% или больше — "</string>
     <string name="dv_footnote_a_lot">много</string>
 
     <string name="unit_kcal">ккал</string>
@@ -113,7 +113,12 @@
     <string name="launch_hc_summary">Убедитесь, что у Sustenance есть доступ к вашим данным о здоровье.</string>
     <string name="about_summary">Ваш удобный офлайн-дневник питания на базе Health Connect.</string>
     <string name="export_no_data">Нет доступных данных для экспорта</string>
-    <string name="export_success">Экспортировано %1$d записей в формате %2$s</string>
+    <plurals name="export_success">
+        <item quantity="one">Экспортирована %1$d запись в формате %2$s</item>
+        <item quantity="few">Экспортировано %1$d записи в формате %2$s</item>
+        <item quantity="many">Экспортировано %1$d записей в формате %2$s</item>
+        <item quantity="other">Экспортировано %1$d записи в формате %2$s</item>
+    </plurals>
     <string name="export_failed">Ошибка экспорта: %s</string>
     <string name="export_format_title">Формат экспорта</string>
     <string name="export_format_summary">Выберите способ сохранения данных.</string>
@@ -159,7 +164,13 @@
 
     <string name="optional_info">(Дополнительная информация - необязательно)</string>
     <string name="select_from_gallery">Выбрать из галереи</string>
-    <string name="analyze_photos">Анализировать фото (%d)</string>
+    <plurals name="analyze_photos">
+        <item quantity="one">Анализировать фото (%d)</item>
+        <item quantity="few">Анализировать фото (%d)</item>
+        <item quantity="many">Анализировать фото (%d)</item>
+        <item quantity="other">Анализировать фото (%d)</item>
+    </plurals>
+    <string name="chart_not_enough_data">Недостаточно данных для графика</string>
     <string name="analyze">Анализировать</string>
     <string name="add_label">Добавить</string>
     <string name="history">История</string>
@@ -172,6 +183,7 @@
     <string name="no_response_from_gemini">Нет ответа от Gemini</string>
     <string name="write_permission_required">Требуется разрешение на запись. Пожалуйста, включите его.</string>
     <string name="failed_to_log_food">Не удалось записать еду</string>
+    <string name="failed_to_delete_log">Не удалось удалить запись</string>
     <string name="are_you_sure">Вы уверены?</string>
     <string name="judgement_negative_warning">Употребление этого продукта помешает вам остаться в рамках установленных целей.</string>
     <string name="log_anyway">Все равно записать</string>

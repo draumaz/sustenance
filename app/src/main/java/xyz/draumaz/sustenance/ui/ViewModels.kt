@@ -19,11 +19,13 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 
 class DashboardViewModel(
@@ -229,9 +231,17 @@ class DetailViewModel(
         }
     }
 
-    fun deleteRecord(id: String) {
+    /** Deletes a logged record; [onError] receives the failure (e.g. SecurityException if write access was revoked). */
+    fun deleteRecord(id: String, onError: (Exception) -> Unit) {
         viewModelScope.launch {
-            manager.deleteRecord(id)
+            try {
+                manager.deleteRecord(id)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.e("DetailViewModel", "Failed to delete record", e)
+                onError(e)
+            }
         }
     }
 

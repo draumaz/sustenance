@@ -146,7 +146,7 @@ fun SettingsScreen(
             snackbar.showSnackbar(appContext.getString(R.string.export_no_data)); return
         }
         exporter.export(uri, metrics, format).fold(
-            onSuccess = { count -> snackbar.showSnackbar(appContext.getString(R.string.export_success, count, format.label)) },
+            onSuccess = { count -> snackbar.showSnackbar(appContext.resources.getQuantityString(R.plurals.export_success, count, count, format.label)) },
             onFailure = { snackbar.showSnackbar(appContext.getString(R.string.export_failed, it.message)) },
         )
     }

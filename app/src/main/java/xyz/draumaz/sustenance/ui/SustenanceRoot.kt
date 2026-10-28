@@ -44,6 +44,7 @@ import androidx.annotation.StringRes
 import androidx.compose.ui.res.stringResource
 import androidx.core.net.toUri
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -689,6 +690,7 @@ private fun MainNav(
                         metric = metric,
                         dateOffset = dashboardDateOffset,
                         onReLog = { pendingNutrients = it },
+                        onManagePermissions = onManagePermissions,
                         onBack = { navController.popBackStack() }
                     )
                 }
@@ -898,32 +900,13 @@ private fun MainNav(
                             try {
                                 manager.writeNutrition(nuts, count, timestamp)
                                 pendingNutrients = null
-                                //Toast.makeText(currentContext, "Food logged successfully", Toast.LENGTH_SHORT).show()
+                            } catch (e: CancellationException) {
+                                throw e
                             } catch (e: Exception) {
-                                if (e.message?.contains("permission", ignoreCase = true) == true ||
-                                    e.cause?.message?.contains(
-                                        "permission",
-                                        ignoreCase = true
-                                    ) == true
-                                ) {
-                                    Log.d(
-                                        "MainNav",
-                                        "Write failed due to permission. Requesting..."
-                                    )
-                                    Toast.makeText(
-                                        currentContext,
-                                        R.string.write_permission_required,
-                                        Toast.LENGTH_LONG
-                                    ).show()
-                                    onManagePermissions()
-                                } else {
-                                    Log.e("MainNav", "Failed to log food", e)
-                                    Toast.makeText(
-                                        currentContext,
-                                        R.string.failed_to_log_food,
-                                        Toast.LENGTH_LONG
-                                    ).show()
-                                }
+                                Log.e("MainNav", "Failed to log food", e)
+                                reportHealthWriteFailure(
+                                    currentContext, e, R.string.failed_to_log_food, onManagePermissions
+                                )
                             }
                         }
                     }

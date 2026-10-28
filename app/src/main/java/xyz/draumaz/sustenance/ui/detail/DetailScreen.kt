@@ -44,8 +44,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.TextStyle
+import xyz.draumaz.sustenance.ui.reportHealthWriteFailure
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -98,8 +100,10 @@ fun DetailScreen(
     metric: Metric,
     dateOffset: Int = 0,
     onReLog: (FoodNutrients) -> Unit = {},
+    onManagePermissions: () -> Unit = {},
     onBack: () -> Unit,
 ) {
+    val context = LocalContext.current
     val vm: DetailViewModel = viewModel(
         key = "${metric.key}_$dateOffset",
         factory = DetailViewModel.factory(manager, goalsRepo, settingsRepo, metric, dateOffset),
@@ -171,7 +175,13 @@ fun DetailScreen(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        record.id?.let { vm.deleteRecord(it) }
+                        record.id?.let { id ->
+                            vm.deleteRecord(id) { error ->
+                                reportHealthWriteFailure(
+                                    context, error, R.string.failed_to_delete_log, onManagePermissions
+                                )
+                            }
+                        }
                         recordToDelete = null
                     },
                     colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)

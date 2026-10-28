@@ -33,6 +33,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -59,6 +60,7 @@ import java.time.format.DateTimeFormatter
 import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.roundToInt
+import xyz.draumaz.sustenance.R
 
 /** Smooth-ish line chart with min/max guide labels for sampled metrics. */
 @Composable
@@ -74,7 +76,7 @@ fun LineChart(
     if (points.size < 2) {
         Box(modifier, contentAlignment = Alignment.Center) {
             Text(
-                text = "Not enough data to chart",
+                text = stringResource(R.string.chart_not_enough_data),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

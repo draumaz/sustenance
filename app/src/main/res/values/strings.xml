@@ -43,9 +43,9 @@
     <string name="nutrition_sugars">Sugars</string>
     <string name="nutrition_protein">Protein</string>
     <string name="nutrition_sodium">Sodium</string>
-    <string name="dv_footnote_part1">"* 5% or less is "</string>
+    <string name="dv_footnote_part1" formatted="false">"* 5% or less is "</string>
     <string name="dv_footnote_a_little">a little</string>
-    <string name="dv_footnote_part2">", 15% or more is "</string>
+    <string name="dv_footnote_part2" formatted="false">", 15% or more is "</string>
     <string name="dv_footnote_a_lot">a lot</string>
 
     <string name="unit_kcal">kcal</string>
@@ -113,7 +113,10 @@
     <string name="launch_hc_summary">Verify that Sustenance can see your health data.</string>
     <string name="about_summary">Your beautiful, offline nutrition summary, powered by Health Connect.</string>
     <string name="export_no_data">No accessible data to export</string>
-    <string name="export_success">Exported %1$d records as %2$s</string>
+    <plurals name="export_success">
+        <item quantity="one">Exported %1$d record as %2$s</item>
+        <item quantity="other">Exported %1$d records as %2$s</item>
+    </plurals>
     <string name="export_failed">Export failed: %s</string>
     <string name="export_format_title">Export format</string>
     <string name="export_format_summary">Choose how to save your data.</string>
@@ -159,7 +162,11 @@
 
     <string name="optional_info">(Optional additional info here)</string>
     <string name="select_from_gallery">Select from gallery</string>
-    <string name="analyze_photos">Analyze %d photos</string>
+    <plurals name="analyze_photos">
+        <item quantity="one">Analyze %d photo</item>
+        <item quantity="other">Analyze %d photos</item>
+    </plurals>
+    <string name="chart_not_enough_data">Not enough data to chart</string>
     <string name="analyze">Analyze</string>
     <string name="add_label">Add</string>
     <string name="history">History</string>
@@ -172,6 +179,7 @@
     <string name="no_response_from_gemini">No response from Gemini</string>
     <string name="write_permission_required">Write permission required. Please enable it.</string>
     <string name="failed_to_log_food">Failed to log food</string>
+    <string name="failed_to_delete_log">Couldn’t delete log</string>
     <string name="are_you_sure">Are You Sure?</string>
     <string name="judgement_negative_warning">Eating this will be detrimental to staying within your set goal values.</string>
     <string name="log_anyway">Log Anyway</string>

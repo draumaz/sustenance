@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 12+ backup rules. The Gemini API key and the health-data dashboard cache stay on the device. -->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="file" path="datastore/sustenance_secrets.preferences_pb" />
+        <exclude domain="sharedpref" path="sustenance_dashboard_cache.xml" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="file" path="datastore/sustenance_secrets.preferences_pb" />
+        <exclude domain="sharedpref" path="sustenance_dashboard_cache.xml" />
+    </device-transfer>
+</data-extraction-rules>
