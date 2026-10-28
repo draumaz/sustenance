@@ -11,6 +11,7 @@ import xyz.draumaz.sustenance.data.Metric
 import xyz.draumaz.sustenance.data.MetricDetail
 import xyz.draumaz.sustenance.data.MetricSummary
 import xyz.draumaz.sustenance.data.SettingsRepository
+import xyz.draumaz.sustenance.data.VerificationStatus
 import xyz.draumaz.sustenance.notifications.FastingNotificationScheduler
 import xyz.draumaz.sustenance.widget.WidgetUpdateWorker
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,6 +21,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
@@ -63,6 +65,9 @@ class DashboardViewModel(
 
     private val _refreshing = MutableStateFlow(false)
     val refreshing = _refreshing.asStateFlow()
+
+    // Declared before init: the collectors started there call refresh() immediately.
+    private val refreshJobs = mutableMapOf<Int, Job>()
 
     init {
         viewModelScope.launch {
@@ -137,14 +142,8 @@ class DashboardViewModel(
         val goals = goalsRepo.goals.first()
         val isKeto = settingsRepo.ketoMode.first()
         
-        var finalGoals = goals
-        val deficitAmount = goals[Metric.CALORIC_BALANCE] ?: 0f
-        if (deficitAmount != 0f) {
-            val energyOnDay = manager.readDailySeries(Metric.TOTAL_CALORIES, 1, offset).lastOrNull()?.value ?: 0f
-            if (energyOnDay > 0) {
-                finalGoals = goals + (Metric.FOOD to (energyOnDay - deficitAmount).coerceAtLeast(0f))
-            }
-        }
+        val foodGoal = manager.foodGoalForBalance(goals[Metric.CALORIC_BALANCE] ?: 0f, offset)
+        val finalGoals = if (foodGoal != null) goals + (Metric.FOOD to foodGoal) else goals
         val dataDeferred = async { manager.readDashboard(finalGoals, isKeto, offset) }
         val threshold = settingsRepo.fastBreakingCalories.first().toDouble()
         if (offset == 0) {
@@ -164,11 +163,18 @@ class DashboardViewModel(
         }
     }
 
+    // Several sources (goals, settings, Health Connect changes) trigger refreshes, often in bursts.
+    // Only the latest refresh per day runs, so an older read can't land after (and overwrite) a newer one.
     fun refresh(showIndicator: Boolean = true) {
-        viewModelScope.launch {
+        val offset = _dateOffset.value
+        refreshJobs[offset]?.cancel()
+        refreshJobs[offset] = viewModelScope.launch {
             if (showIndicator) _refreshing.value = true
-            fetchForOffset(_dateOffset.value)
-            _refreshing.value = false
+            try {
+                fetchForOffset(offset)
+            } finally {
+                _refreshing.value = false
+            }
         }
     }
 
@@ -211,12 +217,10 @@ class DetailViewModel(
             val goals = goalsRepo.goals.first()
             val caloricBalanceGoal = goals[Metric.CALORIC_BALANCE] ?: 0f
 
-            var finalGoal = goals[metric]
-            if (metric == Metric.FOOD && caloricBalanceGoal != 0f) {
-                val energyOnDay = manager.readDailySeries(Metric.TOTAL_CALORIES, 1, dateOffset).lastOrNull()?.value ?: 0f
-                if (energyOnDay > 0) {
-                    finalGoal = (energyOnDay - caloricBalanceGoal).coerceAtLeast(0f)
-                }
+            val finalGoal = if (metric == Metric.FOOD) {
+                manager.foodGoalForBalance(caloricBalanceGoal, dateOffset) ?: goals[metric]
+            } else {
+                goals[metric]
             }
 
             _detail.value = manager.readDetail(metric, finalGoal, caloricBalanceGoal != 0f, dateOffset)
@@ -315,7 +319,7 @@ class SettingsViewModel(
         viewModelScope.launch { repository.setApiKey(key) }
     }
 
-    fun setApiKeyVerificationStatus(status: String) {
+    fun setApiKeyVerificationStatus(status: VerificationStatus) {
         viewModelScope.launch { repository.setApiKeyVerificationStatus(status) }
     }
 
@@ -323,7 +327,7 @@ class SettingsViewModel(
         viewModelScope.launch { repository.setGeminiModel(model) }
     }
 
-    fun setGeminiModelVerificationStatus(status: String) {
+    fun setGeminiModelVerificationStatus(status: VerificationStatus) {
         viewModelScope.launch { repository.setGeminiModelVerificationStatus(status) }
     }
 

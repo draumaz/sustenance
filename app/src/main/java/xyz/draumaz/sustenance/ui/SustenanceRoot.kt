@@ -52,7 +52,6 @@ import kotlin.math.roundToInt
 import androidx.health.connect.client.PermissionController
 import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.NutritionRecord
-import androidx.activity.compose.BackHandler
 import androidx.activity.compose.PredictiveBackHandler
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.LifecycleResumeEffect
@@ -335,7 +334,8 @@ private fun MainNav(
 
     var analysisJob by remember { mutableStateOf<Job?>(null) }
 
-    fun clearCapture() {
+    /** Closes the camera and discards any in-progress capture or analysis. */
+    fun resetCamera() {
         analysisJob?.cancel()
         analysisJob = null
         isAnalyzing = false
@@ -344,24 +344,14 @@ private fun MainNav(
         isCapturing = false
         isBatchMode = false
         batchInfoText = ""
-        pendingNutrients = null
         capturedBitmaps.forEach { it.recycle() }
         capturedBitmaps = emptyList()
-        navController.popBackStack(Dest.TODAY.route, inclusive = false)
     }
 
-    fun onAnalysisSuccess(nutrients: FoodNutrients) {
-        analysisJob?.cancel()
-        analysisJob = null
-        isAnalyzing = false
-        isCameraActive = false
-        isTorchOn = false
-        isCapturing = false
-        isBatchMode = false
-        batchInfoText = ""
-        capturedBitmaps.forEach { it.recycle() }
-        capturedBitmaps = emptyList()
-        pendingNutrients = nutrients
+    fun clearCapture() {
+        resetCamera()
+        pendingNutrients = null
+        navController.popBackStack(Dest.TODAY.route, inclusive = false)
     }
 
     val cameraPermissionLauncher = rememberLauncherForActivityResult(
@@ -372,32 +362,15 @@ private fun MainNav(
         }
     }
 
-    if (isCameraActive) {
-        BackHandler {
-            clearCapture()
-        }
-        PredictiveBackHandler(enabled = !isHistoryActive) { progress ->
-            pbState.isSwipeActive = true
-            try {
-                progress.collect { event -> pbState.progress = event.progress }
-                clearCapture()
-            } catch (e: Exception) {
-                // Cancelled
-            } finally {
-                pbState.isSwipeActive = false
-                pbState.progress = 0f
-            }
-        }
-    }
-
-    PredictiveBackHandler(enabled = isHistoryActive) { progress ->
+    // Back closes the camera (and the history overlay opened from it), previewing via pbState.
+    PredictiveBackHandler(enabled = isCameraActive || isHistoryActive) { progress ->
         pbState.isSwipeActive = true
         try {
             progress.collect { event -> pbState.progress = event.progress }
             isHistoryActive = false
             clearCapture()
-        } catch (e: Exception) {
-            // Cancelled
+        } catch (_: CancellationException) {
+            // Gesture cancelled; stay where we are.
         } finally {
             pbState.isSwipeActive = false
             pbState.progress = 0f
@@ -406,8 +379,43 @@ private fun MainNav(
 
     val apiKeyEnabled by settingsRepo.apiKeyEnabled.collectAsStateWithLifecycle(initialValue = false)
     val apiKey by settingsRepo.apiKey.collectAsStateWithLifecycle(initialValue = "")
-    val geminiModel by settingsRepo.geminiModel.collectAsStateWithLifecycle(initialValue = "3.5-flash-lite")
+    val geminiModel by settingsRepo.geminiModel.collectAsStateWithLifecycle(initialValue = GeminiManager.DEFAULT_MODEL)
     val hasApiKey = apiKeyEnabled && apiKey.isNotEmpty()
+
+    /**
+     * Sends [photos] (plus any typed context) to Gemini. On success the camera closes and the review
+     * dialog opens; on failure the camera stays open so the user can retry.
+     */
+    suspend fun analyzePhotos(photos: List<Bitmap>) {
+        val key = apiKey.trim()
+        if (key.isBlank()) {
+            Toast.makeText(currentContext, R.string.api_key_missing, Toast.LENGTH_SHORT).show()
+            isAnalyzing = false
+            isCapturing = false
+            analysisJob = null
+            return
+        }
+        isAnalyzing = true
+        val result = GeminiManager(key, GeminiManager.modelName(geminiModel))
+            .analyzeFoodImages(photos, batchInfoText)
+        isAnalyzing = false
+        isCapturing = false
+        analysisJob = null
+        result
+            .onSuccess { nutrients ->
+                resetCamera()
+                pendingNutrients = nutrients
+            }
+            .onFailure { error ->
+                val message = error.localizedMessage.orEmpty()
+                val toastMsg = if (message.isBlank() || message.contains("No response", ignoreCase = true)) {
+                    appContext.getString(R.string.no_response_from_gemini)
+                } else {
+                    appContext.getString(R.string.analysis_failed, message)
+                }
+                Toast.makeText(currentContext, toastMsg, Toast.LENGTH_LONG).show()
+            }
+    }
 
     val bottomBarHeight = 120.dp
     val bottomBarHeightPx = with(LocalDensity.current) { bottomBarHeight.roundToPx().toFloat() }
@@ -528,47 +536,7 @@ private fun MainNav(
                         },
                         onFinishBatch = {
                             isTorchOn = false
-                            analysisJob = scope.launch {
-                                val trimmedKey = apiKey.trim()
-                                if (trimmedKey.isBlank()) {
-                                    Toast.makeText(
-                                        currentContext,
-                                        R.string.api_key_missing,
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                    isAnalyzing = false
-                                    analysisJob = null
-                                    return@launch
-                                }
-                                isAnalyzing = true
-                                val effectiveModel = if (geminiModel.isNotBlank()) {
-                                    val trimmed = geminiModel.trim()
-                                    if (trimmed.startsWith("gemini-")) trimmed else "gemini-$trimmed"
-                                } else {
-                                    "gemini-3.5-flash-lite"
-                                }
-                                val result = GeminiManager(trimmedKey, effectiveModel).analyzeFoodImages(
-                                    capturedBitmaps,
-                                    batchInfoText
-                                )
-                                isAnalyzing = false
-                                analysisJob = null
-                                if (result.isSuccess) {
-                                    result.getOrNull()?.let { onAnalysisSuccess(it) }
-                                } else {
-                                    val rawError = result.exceptionOrNull()?.localizedMessage ?: result.exceptionOrNull()?.message ?: ""
-                                    val toastMsg = if (rawError.isBlank() || rawError.contains("Unexpected Response", ignoreCase = true) || rawError.contains("No response", ignoreCase = true)) {
-                                        appContext.getString(R.string.no_response_from_gemini)
-                                    } else {
-                                        appContext.getString(R.string.analysis_failed, rawError)
-                                    }
-                                    Toast.makeText(
-                                        currentContext,
-                                        toastMsg,
-                                        Toast.LENGTH_LONG
-                                    ).show()
-                                }
-                            }
+                            analysisJob = scope.launch { analyzePhotos(capturedBitmaps) }
                         },
                         onLogClick = {
                             cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
@@ -795,57 +763,12 @@ private fun MainNav(
                                                 bitmap
                                             }
 
-                                            if (isBatchMode) {
-                                                withContext(Dispatchers.Main) {
+                                            withContext(Dispatchers.Main) {
+                                                if (isBatchMode) {
                                                     capturedBitmaps += rotatedBitmap
                                                     isCapturing = false
-                                                }
-                                            } else {
-                                                val trimmedKey = apiKey.trim()
-                                                if (trimmedKey.isBlank()) {
-                                                    withContext(Dispatchers.Main) {
-                                                        Toast.makeText(
-                                                            currentContext,
-                                                            R.string.api_key_invalid,
-                                                            Toast.LENGTH_LONG
-                                                        ).show()
-                                                        isCapturing = false
-                                                        isAnalyzing = false
-                                                        isCameraActive = false
-                                                    }
-                                                    return@launch
-                                                }
-
-                                                val effectiveModel = if (geminiModel.isNotBlank()) {
-                                                    val trimmed = geminiModel.trim()
-                                                    if (trimmed.startsWith("gemini-")) trimmed else "gemini-$trimmed"
                                                 } else {
-                                                    "gemini-3.5-flash-lite"
-                                                }
-                                                val result = GeminiManager(trimmedKey, effectiveModel).analyzeFoodImage(
-                                                    rotatedBitmap,
-                                                    batchInfoText
-                                                )
-                                                withContext(Dispatchers.Main) {
-                                                    isAnalyzing = false
-                                                    analysisJob = null
-
-                                                    if (result.isSuccess) {
-                                                        result.getOrNull()?.let { onAnalysisSuccess(it) }
-                                                    } else {
-                                                        val rawError = result.exceptionOrNull()?.localizedMessage ?: result.exceptionOrNull()?.message ?: ""
-                                                        val toastMsg = if (rawError.isBlank() || rawError.contains("Unexpected Response", ignoreCase = true) || rawError.contains("No response", ignoreCase = true)) {
-                                                            appContext.getString(R.string.no_response_from_gemini)
-                                                        } else {
-                                                            appContext.getString(R.string.analysis_failed, rawError)
-                                                        }
-                                                        Toast.makeText(
-                                                            currentContext,
-                                                            toastMsg,
-                                                            Toast.LENGTH_LONG
-                                                        ).show()
-                                                        isCapturing = false
-                                                    }
+                                                    analyzePhotos(listOf(rotatedBitmap))
                                                 }
                                             }
                                         }

@@ -9,6 +9,7 @@ import com.google.ai.client.generativeai.type.HarmCategory
 import com.google.ai.client.generativeai.type.SafetySetting
 import com.google.ai.client.generativeai.type.content
 import com.google.ai.client.generativeai.type.generationConfig
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -28,8 +29,19 @@ data class FoodNutrients(
 
 class GeminiManager(
     apiKey: String,
-    modelName: String = "gemini-3.5-flash-lite"
+    modelName: String = modelName(DEFAULT_MODEL)
 ) {
+    companion object {
+        /** Default model setting, without the "gemini-" prefix (that's how it's entered in Settings). */
+        const val DEFAULT_MODEL = "3.5-flash-lite"
+
+        /** Full model name for a model setting, e.g. "3.5-flash-lite" → "gemini-3.5-flash-lite". */
+        fun modelName(setting: String): String {
+            val trimmed = setting.trim().ifEmpty { DEFAULT_MODEL }
+            return if (trimmed.startsWith("gemini-")) trimmed else "gemini-$trimmed"
+        }
+    }
+
     private val model = GenerativeModel(
         modelName = modelName,
         apiKey = apiKey,
@@ -52,6 +64,8 @@ class GeminiManager(
             } else {
                 Result.failure(Exception("Empty response"))
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.e("GeminiManager", "Verification failed", e)
             val msg = e.localizedMessage ?: e.message ?: e.javaClass.simpleName
@@ -116,6 +130,8 @@ class GeminiManager(
                 saturatedFat = json.optDouble("saturated_fat", 0.0),
                 sodium = json.optDouble("sodium", 0.0),
             ))
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
             Log.e("GeminiManager", "Analysis failed", e)
             val msg = e.localizedMessage ?: e.message

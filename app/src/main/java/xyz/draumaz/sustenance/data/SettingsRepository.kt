@@ -9,10 +9,21 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
+import xyz.draumaz.sustenance.util.GeminiManager
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 private val Context.settingsDataStore by preferencesDataStore(name = "sustenance_settings")
+
+/** Result of the last "verify" tap in Settings. Stored as its lowercase name. */
+enum class VerificationStatus {
+    IDLE, SUCCESS, ERROR;
+
+    companion object {
+        fun fromStored(value: String?): VerificationStatus =
+            entries.firstOrNull { it.name.equals(value, ignoreCase = true) } ?: IDLE
+    }
+}
 
 private val apiKeyKey = stringPreferencesKey("api_key")
 
@@ -106,16 +117,16 @@ class SettingsRepository(private val context: Context) {
         prefs[apiKeyKey] ?: ""
     }
 
-    val apiKeyVerificationStatus: Flow<String> = context.settingsDataStore.data.map { prefs ->
-        prefs[apiKeyVerificationStatusKey] ?: "idle"
+    val apiKeyVerificationStatus: Flow<VerificationStatus> = context.settingsDataStore.data.map { prefs ->
+        VerificationStatus.fromStored(prefs[apiKeyVerificationStatusKey])
     }
 
     val geminiModel: Flow<String> = context.settingsDataStore.data.map { prefs ->
-        prefs[geminiModelKey] ?: "3.5-flash-lite"
+        prefs[geminiModelKey] ?: GeminiManager.DEFAULT_MODEL
     }
 
-    val geminiModelVerificationStatus: Flow<String> = context.settingsDataStore.data.map { prefs ->
-        prefs[geminiModelVerificationStatusKey] ?: "idle"
+    val geminiModelVerificationStatus: Flow<VerificationStatus> = context.settingsDataStore.data.map { prefs ->
+        VerificationStatus.fromStored(prefs[geminiModelVerificationStatusKey])
     }
 
     val pinnedHistoryItems: Flow<Set<String>> = context.settingsDataStore.data.map { prefs ->
@@ -194,9 +205,9 @@ class SettingsRepository(private val context: Context) {
         }
     }
 
-    suspend fun setApiKeyVerificationStatus(status: String) {
+    suspend fun setApiKeyVerificationStatus(status: VerificationStatus) {
         context.settingsDataStore.edit { prefs ->
-            prefs[apiKeyVerificationStatusKey] = status
+            prefs[apiKeyVerificationStatusKey] = status.name.lowercase()
         }
     }
 
@@ -206,9 +217,9 @@ class SettingsRepository(private val context: Context) {
         }
     }
 
-    suspend fun setGeminiModelVerificationStatus(status: String) {
+    suspend fun setGeminiModelVerificationStatus(status: VerificationStatus) {
         context.settingsDataStore.edit { prefs ->
-            prefs[geminiModelVerificationStatusKey] = status
+            prefs[geminiModelVerificationStatusKey] = status.name.lowercase()
         }
     }
 

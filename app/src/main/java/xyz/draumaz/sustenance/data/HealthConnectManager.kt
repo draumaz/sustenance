@@ -108,6 +108,16 @@ class HealthConnectManager(internal val context: Context) {
 
     // ---- Dashboard -----------------------------------------------------------------------------
 
+    /**
+     * The food goal implied by a caloric-balance goal on a given day: energy burned that day minus
+     * the target balance. Null when there's no balance goal or no energy data for the day yet.
+     */
+    suspend fun foodGoalForBalance(balanceGoal: Float, dateOffset: Int): Float? {
+        if (balanceGoal == 0f) return null
+        val energyOnDay = readDailySeries(Metric.TOTAL_CALORIES, 1, dateOffset).lastOrNull()?.value ?: 0f
+        return if (energyOnDay > 0) (energyOnDay - balanceGoal).coerceAtLeast(0f) else null
+    }
+
     fun initialSummaries(
         goals: Map<Metric, Float> = emptyMap(),
         isKeto: Boolean = false
