@@ -2,7 +2,7 @@
 <resources>
     <string name="app_name">Sustenance</string>
     <string name="widget_dashboard_name">Панель Sustenance</string>
-    <string name="widget_description">Наглядные показатели здоровья из Health Connect.</string>
+    <string name="widget_description">Питание за сегодня — с одного взгляда.</string>
 
     <string name="cancel">Отмена</string>
     <string name="save">Сохранить</string>
@@ -59,13 +59,13 @@
 
     <string name="summary_subtitle">Ваш ежедневный отчёт</string>
     <string name="summary_title">Аналитика</string>
-    <string name="insight_over_goal">Вы превысили свою цель. Продукт «%1$s» добавил %2$s сегодня.</string>
-    <string name="insight_good_job">Отличная работа! Вы придерживаетесь своей цели.</string>
+    <string name="insight_over_goal">Цель превышена. Больше всего добавил продукт «%1$s»: %2$s.</string>
+    <string name="insight_good_job">Сегодня вы в рамках цели.</string>
     <string name="new_label">Новое</string>
     <string name="steady_label">Стабильно</string>
     <string name="vs_yesterday">%d%% по сравнению со вчера</string>
     <string name="nothing_here">Здесь пока ничего нет</string>
-    <string name="grant_access_prompt">Разрешите доступ к данным о питании в Настройках, чтобы увидеть результаты.</string>
+    <string name="grant_access_prompt">Разрешите доступ к данным о питании в Health Connect, чтобы увидеть аналитику.</string>
     <string name="edit_goal_desc">Изменить цель</string>
 
     <string name="settings_subtitle">Полезные настройки</string>
@@ -78,27 +78,27 @@
     <string name="dynamic_color">Динамические цвета</string>
     <string name="dynamic_color_summary">Использовать цвета системных обоев (Android 12+)</string>
     <string name="keto_mode">Режим чистых углеводов</string>
-    <string name="keto_mode_summary">Показывать чистые углеводы (Углеводы - Клетчатка)</string>
+    <string name="keto_mode_summary">Показывать углеводы за вычетом клетчатки</string>
     <string name="gram_increment">Шаг изменения в граммах</string>
-    <string name="gram_increment_summary">Величина изменения кнопками +/- при просмотре еды</string>
-    <string name="gram_increment_amount">Величина шага в граммах</string>
+    <string name="gram_increment_summary">Шаг кнопок +/− при просмотре еды</string>
+    <string name="gram_increment_amount">Шаг</string>
     <string name="judgemental_mode">Осуждающий режим</string>
-    <string name="judgemental_mode_summary">Получайте мгновенную обратную связь по записанным продуктам относительно ваших целей</string>
-    <string name="show_last_log_timer">Показывать таймер последнего приема пищи</string>
-    <string name="show_last_log_timer_summary">Отображать время, прошедшее с момента последней записи еды</string>
+    <string name="judgemental_mode_summary">Отмечать продукты, с которыми вы превысите дневной лимит</string>
+    <string name="show_last_log_timer">Таймер голодания</string>
+    <string name="show_last_log_timer_summary">Показывать, сколько времени прошло с последнего приёма пищи</string>
     <string name="fast_breaking_calories">Калории для прерывания голодания</string>
-    <string name="fast_breaking_calories_summary">Минимум калорий для сброса таймера голодания</string>
+    <string name="fast_breaking_calories_summary">Приёмы пищи меньше этого значения не прерывают голодание</string>
     <string name="fasting_goal">Цель голодания</string>
-    <string name="fasting_goal_summary">Целевое количество часов для голодания</string>
+    <string name="fasting_goal_summary">Сколько часов вы хотите голодать</string>
     <string name="fasting_notifications">Уведомления о голодании</string>
-    <string name="fasting_notifications_summary">Уведомлять меня по достижении цели голодания</string>
-    <string name="fasting_goal_met_title">Цель голодания достигнута!</string>
-    <string name="fasting_goal_met_body">Вы достигли цели голодания в %s ч. Отличная работа!</string>
-    <string name="notification_channel_fasting">Уведомления о голодании</string>
+    <string name="fasting_notifications_summary">Уведомлять, когда цель голодания достигнута</string>
+    <string name="fasting_goal_met_title">Цель голодания достигнута</string>
+    <string name="fasting_goal_met_body">Вы голодали %s ч.</string>
+    <string name="notification_channel_fasting">Голодание</string>
     <string name="time_since_last_ate">Время голодания</string>
-    <string name="hour_minute_format">%1$dч %2$dмин</string>
-    <string name="enable_food_logging">Включить запись еды</string>
-    <string name="food_logging_summary">Требуется API-ключ AI Studio.</string>
+    <string name="hour_minute_format">%1$dч %2$dм</string>
+    <string name="enable_food_logging">Запись еды по фото</string>
+    <string name="food_logging_summary">Нужен API-ключ Gemini из Google AI Studio</string>
     <string name="api_key">API-ключ</string>
     <string name="hide_api_key">Скрыть API-ключ</string>
     <string name="show_api_key">Показать API-ключ</string>
@@ -106,16 +106,16 @@
     <string name="verify_model">Проверить модель</string>
     <string name="verify_api_key">Проверить API-ключ</string>
     <string name="invalid_model_name">Недействительное имя модели</string>
-    <string name="launch_hc">Запустить Health Connect</string>
-    <string name="launch_hc_summary">Убедитесь, что у Sustenance есть доступ к вашим данным о здоровье.</string>
-    <string name="about_summary">Ваш удобный офлайн-дневник питания на базе Health Connect.</string>
+    <string name="launch_hc">Открыть Health Connect</string>
+    <string name="launch_hc_summary">Проверьте, к чему у Sustenance есть доступ</string>
+    <string name="about_summary">Ваше питание с одного взгляда, на базе Health Connect.</string>
 
     <string name="edit_caloric_balance_offset">Изменить смещение калорийного баланса</string>
     <string name="edit_metric_goal">Изменить цель: %s</string>
     <string name="offset_label">Смещение (%s)</string>
     <string name="target_label">Цель (%s)</string>
     <string name="delete_log_title">Удалить запись?</string>
-    <string name="delete_log_confirm">Вы уверены, что хотите удалить «%s»?</string>
+    <string name="delete_log_confirm">«%s» будет удалено из Health Connect.</string>
     <string name="recent_records">Последние записи</string>
     <string name="todays_intake">Сегодняшний рацион</string>
     <string name="offset_short">Смещение</string>
@@ -148,7 +148,7 @@
     <string name="error_reading_data">Ошибка при чтении данных</string>
     <string name="permission_not_granted">Доступ не предоставлен</string>
 
-    <string name="optional_info">(Дополнительная информация - необязательно)</string>
+    <string name="optional_info">Добавьте детали (необязательно)</string>
     <string name="select_from_gallery">Выбрать из галереи</string>
     <plurals name="analyze_photos">
         <item quantity="one">Анализировать фото (%d)</item>
@@ -160,24 +160,24 @@
     <string name="analyze">Анализировать</string>
     <string name="add_label">Добавить</string>
     <string name="history">История</string>
-    <string name="no_history">История не найдена</string>
+    <string name="no_history">Истории пока нет</string>
     <string name="log">Запись</string>
 
-    <string name="api_key_missing">API-ключ отсутствует.</string>
-    <string name="api_key_invalid">API-ключ отсутствует или недействителен.</string>
+    <string name="api_key_missing">Сначала добавьте API-ключ Gemini.</string>
+    <string name="api_key_invalid">Не удалось проверить этот API-ключ.</string>
     <string name="analysis_failed">Ошибка анализа: %s</string>
     <string name="no_response_from_gemini">Нет ответа от Gemini</string>
-    <string name="write_permission_required">Требуется разрешение на запись. Пожалуйста, включите его.</string>
+    <string name="write_permission_required">Разрешите Sustenance записывать данные о питании в Health Connect.</string>
     <string name="failed_to_log_food">Не удалось записать еду</string>
     <string name="failed_to_delete_log">Не удалось удалить запись</string>
-    <string name="are_you_sure">Вы уверены?</string>
-    <string name="judgement_negative_warning">Употребление этого продукта помешает вам остаться в рамках установленных целей.</string>
+    <string name="are_you_sure">Лимит будет превышен</string>
+    <string name="judgement_negative_warning">Если записать этот продукт, вы превысите один из дневных лимитов.</string>
     <string name="log_anyway">Все равно записать</string>
     <string name="estimate_explanation">Что Gemini оценил на глаз</string>
     <string name="close">Закрыть</string>
     <string name="onboarding_title">Добро пожаловать в Sustenance</string>
-    <string name="onboarding_subtitle">Приватный и наглядный дневник вашего питания. Sustenance только читает данные — они никогда не покидают ваше устройство.</string>
-    <string name="onboarding_button">Подключить Health Connect</string>
+    <string name="onboarding_subtitle">Понятный и приватный обзор данных о питании из Health Connect.</string>
+    <string name="onboarding_button">Начать</string>
     <string name="goal_setup_title">Задайте дневные цели</string>
     <string name="goal_setup_subtitle">Sustenance сравнивает ваше питание с этими целями. Их можно изменить в любой момент в разделе «Аналитика».</string>
     <string name="goal_setup_energy">Энергия</string>
@@ -189,7 +189,7 @@
     <string name="goal_setup_skip">Не сейчас</string>
     <string name="goal_setup_reminder">Сейчас используются цели по умолчанию</string>
     <string name="unavailable_title">Требуется Health Connect</string>
-    <string name="unavailable_subtitle">Sustenance требует наличия Health Connect для безопасного доступа к вашим данным о питании. Пожалуйста, установите его.</string>
+    <string name="unavailable_subtitle">Sustenance читает и записывает данные о питании через Health Connect. Установите его, чтобы продолжить.</string>
     <string name="unavailable_button">Скачать Health Connect</string>
 
     <string name="about_author">Разработчик</string>
