@@ -69,6 +69,7 @@ class SettingsRepository(private val context: Context) {
     private val geminiModelVerificationStatusKey = stringPreferencesKey("gemini_model_verification_status")
     private val pinnedHistoryItemsKey = stringSetPreferencesKey("pinned_history_items")
     private val goalSetupPendingKey = booleanPreferencesKey("goal_setup_pending")
+    private val goalSetupDeferredKey = booleanPreferencesKey("goal_setup_deferred")
 
     val dynamicColor: Flow<Boolean> = context.settingsDataStore.data.map { prefs ->
         prefs[dynamicColorKey] ?: true
@@ -148,6 +149,19 @@ class SettingsRepository(private val context: Context) {
     suspend fun setGoalSetupPending(pending: Boolean) {
         context.settingsDataStore.edit { prefs ->
             prefs[goalSetupPendingKey] = pending
+        }
+    }
+
+    /** True once the user taps "Not now" on goal setup, until they save goals from it. */
+    val goalSetupDeferred: Flow<Boolean> = context.settingsDataStore.data.map { prefs ->
+        prefs[goalSetupDeferredKey] ?: false
+    }
+
+    /** Closes the goal setup step; [deferred] keeps a prompt in Settings to finish it later. */
+    suspend fun finishGoalSetup(deferred: Boolean) {
+        context.settingsDataStore.edit { prefs ->
+            prefs[goalSetupPendingKey] = false
+            prefs[goalSetupDeferredKey] = deferred
         }
     }
 

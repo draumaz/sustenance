@@ -186,7 +186,8 @@
     <string name="goal_setup_daily_goal">Дневная цель</string>
     <string name="goal_setup_daily_limit">Дневной лимит</string>
     <string name="goal_setup_save">Сохранить цели</string>
-    <string name="goal_setup_skip">Использовать по умолчанию</string>
+    <string name="goal_setup_skip">Не сейчас</string>
+    <string name="goal_setup_reminder">Сейчас используются цели по умолчанию</string>
     <string name="unavailable_title">Требуется Health Connect</string>
     <string name="unavailable_subtitle">Sustenance требует наличия Health Connect для безопасного доступа к вашим данным о питании. Пожалуйста, установите его.</string>
     <string name="unavailable_button">Скачать Health Connect</string>

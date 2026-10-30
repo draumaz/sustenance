@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.automirrored.rounded.OpenInNew
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.HealthAndSafety
@@ -29,6 +30,7 @@ import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Psychology
 import androidx.compose.material.icons.rounded.Scale
+import androidx.compose.material.icons.rounded.TrackChanges
 import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material.icons.rounded.Whatshot
@@ -112,13 +114,15 @@ fun SettingsScreen(
     val scope = rememberCoroutineScope()
     val vm: SettingsViewModel = viewModel(factory = SettingsViewModel.factory(settingsRepo))
     val dynamicColor by vm.dynamicColor.collectAsState(initial = true)
+    val goalSetupDeferred by settingsRepo.goalSetupDeferred.collectAsState(initial = false)
 
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
     val listState = rememberLazyListState()
 
-    LaunchedEffect(scrollTo) {
+    LaunchedEffect(scrollTo, goalSetupDeferred) {
         if (scrollTo == "fasting") {
-            listState.animateScrollToItem(2)
+            // The diet card sits one item lower while the goal setup prompt is shown.
+            listState.animateScrollToItem(if (goalSetupDeferred) 3 else 2)
         }
     }
 
@@ -167,6 +171,51 @@ fun SettingsScreen(
             ),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
+            if (goalSetupDeferred) {
+                item {
+                    // Highlighted until the user finishes the goal step they skipped during setup.
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.extraLarge,
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        ),
+                    ) {
+                        Row(
+                            Modifier
+                                .fillMaxWidth()
+                                .clickable { scope.launch { settingsRepo.setGoalSetupPending(true) } }
+                                .padding(horizontal = 16.dp, vertical = 18.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                Icons.Rounded.TrackChanges, null,
+                                tint = MaterialTheme.colorScheme.onPrimary,
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.primary)
+                                    .padding(9.dp),
+                            )
+                            Spacer(Modifier.size(16.dp))
+                            Column(Modifier.weight(1f)) {
+                                Text(
+                                    stringResource(R.string.goal_setup_title),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                                Text(
+                                    stringResource(R.string.goal_setup_reminder),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                )
+                            }
+                            Spacer(Modifier.size(16.dp))
+                            Icon(Icons.AutoMirrored.Rounded.ArrowForward, null)
+                        }
+                    }
+                }
+            }
             item { SectionLabel(stringResource(R.string.section_appearance)) }
             item {
                 SettingsCard {

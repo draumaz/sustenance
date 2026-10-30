@@ -45,6 +45,7 @@ import androidx.core.net.toUri
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.roundToInt
@@ -83,7 +84,7 @@ import xyz.draumaz.sustenance.ui.components.PredictiveBackState
 import xyz.draumaz.sustenance.ui.components.ScallopedLoadingAnimation
 import xyz.draumaz.sustenance.ui.dashboard.DashboardScreen
 import xyz.draumaz.sustenance.ui.detail.DetailScreen
-import xyz.draumaz.sustenance.ui.onboarding.GoalSetupSheet
+import xyz.draumaz.sustenance.ui.onboarding.GoalSetupScreen
 import xyz.draumaz.sustenance.ui.onboarding.LoadingScreen
 import xyz.draumaz.sustenance.ui.onboarding.OnboardingScreen
 import xyz.draumaz.sustenance.ui.onboarding.UnavailableScreen
@@ -161,6 +162,9 @@ fun SustenanceRoot(
     // True while the initial setup is chaining its permission requests (data → background).
     var inSetup by remember { mutableStateOf(value = false) }
     var requestedExtras by remember { mutableStateOf(value = false) }
+    // Bumped once per permission result during setup. Declining leaves `granted` unchanged, so
+    // the setup step can't key on it alone or it would never advance past the spinner.
+    var setupResults by remember { mutableIntStateOf(0) }
     val scope = rememberCoroutineScope()
 
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -168,6 +172,7 @@ fun SustenanceRoot(
     ) { _ ->
         scope.launch {
             granted = manager.grantedPermissions()
+            if (inSetup) setupResults++
             WidgetUpdateWorker.enqueue(currentContext)
         }
     }
@@ -187,10 +192,15 @@ fun SustenanceRoot(
     val hasData = (granted ?: emptySet()).any { it in manager.metricPermissions }
     val hasBackground = granted?.contains(HealthConnectManager.PERMISSION_READ_IN_BACKGROUND) == true
 
+    // Null until DataStore answers, so a pending goal step never flashes the dashboard first.
+    val goalSetupPending by settingsRepo.goalSetupPending.collectAsState<Boolean, Boolean?>(initial = null)
+    val currentGoals by goalsRepo.goals.collectAsState(initial = null)
+    val goalsToEdit = currentGoals
+
     // Setup is one continuous flow: after data is granted, immediately chain the background +
     // history prompt (HC won't allow it in the same request), so widgets work straight away.
-    LaunchedEffect(inSetup, granted) {
-        if (!inSetup || granted == null) return@LaunchedEffect
+    LaunchedEffect(setupResults) {
+        if (!inSetup || setupResults == 0) return@LaunchedEffect
         when {
             !hasData -> inSetup = false              // user declined data; back to onboarding
             !hasBackground && !requestedExtras -> {  // data in, now ask for background once
@@ -199,6 +209,8 @@ fun SustenanceRoot(
             }
             else -> {                                // background resolved → enter the app
                 settingsRepo.setGoalSetupPending(true)
+                // Wait for the flag to reach the UI so the dashboard doesn't flash before goals.
+                snapshotFlow { goalSetupPending }.first { it == true }
                 inSetup = false
             }
         }
@@ -239,8 +251,19 @@ fun SustenanceRoot(
     }
 
     when {
-        granted == null || inSetup -> LoadingScreen()
+        granted == null || inSetup || goalSetupPending == null -> LoadingScreen()
         !hasData -> OnboardingScreen(onConnect = ::startSetup)
+        // Last step of setup: set goals before the dashboard ever loads.
+        goalSetupPending == true -> if (goalsToEdit == null) LoadingScreen() else GoalSetupScreen(
+            initial = goalsToEdit,
+            onSave = { values ->
+                scope.launch {
+                    goalsRepo.setGoals(values)
+                    settingsRepo.finishGoalSetup(deferred = false)
+                }
+            },
+            onSkip = { scope.launch { settingsRepo.finishGoalSetup(deferred = true) } },
+        )
         else -> {
             MainNav(
                 manager, goalsRepo, settingsRepo,
@@ -253,21 +276,6 @@ fun SustenanceRoot(
                 onSharedImagesConsumed = onSharedImagesConsumed,
                 onLogConsumed = onLogConsumed
             )
-            val goalSetupPending by settingsRepo.goalSetupPending.collectAsState(initial = false)
-            val currentGoals by goalsRepo.goals.collectAsState(initial = null)
-            val goalsToEdit = currentGoals
-            if (goalSetupPending && goalsToEdit != null) {
-                GoalSetupSheet(
-                    initial = goalsToEdit,
-                    onSave = { values ->
-                        scope.launch {
-                            goalsRepo.setGoals(values)
-                            settingsRepo.setGoalSetupPending(false)
-                        }
-                    },
-                    onSkip = { scope.launch { settingsRepo.setGoalSetupPending(false) } },
-                )
-            }
         }
     }
 }

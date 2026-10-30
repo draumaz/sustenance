@@ -6,13 +6,16 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -22,19 +25,15 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.TrackChanges
 import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -46,7 +45,6 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.launch
 import xyz.draumaz.sustenance.R
 import xyz.draumaz.sustenance.data.Metric
 import xyz.draumaz.sustenance.data.parseDecimal
@@ -56,18 +54,15 @@ private val macroMetrics = listOf(Metric.PROTEIN, Metric.CARBS, Metric.FAT)
 private val microMetrics = listOf(Metric.SATURATED_FAT, Metric.SUGAR, Metric.FIBER, Metric.SODIUM)
 
 /**
- * Shown once, right after Health Connect is first linked, so the user can set their daily
- * targets before the dashboard starts measuring against the defaults. Dismissing keeps [initial].
+ * The last step of first-time setup, shown after Health Connect is linked and before the
+ * dashboard loads, so the user sets daily targets up front. "Not now" keeps [initial].
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun GoalSetupSheet(
+fun GoalSetupScreen(
     initial: Map<Metric, Float>,
     onSave: (Map<Metric, Float>) -> Unit,
     onSkip: () -> Unit,
 ) {
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-    val scope = rememberCoroutineScope()
     val metrics = energyMetrics + macroMetrics + microMetrics
     val text = remember {
         mutableStateMapOf<Metric, String>().apply {
@@ -77,68 +72,58 @@ fun GoalSetupSheet(
     val parsed = metrics.associateWith { text[it]?.let(::parseDecimal)?.toFloat() }
     val allValid = parsed.values.all { it != null }
 
-    // Animate the sheet away before reporting, so it doesn't vanish mid-frame.
-    fun close(then: () -> Unit) {
-        scope.launch { sheetState.hide() }.invokeOnCompletion { then() }
-    }
-
-    ModalBottomSheet(
-        onDismissRequest = onSkip,
-        sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+    // Insets are padded inside the scroll so the list runs under the transparent system bars.
+    Column(
+        Modifier
+            .fillMaxSize()
+            .imePadding()
+            .verticalScroll(rememberScrollState())
+            .windowInsetsPadding(WindowInsets.systemBars)
+            .padding(horizontal = 24.dp)
+            .padding(top = 32.dp, bottom = 16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Column(
-            Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .imePadding()
-                .navigationBarsPadding()
-                .padding(horizontal = 24.dp)
-                .padding(bottom = 16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
+        Box(
+            Modifier.size(72.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer),
+            contentAlignment = Alignment.Center,
         ) {
-            Box(
-                Modifier.size(72.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    Icons.Rounded.TrackChanges, null,
-                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                    modifier = Modifier.size(36.dp),
-                )
-            }
-            Spacer(Modifier.height(20.dp))
-            Text(
-                stringResource(R.string.goal_setup_title),
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Black,
-                textAlign = TextAlign.Center,
+            Icon(
+                Icons.Rounded.TrackChanges, null,
+                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                modifier = Modifier.size(36.dp),
             )
-            Spacer(Modifier.height(8.dp))
-            Text(
-                stringResource(R.string.goal_setup_subtitle),
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-            )
+        }
+        Spacer(Modifier.height(20.dp))
+        Text(
+            stringResource(R.string.goal_setup_title),
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Black,
+            textAlign = TextAlign.Center,
+        )
+        Spacer(Modifier.height(8.dp))
+        Text(
+            stringResource(R.string.goal_setup_subtitle),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
 
-            GoalSection(R.string.goal_setup_energy, energyMetrics, text)
-            GoalSection(R.string.goal_setup_macros, macroMetrics, text)
-            GoalSection(R.string.goal_setup_micros, microMetrics, text, isLast = true)
+        GoalSection(R.string.goal_setup_energy, energyMetrics, text)
+        GoalSection(R.string.goal_setup_macros, macroMetrics, text)
+        GoalSection(R.string.goal_setup_micros, microMetrics, text, isLast = true)
 
-            Spacer(Modifier.height(28.dp))
-            Button(
-                onClick = { close { onSave(parsed.mapValues { it.value!! }) } },
-                enabled = allValid,
-                modifier = Modifier.fillMaxWidth().height(56.dp),
-                shape = CircleShape,
-            ) {
-                Text(stringResource(R.string.goal_setup_save), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            }
-            Spacer(Modifier.height(4.dp))
-            TextButton(onClick = { close(onSkip) }, modifier = Modifier.fillMaxWidth()) {
-                Text(stringResource(R.string.goal_setup_skip))
-            }
+        Spacer(Modifier.height(28.dp))
+        Button(
+            onClick = { onSave(parsed.mapValues { it.value!! }) },
+            enabled = allValid,
+            modifier = Modifier.fillMaxWidth().height(56.dp),
+            shape = CircleShape,
+        ) {
+            Text(stringResource(R.string.goal_setup_save), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+        }
+        Spacer(Modifier.height(4.dp))
+        TextButton(onClick = onSkip, modifier = Modifier.fillMaxWidth()) {
+            Text(stringResource(R.string.goal_setup_skip))
         }
     }
 }

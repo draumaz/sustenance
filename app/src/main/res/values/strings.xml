@@ -184,7 +184,8 @@
     <string name="goal_setup_daily_goal">Daily goal</string>
     <string name="goal_setup_daily_limit">Daily limit</string>
     <string name="goal_setup_save">Save goals</string>
-    <string name="goal_setup_skip">Use defaults</string>
+    <string name="goal_setup_skip">Not now</string>
+    <string name="goal_setup_reminder">You\'re using the default targets</string>
     <string name="unavailable_title">Health Connect needed</string>
     <string name="unavailable_subtitle">Sustenance requires Health Connect to access your nutritional data securely. Please install it to continue.</string>
     <string name="unavailable_button">Get Health Connect</string>
