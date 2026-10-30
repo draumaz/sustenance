@@ -77,9 +77,7 @@
     <string name="section_about">О приложении</string>
     <string name="dynamic_color">Динамические цвета</string>
     <string name="dynamic_color_summary">Использовать цвета системных обоев (Android 12+)</string>
-    <string name="app_language">Язык приложения</string>
-    <string name="app_language_summary">Задать предпочитаемый язык для Sustenance в системных настройках</string>
-    <string name="keto_mode">Кето-режим</string>
+    <string name="keto_mode">Режим чистых углеводов</string>
     <string name="keto_mode_summary">Показывать чистые углеводы (Углеводы - Клетчатка)</string>
     <string name="gram_increment">Шаг изменения в граммах</string>
     <string name="gram_increment_summary">Величина изменения кнопками +/- при просмотре еды</string>
