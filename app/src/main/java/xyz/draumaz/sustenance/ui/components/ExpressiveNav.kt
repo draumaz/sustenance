@@ -5,8 +5,8 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.expandVertically
-import androidx.compose.animation.core.FiniteAnimationSpec
-import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
@@ -16,6 +16,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.interaction.InteractionSource
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -97,13 +98,8 @@ private val ToolbarItemSpacing = 4.dp
 private val ToolbarElevation = 6.dp // Elevation level 3
 private val ToolbarScreenOffset = 16.dp
 
-// M3 Expressive motion scheme springs. MotionScheme.expressive() is still internal in
-// material3 1.4.0, so these mirror its ExpressiveMotionTokens.
-private fun <T> expressiveSpatialSpec(): FiniteAnimationSpec<T> =
-    spring(dampingRatio = 0.8f, stiffness = 380f)
-
-private fun <T> expressiveEffectsSpec(): FiniteAnimationSpec<T> =
-    spring(dampingRatio = 1f, stiffness = 1600f)
+// How far a toolbar item squishes while held. Released, the fast spatial spring overshoots back.
+private const val PressedScale = 0.88f
 
 @Composable
 fun ExpressiveNavigationBar(
@@ -194,12 +190,12 @@ fun ExpressiveNavigationBar(
         // Grows up out of the toolbar so it reads as part of it.
         AnimatedVisibility(
             visible = isCameraMode && isBatchMode,
-            enter = expandVertically(expressiveSpatialSpec(), expandFrom = Alignment.Bottom) +
-                scaleIn(expressiveSpatialSpec(), initialScale = 0.8f, transformOrigin = TransformOrigin(0.5f, 1f)) +
-                fadeIn(expressiveEffectsSpec()),
-            exit = shrinkVertically(expressiveSpatialSpec(), shrinkTowards = Alignment.Bottom) +
-                scaleOut(expressiveSpatialSpec(), targetScale = 0.8f, transformOrigin = TransformOrigin(0.5f, 1f)) +
-                fadeOut(expressiveEffectsSpec()),
+            enter = expandVertically(ExpressiveSprings.defaultSpatial(), expandFrom = Alignment.Bottom) +
+                scaleIn(ExpressiveSprings.defaultSpatial(), initialScale = 0.8f, transformOrigin = TransformOrigin(0.5f, 1f)) +
+                fadeIn(ExpressiveSprings.defaultEffects()),
+            exit = shrinkVertically(ExpressiveSprings.defaultSpatial(), shrinkTowards = Alignment.Bottom) +
+                scaleOut(ExpressiveSprings.defaultSpatial(), targetScale = 0.8f, transformOrigin = TransformOrigin(0.5f, 1f)) +
+                fadeOut(ExpressiveSprings.defaultEffects()),
             label = "batch_info_box"
         ) {
             Surface(
@@ -239,7 +235,7 @@ fun ExpressiveNavigationBar(
         }
 
         Surface(
-            modifier = Modifier.animateContentSize(expressiveSpatialSpec()),
+            modifier = Modifier.animateContentSize(ExpressiveSprings.defaultSpatial()),
             shape = CircleShape,
             color = MaterialTheme.colorScheme.surfaceContainer,
             shadowElevation = ToolbarElevation
@@ -380,19 +376,39 @@ fun ExpressiveNavItem(
 ) {
     val (interactionSource, handleClick) = rememberLongHoldClick(onClick, onLongHold)
 
+    // Pop the icon when this item becomes selected (not on first composition): it starts small
+    // and the fast spatial spring's overshoot bounces it into place as the indicator expands.
+    val iconScale = remember { Animatable(1f) }
+    var wasSelected by remember { mutableStateOf(selected) }
+    LaunchedEffect(selected) {
+        if (selected && !wasSelected) {
+            iconScale.snapTo(0.7f)
+            iconScale.animateTo(1f, ExpressiveSprings.fastSpatial())
+        }
+        wasSelected = selected
+    }
+
     ShortNavigationBarItem(
         selected = selected,
         onClick = handleClick,
+        modifier = Modifier.pressScale(interactionSource),
         icon = {
             AnimatedContent(
                 targetState = icon,
-                transitionSpec = { fadeIn(expressiveEffectsSpec()) togetherWith fadeOut(expressiveEffectsSpec()) },
+                transitionSpec = {
+                    (scaleIn(ExpressiveSprings.fastSpatial(), initialScale = 0.5f) + fadeIn(ExpressiveSprings.fastEffects())) togetherWith
+                        (scaleOut(ExpressiveSprings.fastSpatial(), targetScale = 0.5f) + fadeOut(ExpressiveSprings.fastEffects()))
+                },
                 label = "nav_item_icon"
             ) { targetIcon ->
                 Icon(
                     imageVector = targetIcon,
                     // The label is announced instead whenever it's visible.
-                    contentDescription = if (selected) null else label
+                    contentDescription = if (selected) null else label,
+                    modifier = Modifier.graphicsLayer {
+                        scaleX = iconScale.value
+                        scaleY = iconScale.value
+                    },
                 )
             }
         },
@@ -400,7 +416,7 @@ fun ExpressiveNavItem(
             {
                 AnimatedContent(
                     targetState = label,
-                    transitionSpec = { fadeIn(expressiveEffectsSpec()) togetherWith fadeOut(expressiveEffectsSpec()) },
+                    transitionSpec = { fadeIn(ExpressiveSprings.defaultEffects()) togetherWith fadeOut(ExpressiveSprings.defaultEffects()) },
                     label = "nav_item_label"
                 ) { targetLabel ->
                     Text(text = targetLabel, maxLines = 1)
@@ -429,6 +445,7 @@ private fun ToolbarAction(
     if (emphasized) {
         FilledTonalButton(
             onClick = handleClick,
+            modifier = Modifier.pressScale(interactionSource),
             contentPadding = ButtonDefaults.ButtonWithIconContentPadding,
             interactionSource = interactionSource
         ) {
@@ -441,9 +458,31 @@ private fun ToolbarAction(
             Text(text = label, maxLines = 1)
         }
     } else {
-        IconButton(onClick = handleClick, interactionSource = interactionSource) {
+        IconButton(
+            onClick = handleClick,
+            modifier = Modifier.pressScale(interactionSource),
+            interactionSource = interactionSource,
+        ) {
             Icon(imageVector = icon, contentDescription = label)
         }
+    }
+}
+
+/**
+ * Squishes the component while it's held and springs it back on release. Uses the fast spatial
+ * spec, so the release overshoots slightly. The scale is read in the draw phase only.
+ */
+@Composable
+private fun Modifier.pressScale(interactionSource: InteractionSource): Modifier {
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) PressedScale else 1f,
+        animationSpec = ExpressiveSprings.fastSpatial(),
+        label = "press_scale",
+    )
+    return graphicsLayer {
+        scaleX = scale
+        scaleY = scale
     }
 }
 

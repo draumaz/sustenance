@@ -34,6 +34,7 @@ object ExpressiveSprings {
     fun <T> fastSpatial(visibilityThreshold: T? = null) = spring(0.6f, 800f, visibilityThreshold)
     fun <T> defaultSpatial(visibilityThreshold: T? = null) = spring(0.8f, 380f, visibilityThreshold)
     fun <T> defaultEffects(visibilityThreshold: T? = null) = spring(1f, 1600f, visibilityThreshold)
+    fun <T> fastEffects(visibilityThreshold: T? = null) = spring(1f, 3800f, visibilityThreshold)
 }
 
 /**
