@@ -55,7 +55,10 @@ class SustenanceWidget : GlanceAppWidget() {
 
         val summaries = if (manager.isAvailable) {
             runCatching {
-                manager.readDashboard(goals = goals, isKeto = isKeto)
+                // Same food goal the dashboard shows when a caloric-balance goal is set.
+                val foodGoal = manager.foodGoalForBalance(goals[Metric.CALORIC_BALANCE] ?: 0f, 0)
+                val finalGoals = if (foodGoal != null) goals + (Metric.FOOD to foodGoal) else goals
+                manager.readDashboard(goals = finalGoals, isKeto = isKeto)
             }.getOrDefault(emptyList())
         } else emptyList()
 

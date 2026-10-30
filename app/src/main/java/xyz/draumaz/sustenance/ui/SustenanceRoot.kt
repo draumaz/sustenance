@@ -73,7 +73,6 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import xyz.draumaz.sustenance.R
-import xyz.draumaz.sustenance.data.ExportManager
 import xyz.draumaz.sustenance.data.GoalsRepository
 import xyz.draumaz.sustenance.data.HealthConnectManager
 import xyz.draumaz.sustenance.data.Metric
@@ -137,7 +136,6 @@ fun SustenanceRoot(
     manager: HealthConnectManager,
     goalsRepo: GoalsRepository,
     settingsRepo: SettingsRepository,
-    exporter: ExportManager,
     deepLinkMetric: String? = null,
     sharedImageUris: List<Uri>? = null,
     launchLog: Boolean = false,
@@ -245,7 +243,7 @@ fun SustenanceRoot(
         !hasData -> OnboardingScreen(onConnect = ::startSetup)
         else -> {
             MainNav(
-                manager, goalsRepo, settingsRepo, exporter,
+                manager, goalsRepo, settingsRepo,
                 granted = granted ?: emptySet(),
                 onManagePermissions = ::manageAccess,
                 deepLinkMetric = deepLinkMetric,
@@ -279,7 +277,6 @@ private fun MainNav(
     manager: HealthConnectManager,
     goalsRepo: GoalsRepository,
     settingsRepo: SettingsRepository,
-    exporter: ExportManager,
     granted: Set<String>,
     onManagePermissions: () -> Unit,
     deepLinkMetric: String? = null,
@@ -333,10 +330,8 @@ private fun MainNav(
         ActivityResultContracts.GetMultipleContents()
     ) { uris ->
         scope.launch {
-            uris.forEach { uri ->
-                decodeDownsampledBitmap(currentContext, uri)?.let { bitmap ->
-                    capturedBitmaps += bitmap
-                }
+            capturedBitmaps += withContext(Dispatchers.IO) {
+                uris.mapNotNull { decodeDownsampledBitmap(currentContext, it) }
             }
             if (uris.isNotEmpty()) {
                 isBatchMode = true
@@ -459,10 +454,8 @@ private fun MainNav(
         sharedImageUris?.let { uris ->
             isCameraActive = true
             isBatchMode = true
-            uris.forEach { uri ->
-                decodeDownsampledBitmap(currentContext, uri)?.let { bitmap ->
-                    capturedBitmaps += bitmap
-                }
+            capturedBitmaps += withContext(Dispatchers.IO) {
+                uris.mapNotNull { decodeDownsampledBitmap(currentContext, it) }
             }
             onSharedImagesConsumed()
         }
@@ -642,8 +635,6 @@ private fun MainNav(
                     exitTransition = { fadeOut(tween(200)) }
                 ) { entry ->
                     SettingsScreen(
-                        manager = manager,
-                        exporter = exporter,
                         settingsRepo = settingsRepo,
                         bottomInset = inner.calculateBottomPadding(),
                         onManagePermissions = onManagePermissions,
@@ -682,10 +673,6 @@ private fun MainNav(
                         }
                 )
             }
-
-
-
-
 
             androidx.compose.animation.AnimatedVisibility(
                 visible = isCameraActive && !isHistoryActive && pendingNutrients == null,

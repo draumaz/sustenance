@@ -18,7 +18,6 @@ import androidx.core.content.IntentCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import xyz.draumaz.sustenance.ui.SustenanceRoot
 import xyz.draumaz.sustenance.ui.theme.SustenanceTheme
-import xyz.draumaz.sustenance.notifications.NotificationHelper
 
 class MainActivity : ComponentActivity() {
 
@@ -32,8 +31,9 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         window.isNavigationBarContrastEnforced = false
-        handleIntent(intent)
-        NotificationHelper.createNotificationChannels(this)
+        // Only on a fresh launch: after a configuration change (e.g. rotation) the launch intent
+        // would otherwise re-open the camera or re-import shared images.
+        if (savedInstanceState == null) handleIntent(intent)
         val app = application as SustenanceApp
         setContent {
             val dynamicColor by app.settings.dynamicColor.collectAsState(initial = true)
@@ -46,7 +46,6 @@ class MainActivity : ComponentActivity() {
                         manager = app.healthConnect,
                         goalsRepo = app.goals,
                         settingsRepo = app.settings,
-                        exporter = app.exporter,
                         deepLinkMetric = deepLinkMetric,
                         sharedImageUris = sharedImages,
                         launchLog = shouldLog,

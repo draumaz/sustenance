@@ -59,10 +59,6 @@ class DashboardViewModel(
     val fastingGoalHours = settingsRepo.fastingGoalHours
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 16f)
 
-    val summaries = combine(_summariesMap, _dateOffset) { map, offset ->
-        map[offset]
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
-
     private val _refreshing = MutableStateFlow(false)
     val refreshing = _refreshing.asStateFlow()
 
@@ -204,21 +200,29 @@ class DetailViewModel(
         }
     }
 
+    private var refreshJob: Job? = null
+
+    // Goal and Health Connect changes can trigger refreshes in bursts; only the latest one runs,
+    // so an older read can't land after (and overwrite) a newer one.
     fun refresh(showIndicator: Boolean = true) {
-        viewModelScope.launch {
+        refreshJob?.cancel()
+        refreshJob = viewModelScope.launch {
             if (showIndicator) _refreshing.value = true
-            val goals = goalsRepo.goals.first()
-            val caloricBalanceGoal = goals[Metric.CALORIC_BALANCE] ?: 0f
+            try {
+                val goals = goalsRepo.goals.first()
+                val caloricBalanceGoal = goals[Metric.CALORIC_BALANCE] ?: 0f
 
-            val finalGoal = if (metric == Metric.FOOD) {
-                manager.foodGoalForBalance(caloricBalanceGoal, dateOffset) ?: goals[metric]
-            } else {
-                goals[metric]
+                val finalGoal = if (metric == Metric.FOOD) {
+                    manager.foodGoalForBalance(caloricBalanceGoal, dateOffset) ?: goals[metric]
+                } else {
+                    goals[metric]
+                }
+
+                _detail.value = manager.readDetail(metric, finalGoal, caloricBalanceGoal != 0f, dateOffset)
+                if (showIndicator) delay(500)
+            } finally {
+                _refreshing.value = false
             }
-
-            _detail.value = manager.readDetail(metric, finalGoal, caloricBalanceGoal != 0f, dateOffset)
-            if (showIndicator) delay(500)
-            _refreshing.value = false
         }
     }
 

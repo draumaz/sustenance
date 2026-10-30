@@ -9,7 +9,7 @@
 
     <!-- Lets the widgets and the periodic refresh worker read while in the background -->
     <uses-permission android:name="android.permission.health.READ_HEALTH_DATA_IN_BACKGROUND" />
-    <!-- Read data older than the default 30-day window (trends + export) -->
+    <!-- Read data older than the default 30-day window (trends) -->
     <uses-permission android:name="android.permission.health.READ_HEALTH_DATA_HISTORY" />
 
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />

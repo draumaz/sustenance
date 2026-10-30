@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import xyz.draumaz.sustenance.R
 import xyz.draumaz.sustenance.data.Metric
+import xyz.draumaz.sustenance.data.parseDecimal
 
 private val energyMetrics = listOf(Metric.FOOD)
 private val macroMetrics = listOf(Metric.PROTEIN, Metric.CARBS, Metric.FAT)
@@ -73,7 +74,7 @@ fun GoalSetupSheet(
             metrics.forEach { m -> initial[m]?.let { put(m, it.toInputText()) } }
         }
     }
-    val parsed = metrics.associateWith { text[it]?.toFloatOrNull() }
+    val parsed = metrics.associateWith { text[it]?.let(::parseDecimal)?.toFloat() }
     val allValid = parsed.values.all { it != null }
 
     // Animate the sheet away before reporting, so it doesn't vanish mid-frame.
@@ -198,9 +199,9 @@ private fun GoalSection(
                     val value = text[metric].orEmpty()
                     OutlinedTextField(
                         value = value,
-                        onValueChange = { text[metric] = it.filter { c -> c.isDigit() || c == '.' } },
+                        onValueChange = { text[metric] = it.filter { c -> c.isDigit() || c == '.' || c == ',' } },
                         singleLine = true,
-                        isError = value.toFloatOrNull() == null,
+                        isError = parseDecimal(value) == null,
                         shape = MaterialTheme.shapes.large,
                         textStyle = MaterialTheme.typography.titleMedium.copy(textAlign = TextAlign.End),
                         suffix = { Text(stringResource(metric.unitRes)) },

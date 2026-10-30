@@ -109,16 +109,6 @@
     <string name="launch_hc">Запустить Health Connect</string>
     <string name="launch_hc_summary">Убедитесь, что у Sustenance есть доступ к вашим данным о здоровье.</string>
     <string name="about_summary">Ваш удобный офлайн-дневник питания на базе Health Connect.</string>
-    <string name="export_no_data">Нет доступных данных для экспорта</string>
-    <plurals name="export_success">
-        <item quantity="one">Экспортирована %1$d запись в формате %2$s</item>
-        <item quantity="few">Экспортировано %1$d записи в формате %2$s</item>
-        <item quantity="many">Экспортировано %1$d записей в формате %2$s</item>
-        <item quantity="other">Экспортировано %1$d записи в формате %2$s</item>
-    </plurals>
-    <string name="export_failed">Ошибка экспорта: %s</string>
-    <string name="export_format_title">Формат экспорта</string>
-    <string name="export_format_summary">Выберите способ сохранения данных.</string>
 
     <string name="edit_caloric_balance_offset">Изменить смещение калорийного баланса</string>
     <string name="edit_metric_goal">Изменить цель: %s</string>

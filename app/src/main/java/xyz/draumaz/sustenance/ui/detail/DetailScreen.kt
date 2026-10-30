@@ -83,6 +83,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.ui.text.style.TextOverflow
 import xyz.draumaz.sustenance.ui.components.NutrientIconList
 import xyz.draumaz.sustenance.data.formatValue
+import xyz.draumaz.sustenance.data.parseDecimal
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -145,7 +146,7 @@ fun DetailScreen(
             },
             confirmButton = {
                 TextButton(onClick = {
-                    text.toFloatOrNull()?.let { vm.setGoal(it) }
+                    parseDecimal(text)?.let { vm.setGoal(it.toFloat()) }
                     showGoalDialog = false
                 }) {
                     Text(stringResource(R.string.save))

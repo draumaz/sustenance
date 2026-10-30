@@ -20,6 +20,7 @@ import androidx.compose.ui.res.stringResource
 import xyz.draumaz.sustenance.R
 import xyz.draumaz.sustenance.data.Metric
 import xyz.draumaz.sustenance.data.WeeklyStat
+import xyz.draumaz.sustenance.data.parseDecimal
 
 @Composable
 fun GoalEditDialog(
@@ -43,16 +44,16 @@ fun GoalEditDialog(
                 Spacer(Modifier.height(12.dp))
                 OutlinedTextField(
                     value = text,
-                    onValueChange = { text = it.filter { c -> c.isDigit() || c == '.' } },
+                    onValueChange = { text = it.filter { c -> c.isDigit() || c == '.' || c == ',' } },
                     singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     suffix = { Text(stringResource(stat.metric.unitRes)) },
                 )
             }
         },
         confirmButton = {
             TextButton(
-                onClick = { text.toFloatOrNull()?.let { onSave(it) } ?: onDismiss() },
+                onClick = { parseDecimal(text)?.let { onSave(it.toFloat()) } ?: onDismiss() },
             ) { Text(stringResource(R.string.save)) }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },

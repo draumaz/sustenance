@@ -109,14 +109,6 @@
     <string name="launch_hc">Launch Health Connect</string>
     <string name="launch_hc_summary">Verify that Sustenance can see your health data.</string>
     <string name="about_summary">Your beautiful, offline nutrition summary, powered by Health Connect.</string>
-    <string name="export_no_data">No accessible data to export</string>
-    <plurals name="export_success">
-        <item quantity="one">Exported %1$d record as %2$s</item>
-        <item quantity="other">Exported %1$d records as %2$s</item>
-    </plurals>
-    <string name="export_failed">Export failed: %s</string>
-    <string name="export_format_title">Export format</string>
-    <string name="export_format_summary">Choose how to save your data.</string>
 
     <string name="edit_caloric_balance_offset">Edit Caloric balance offset</string>
     <string name="edit_metric_goal">Edit %s Goal</string>

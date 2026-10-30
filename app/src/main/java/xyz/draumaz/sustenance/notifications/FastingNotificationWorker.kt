@@ -1,11 +1,14 @@
 package xyz.draumaz.sustenance.notifications
 
 import android.app.NotificationManager
+import android.app.PendingIntent
+import android.content.Intent
 import android.content.Context
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
+import xyz.draumaz.sustenance.MainActivity
 import xyz.draumaz.sustenance.R
 import xyz.draumaz.sustenance.SustenanceApp
 import java.time.Instant
@@ -34,9 +37,19 @@ class FastingNotificationWorker(
             .setContentTitle(applicationContext.getString(R.string.fasting_goal_met_title))
             .setContentText(applicationContext.getString(R.string.fasting_goal_met_body, goalText))
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setContentIntent(openAppIntent())
             .setAutoCancel(true)
 
         notificationManager.notify(NOTIFICATION_ID, builder.build())
+    }
+
+    private fun openAppIntent(): PendingIntent {
+        val intent = Intent(applicationContext, MainActivity::class.java)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+        return PendingIntent.getActivity(
+            applicationContext, 0, intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
     }
 
     companion object {

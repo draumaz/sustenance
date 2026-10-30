@@ -122,9 +122,7 @@ fun FoodReviewDialog(
 
     fun safeParse(s: String): Double? = s.replace(',', '.').toDoubleOrNull()
     fun format(d: Double): String {
-        val res = if ((d % 1.0) == 0.0) d.toInt().toString() else String.format(Locale.US, "%.1f", d)
-        if (res.isEmpty()) android.util.Log.e("FoodReviewDialog", "FORMAT PRODUCED EMPTY STRING FOR $d")
-        return res
+        return if ((d % 1.0) == 0.0) d.toInt().toString() else String.format(Locale.US, "%.1f", d)
     }
 
     var currentGrams by remember(nutrients) { mutableDoubleStateOf(baseGrams) }
@@ -153,7 +151,7 @@ fun FoodReviewDialog(
 
     val currentNutrients = FoodNutrients(
         foodItem = foodItem,
-        servingSize = "${currentGrams.toInt()}g",
+        servingSize = "${currentGrams.roundToInt()}g",
         calories = safeParse(cal) ?: 0.0,
         protein = safeParse(prot) ?: 0.0,
         carbs = safeParse(carb) ?: 0.0,

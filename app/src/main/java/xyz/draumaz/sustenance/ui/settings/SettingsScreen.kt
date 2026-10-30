@@ -2,7 +2,6 @@ package xyz.draumaz.sustenance.ui.settings
 
 import android.content.Intent
 import android.os.Build
-import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -46,8 +45,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
 import androidx.compose.ui.graphics.Color
 import xyz.draumaz.sustenance.util.GeminiManager
@@ -91,11 +88,8 @@ import androidx.annotation.StringRes
 import xyz.draumaz.sustenance.R
 import xyz.draumaz.sustenance.data.VerificationStatus
 import xyz.draumaz.sustenance.BuildConfig
-import xyz.draumaz.sustenance.data.ExportFormat
-import xyz.draumaz.sustenance.data.ExportManager
-import xyz.draumaz.sustenance.data.HealthConnectManager
-import xyz.draumaz.sustenance.data.Metric
 import xyz.draumaz.sustenance.data.SettingsRepository
+import xyz.draumaz.sustenance.data.parseDecimal
 import xyz.draumaz.sustenance.ui.SettingsViewModel
 import kotlinx.coroutines.launch
 import androidx.core.net.toUri
@@ -107,8 +101,6 @@ private const val REPO_URL = "https://github.com/draumaz/sustenance"
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
-    manager: HealthConnectManager,
-    exporter: ExportManager,
     settingsRepo: SettingsRepository,
     bottomInset: Dp,
     onManagePermissions: () -> Unit,
@@ -121,35 +113,14 @@ fun SettingsScreen(
     val vm: SettingsViewModel = viewModel(factory = SettingsViewModel.factory(settingsRepo))
     val dynamicColor by vm.dynamicColor.collectAsState(initial = true)
 
-    val snackbar = remember { SnackbarHostState() }
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
     val listState = rememberLazyListState()
-    var showFormatDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(scrollTo) {
         if (scrollTo == "fasting") {
             listState.animateScrollToItem(2)
         }
     }
-
-    suspend fun runExport(uri: Uri, format: ExportFormat) {
-        val granted = runCatching { manager.grantedPermissions() }.getOrDefault(emptySet())
-        val metrics = Metric.entries.filter { manager.permissionFor(it) in granted }
-        if (metrics.isEmpty()) {
-            snackbar.showSnackbar(appContext.getString(R.string.export_no_data)); return
-        }
-        exporter.export(uri, metrics, format).fold(
-            onSuccess = { count -> snackbar.showSnackbar(appContext.resources.getQuantityString(R.plurals.export_success, count, count, format.label)) },
-            onFailure = { snackbar.showSnackbar(appContext.getString(R.string.export_failed, it.message)) },
-        )
-    }
-
-    val csvLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.CreateDocument(ExportFormat.CSV.mime)
-    ) { uri -> uri?.let { scope.launch { runExport(it, ExportFormat.CSV) } } }
-    val jsonLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.CreateDocument(ExportFormat.JSON.mime)
-    ) { uri -> uri?.let { scope.launch { runExport(it, ExportFormat.JSON) } } }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -180,7 +151,6 @@ fun SettingsScreen(
                 )
             )
         },
-        snackbarHost = { SnackbarHost(snackbar) },
     ) { inner ->
         LazyColumn(
             state = listState,
@@ -237,7 +207,8 @@ fun SettingsScreen(
 
                     if (lastLogTimerEnabled) {
                         val fastBreakingCalories by vm.fastBreakingCalories.collectAsState(initial = 0)
-                        var tempCalories by remember(fastBreakingCalories) { mutableStateOf(fastBreakingCalories.toString()) }
+                        // Local edits win over the stored value, so a save landing mid-typing can't reset the field.
+                        var tempCalories by remember { mutableStateOf<String?>(null) }
 
                         Row(
                             modifier = Modifier
@@ -246,7 +217,7 @@ fun SettingsScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             OutlinedTextField(
-                                value = tempCalories,
+                                value = tempCalories ?: fastBreakingCalories.toString(),
                                 onValueChange = { newValue ->
                                     if (newValue.isEmpty() || newValue.all { it.isDigit() }) {
                                         tempCalories = newValue
@@ -265,7 +236,7 @@ fun SettingsScreen(
                         }
 
                         val fastingGoalHours by vm.fastingGoalHours.collectAsState(initial = 16f)
-                        var tempGoal by remember(fastingGoalHours) { mutableStateOf(if (fastingGoalHours % 1f == 0f) fastingGoalHours.toInt().toString() else fastingGoalHours.toString()) }
+                        var tempGoal by remember { mutableStateOf<String?>(null) }
 
                         Row(
                             modifier = Modifier
@@ -274,11 +245,12 @@ fun SettingsScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             OutlinedTextField(
-                                value = tempGoal,
+                                value = tempGoal ?: if (fastingGoalHours % 1f == 0f) fastingGoalHours.toInt().toString() else fastingGoalHours.toString(),
                                 onValueChange = { newValue ->
-                                    if (newValue.isEmpty() || newValue.toDoubleOrNull() != null || newValue == ".") {
+                                    val parsed = parseDecimal(newValue)
+                                    if (newValue.isEmpty() || parsed != null || newValue == "." || newValue == ",") {
                                         tempGoal = newValue
-                                        newValue.toFloatOrNull()?.let { vm.setFastingGoalHours(it) }
+                                        parsed?.let { vm.setFastingGoalHours(it.toFloat()) }
                                     }
                                 },
                                 modifier = Modifier.weight(1f),
@@ -329,12 +301,15 @@ fun SettingsScreen(
                 SettingsCard {
                     val apiKeyEnabled by vm.apiKeyEnabled.collectAsState(initial = false)
                     val apiKey by vm.apiKey.collectAsState(initial = "")
-                    var tempApiKey by remember(apiKey) { mutableStateOf(apiKey) }
+                    // Local edits win over the stored values, so a save landing mid-typing can't reset the field.
+                    var editedApiKey by remember { mutableStateOf<String?>(null) }
+                    val tempApiKey = editedApiKey ?: apiKey
                     val apiKeyVerificationStatus by vm.apiKeyVerificationStatus.collectAsState(initial = VerificationStatus.IDLE)
                     var isApiKeyVerifying by remember { mutableStateOf(false) }
 
                     val geminiModel by vm.geminiModel.collectAsState(initial = GeminiManager.DEFAULT_MODEL)
-                    var tempGeminiModel by remember(geminiModel) { mutableStateOf(geminiModel.removePrefix("gemini-")) }
+                    var editedGeminiModel by remember { mutableStateOf<String?>(null) }
+                    val tempGeminiModel = editedGeminiModel ?: geminiModel.removePrefix("gemini-")
                     val geminiModelVerificationStatus by vm.geminiModelVerificationStatus.collectAsState(initial = VerificationStatus.IDLE)
                     var isModelVerifying by remember { mutableStateOf(false) }
 
@@ -388,7 +363,7 @@ fun SettingsScreen(
                                 value = tempGeminiModel,
                                 onValueChange = { newValue ->
                                     val cleaned = if (newValue.startsWith("gemini-")) newValue.removePrefix("gemini-") else newValue
-                                    tempGeminiModel = cleaned
+                                    editedGeminiModel = cleaned
                                     vm.setGeminiModel(cleaned)
                                     if (geminiModelVerificationStatus != VerificationStatus.IDLE) {
                                         vm.setGeminiModelVerificationStatus(VerificationStatus.IDLE)
@@ -427,7 +402,7 @@ fun SettingsScreen(
                             OutlinedTextField(
                                 value = tempApiKey,
                                 onValueChange = {
-                                    tempApiKey = it
+                                    editedApiKey = it
                                     vm.setApiKey(it)
                                     if (apiKeyVerificationStatus != VerificationStatus.IDLE) {
                                         vm.setApiKeyVerificationStatus(VerificationStatus.IDLE)
@@ -466,7 +441,7 @@ fun SettingsScreen(
 
                         val gramIncrementEnabled by vm.gramIncrementEnabled.collectAsState(initial = false)
                         val gramIncrement by vm.gramIncrement.collectAsState(initial = 1)
-                        var tempIncrement by remember(gramIncrement) { mutableStateOf(gramIncrement.toString()) }
+                        var tempIncrement by remember { mutableStateOf<String?>(null) }
 
                         SettingRow(
                             icon = Icons.Rounded.Scale,
@@ -485,7 +460,7 @@ fun SettingsScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 OutlinedTextField(
-                                    value = tempIncrement,
+                                    value = tempIncrement ?: gramIncrement.toString(),
                                     onValueChange = { newValue ->
                                         if (newValue.isEmpty() || newValue.all { it.isDigit() }) {
                                             tempIncrement = newValue
@@ -576,26 +551,6 @@ fun SettingsScreen(
                 )
             }
         }
-    }
-
-    if (showFormatDialog) {
-        AlertDialog(
-            onDismissRequest = { showFormatDialog = false },
-            title = { Text(stringResource(R.string.export_format_title)) },
-            text = { Text(stringResource(R.string.export_format_summary)) },
-            confirmButton = {
-                TextButton(onClick = {
-                    showFormatDialog = false
-                    csvLauncher.launch("sustenance-export.csv")
-                }) { Text("CSV") }
-            },
-            dismissButton = {
-                TextButton(onClick = {
-                    showFormatDialog = false
-                    jsonLauncher.launch("sustenance-export.json")
-                }) { Text("JSON") }
-            },
-        )
     }
 }
 

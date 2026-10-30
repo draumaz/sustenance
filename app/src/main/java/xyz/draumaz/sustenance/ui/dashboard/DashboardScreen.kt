@@ -92,6 +92,7 @@ import java.time.Duration
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import androidx.compose.ui.platform.LocalConfiguration
 import android.text.format.DateFormat
 import xyz.draumaz.sustenance.data.FastingStretch
 import androidx.compose.ui.text.style.TextOverflow
@@ -476,9 +477,13 @@ private val ThresholdDeactivateHaptic =
     else HapticFeedbackConstants.CLOCK_TICK
 
 @Composable
-private fun dayLabel(offset: Int): String =
-    if (offset == 1) stringResource(R.string.yesterday)
-    else LocalDate.now().minusDays(offset.toLong()).format(DateTimeFormatter.ofPattern("EEEE, MMM d"))
+private fun dayLabel(offset: Int): String {
+    if (offset == 1) return stringResource(R.string.yesterday)
+    val locale = LocalConfiguration.current.locales[0]
+    // Locale-appropriate order, e.g. "Monday, Oct 27" in English, "понедельник, 27 окт." in Russian.
+    val formatter = DateTimeFormatter.ofPattern(DateFormat.getBestDateTimePattern(locale, "EEEEMMMd"), locale)
+    return LocalDate.now().minusDays(offset.toLong()).format(formatter)
+}
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable

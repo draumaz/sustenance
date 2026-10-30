@@ -1,6 +1,7 @@
 package xyz.draumaz.sustenance.data
 
 import android.content.Context
+import android.text.format.DateFormat
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.NutritionRecord
@@ -38,7 +39,9 @@ class HealthConnectManager(internal val context: Context) {
     private val zone: ZoneId get() = ZoneId.systemDefault()
     private val dowFmt: DateTimeFormatter = DateTimeFormatter.ofPattern("EEE")
     private val dayFmt: DateTimeFormatter = DateTimeFormatter.ofPattern("MMM d")
-    private val timeFmt: DateTimeFormatter = DateTimeFormatter.ofPattern("h:mm a")
+    // Follows the device's 12/24-hour setting, like the dashboard's fasting timer.
+    private val timeFmt: DateTimeFormatter
+        get() = DateTimeFormatter.ofPattern(if (DateFormat.is24HourFormat(context)) "H:mm" else "h:mm a")
 
     val client: HealthConnectClient by lazy { HealthConnectClient.getOrCreate(context) }
 
@@ -303,7 +306,7 @@ class HealthConnectManager(internal val context: Context) {
                 val groupsByServing = items.groupBy { it.nutrients.servingSize }
                 val bestServingGroup = groupsByServing.values.maxWith(
                     compareBy<List<HistoryItem>> { it.size }
-                        .thenByDescending { -it.first().nutrients.calories }
+                        .thenByDescending { it.first().nutrients.calories }
                         .thenBy { it.maxOf { i -> i.timestamp } }
                 )
                 
@@ -547,14 +550,11 @@ class HealthConnectManager(internal val context: Context) {
         }
     }
 
-    // ---- Public series for summary & export ----------------------------------------------------
+    // ---- Public series for summary ----------------------------------------------------------
 
     /** Daily totals over [days] for a [MetricKind.DAILY_TOTAL] metric; empty otherwise. */
     suspend fun readDailySeries(metric: Metric, days: Int, dateOffset: Int = 0): List<SeriesPoint> =
         if (metric.kind == MetricKind.DAILY_TOTAL) series(metric, days, dateOffset) else emptyList()
-
-    /** Flat list of points for export, with finer granularity for sampled metrics. */
-    suspend fun exportRows(metric: Metric, days: Int): List<SeriesPoint> = series(metric, days, 0)
 
     // ---- Series builders -----------------------------------------------------------------------
 
@@ -693,7 +693,7 @@ class HealthConnectManager(internal val context: Context) {
 
     private fun dayMonthTime(t: Instant): String {
         val z = t.atZone(zone)
-        return "${dayFmt.format(z)}, ${DateTimeFormatter.ofPattern("h:mm a").format(z)}"
+        return "${dayFmt.format(z)}, ${timeFmt.format(z)}"
     }
 
     companion object {
