@@ -1,0 +1,8 @@
+* Gemini now reads nutrition labels directly, and a new "?" button explains any values it had to estimate
+* Redesigned nutrition facts editor with % of your daily goals and adjustable gram steps
+* Choose your Gemini model and test your API key in Settings
+* Pull up on Today to see previous days, including your longest fast
+* Set your daily goals right after linking Health Connect
+* Fully resizable widget
+* Keto Mode is now Net Carb Mode
+* New font, springier navigation, and many fixes
