@@ -78,7 +78,8 @@ class GeminiManager(
     suspend fun analyzeFoodImages(bitmaps: List<Bitmap>, additionalInfo: String? = null): Result<FoodNutrients> = withContext(Dispatchers.IO) {
         try {
             val scaledBitmaps = bitmaps.map { bitmap ->
-                val maxDim = 512
+                // Large enough to keep nutrition label text legible.
+                val maxDim = 1024
                 if ((bitmap.width > maxDim) || (bitmap.height > maxDim)) {
                     val ratio = bitmap.width.toFloat() / bitmap.height.toFloat()
                     val (w, h) = if (ratio > 1) maxDim to (maxDim / ratio).toInt() else (maxDim * ratio).toInt() to maxDim
@@ -89,9 +90,17 @@ class GeminiManager(
             val response = model.generateContent(
                 content {
                     scaledBitmaps.forEach { image(it) }
-                    var prompt = "Estimate nutrients for food in image as JSON: food_item, serving_size (weight in grams, e.g. '150g'), calories (kcal), protein, carbs, fat, fiber, sugar, saturated_fat (all in grams), sodium (in milligrams), explanation. Use plain numbers for nutrient values. explanation is an array of plain-text points (no markdown), one per value you had to guess rather than read directly from the image (e.g. from a nutrition label). Each point is one brief sentence naming the specific evidence (restaurant or brand, ingredient, visual size cue, typical recipe) and the resulting number, following patterns like '[Source]'s [ingredient] is usually [preparation], putting [nutrient] around [amount].' or '[Object] looks about [size], so roughly [amount] total.' Only mention a restaurant or brand if it is visible in the image or given in the context. Skip values that were shown. Empty array if nothing was guessed."
+                    var prompt = """
+                        Return the nutrients for the food in the image(s) as JSON: food_item, serving_size (weight in grams, e.g. '150g'), calories (kcal), protein, carbs, fat, fiber, sugar, saturated_fat (all in grams), sodium (in milligrams), explanation. Use plain numbers for nutrient values.
+
+                        Nutrition labels come first. If any image shows a nutrition facts label, copy every value printed on it exactly, for the serving size printed on it. Never estimate, round or "correct" a value the label shows. Convert units only where needed (kJ to kcal only if kcal is missing; salt in grams to sodium in mg by multiplying by 400). Estimate only the fields the label doesn't list.
+
+                        Without a label, estimate from what you see.
+
+                        explanation is an array of plain-text points (no markdown), one per value you had to guess. Never include values read from a label. Each point is one brief sentence naming the specific evidence (restaurant or brand, ingredient, visual size cue, typical recipe) and the resulting number, following patterns like '[Source]'s [ingredient] is usually [preparation], putting [nutrient] around [amount].' or '[Object] looks about [size], so roughly [amount] total.' Only mention a restaurant or brand if it is visible in the image or given in the context. Empty array if nothing was guessed.
+                    """.trimIndent()
                     if (!additionalInfo.isNullOrBlank()) {
-                        prompt += " Context: $additionalInfo"
+                        prompt += "\n\nContext: $additionalInfo"
                     }
                     text(prompt)
                 }
