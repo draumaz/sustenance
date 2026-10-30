@@ -192,5 +192,5 @@
     <string name="about_author">Developer</string>
     <string name="about_credit_prefix">"Sustenance is based on "</string>
     <string name="about_credit_heartwood">Heartwood</string>
-    <string name="about_credit_suffix">, a Health Connect viewer by Eason Huang.\n\nThe majority of new code was written with the help of Gemini.</string>
+    <string name="about_credit_suffix">, a Health Connect viewer by Eason Huang.\n\nThe majority of new code was written with the help of Gemini, and refined for release with Claude.</string>
 </resources>
