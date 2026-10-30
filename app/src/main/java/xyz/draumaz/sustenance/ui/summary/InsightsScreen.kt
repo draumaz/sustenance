@@ -54,9 +54,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.foundation.background
-import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.res.stringResource
 import android.view.HapticFeedbackConstants
@@ -124,15 +122,6 @@ fun InsightsScreen(
                             fontWeight = FontWeight.Bold,
                             textAlign = androidx.compose.ui.text.style.TextAlign.Center
                         )
-                    }
-                },
-                actions = {
-                    IconButton(onClick = vm::refresh) {
-                        if (refreshing) {
-                            CircularProgressIndicator(Modifier.size(24.dp).padding(4.dp), strokeWidth = 2.dp)
-                        } else {
-                            Icon(Icons.Rounded.Refresh, contentDescription = stringResource(R.string.refresh))
-                        }
                     }
                 },
                 scrollBehavior = scrollBehavior,
