@@ -42,10 +42,10 @@ jobs:
           if [ -n "$KEYSTORE_B64" ]; then
             echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
             {
-              echo "HEARTWOOD_STORE_FILE=$RUNNER_TEMP/release.jks"
-              echo "HEARTWOOD_STORE_PASSWORD=$STORE_PASSWORD"
-              echo "HEARTWOOD_KEY_ALIAS=$KEY_ALIAS"
-              echo "HEARTWOOD_KEY_PASSWORD=$KEY_PASSWORD"
+              echo "SUSTENANCE_STORE_FILE=$RUNNER_TEMP/release.jks"
+              echo "SUSTENANCE_STORE_PASSWORD=$STORE_PASSWORD"
+              echo "SUSTENANCE_KEY_ALIAS=$KEY_ALIAS"
+              echo "SUSTENANCE_KEY_PASSWORD=$KEY_PASSWORD"
             } >> "$GITHUB_ENV"
           else
             echo "No signing secrets set, building an unsigned release APK."
@@ -57,7 +57,7 @@ jobs:
       - name: Collect APK
         run: |
           mkdir -p dist
-          cp app/build/outputs/apk/release/*.apk "dist/heartwood-${GITHUB_REF_NAME}.apk"
+          cp app/build/outputs/apk/release/*.apk "dist/sustenance-${GITHUB_REF_NAME}.apk"
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
