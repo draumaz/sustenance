@@ -25,6 +25,8 @@ data class FoodNutrients(
     val sugar: Double,
     val saturatedFat: Double,
     val sodium: Double,
+    /** Gemini's notes on the values it had to guess; empty when the item didn't come from Gemini. */
+    val explanation: List<String> = emptyList(),
 )
 
 class GeminiManager(
@@ -87,7 +89,7 @@ class GeminiManager(
             val response = model.generateContent(
                 content {
                     scaledBitmaps.forEach { image(it) }
-                    var prompt = "Estimate nutrients for food in image as JSON: food_item, serving_size (weight in grams, e.g. '150g'), calories (kcal), protein, carbs, fat, fiber, sugar, saturated_fat (all in grams), sodium (in milligrams). Use plain numbers for nutrient values."
+                    var prompt = "Estimate nutrients for food in image as JSON: food_item, serving_size (weight in grams, e.g. '150g'), calories (kcal), protein, carbs, fat, fiber, sugar, saturated_fat (all in grams), sodium (in milligrams), explanation. Use plain numbers for nutrient values. explanation is an array of plain-text points (no markdown), one per value you had to guess rather than read directly from the image (e.g. from a nutrition label). Each point is one brief sentence naming the specific evidence (restaurant or brand, ingredient, visual size cue, typical recipe) and the resulting number, following patterns like '[Source]'s [ingredient] is usually [preparation], putting [nutrient] around [amount].' or '[Object] looks about [size], so roughly [amount] total.' Only mention a restaurant or brand if it is visible in the image or given in the context. Skip values that were shown. Empty array if nothing was guessed."
                     if (!additionalInfo.isNullOrBlank()) {
                         prompt += " Context: $additionalInfo"
                     }
@@ -129,6 +131,7 @@ class GeminiManager(
                 sugar = json.optDouble("sugar", 0.0),
                 saturatedFat = json.optDouble("saturated_fat", 0.0),
                 sodium = json.optDouble("sodium", 0.0),
+                explanation = parseExplanation(json),
             ))
         } catch (e: CancellationException) {
             throw e
@@ -138,6 +141,16 @@ class GeminiManager(
             val displayError = if (!msg.isNullOrBlank() && !msg.contains("Unexpected Response", ignoreCase = true)) msg else "No response from Gemini"
             Result.failure(Exception(displayError))
         }
+    }
+
+    /** Reads the explanation array, tolerating a plain string in case the model ignores the format. */
+    private fun parseExplanation(json: JSONObject): List<String> {
+        val points = json.optJSONArray("explanation")
+            ?.let { arr -> List(arr.length()) { arr.optString(it) } }
+            ?: json.optString("explanation").lines()
+        return points
+            .map { it.trim().trimStart('-', '•', '*').trim().replaceFirstChar { c -> c.titlecase() } }
+            .filter { it.isNotEmpty() }
     }
 
     suspend fun analyzeFoodImage(bitmap: Bitmap, additionalInfo: String? = null): Result<FoodNutrients> = analyzeFoodImages(listOf(bitmap), additionalInfo)

@@ -179,6 +179,8 @@
     <string name="are_you_sure">Are You Sure?</string>
     <string name="judgement_negative_warning">Eating this will be detrimental to staying within your set goal values.</string>
     <string name="log_anyway">Log Anyway</string>
+    <string name="estimate_explanation">What Gemini guessed</string>
+    <string name="close">Close</string>
     <string name="onboarding_title">Welcome to Sustenance</string>
     <string name="onboarding_subtitle">A private, expressive viewer for your nutritional data. Sustenance only reads—nothing ever leaves your device.</string>
     <string name="onboarding_button">Connect Health Connect</string>

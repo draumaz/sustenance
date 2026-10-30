@@ -183,6 +183,8 @@
     <string name="are_you_sure">Вы уверены?</string>
     <string name="judgement_negative_warning">Употребление этого продукта помешает вам остаться в рамках установленных целей.</string>
     <string name="log_anyway">Все равно записать</string>
+    <string name="estimate_explanation">Что Gemini оценил на глаз</string>
+    <string name="close">Закрыть</string>
     <string name="onboarding_title">Добро пожаловать в Sustenance</string>
     <string name="onboarding_subtitle">Приватный и наглядный дневник вашего питания. Sustenance только читает данные — они никогда не покидают ваше устройство.</string>
     <string name="onboarding_button">Подключить Health Connect</string>

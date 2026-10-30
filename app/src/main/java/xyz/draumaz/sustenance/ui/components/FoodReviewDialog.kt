@@ -15,6 +15,7 @@ import androidx.compose.material.icons.rounded.AccessTime
 import androidx.compose.material.icons.rounded.Cancel
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Done
+import androidx.compose.material.icons.automirrored.rounded.HelpOutline
 import androidx.compose.material.icons.rounded.Remove
 import androidx.compose.material.icons.rounded.Restaurant
 import androidx.compose.material3.*
@@ -63,6 +64,21 @@ import java.time.LocalTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
+
+/** Amounts like "12g", "~350 g", "10-15mg" or "200 kcal", including the unit when there is one. */
+private val amountRegex =
+    "~?\\d+(?:[.,]\\d+)?(?:\\s*[-–]\\s*\\d+(?:[.,]\\d+)?)?(?:\\s*(?:kcal|calories|mg|g|cm|ml|oz|%))?(?![\\p{L}\\d])".toRegex()
+
+/** Bolds and colors every amount in [text] so the numbers stand out. */
+private fun emphasizeAmounts(text: String, color: Color) = buildAnnotatedString {
+    var last = 0
+    amountRegex.findAll(text).forEach { match ->
+        append(text, last, match.range.first)
+        withStyle(SpanStyle(fontWeight = FontWeight.Bold, color = color)) { append(match.value) }
+        last = match.range.last + 1
+    }
+    append(text, last, text.length)
+}
 
 private fun formatTargetPercentage(value: Double, goal: Float?): String? {
     if (goal == null || goal <= 0f) return null
@@ -133,6 +149,7 @@ fun FoodReviewDialog(
     var sodium by remember(nutrients) { mutableStateOf(format(nutrients.sodium)) }
 
     var showConfirmationDialog by remember { mutableStateOf(false) }
+    var showExplanation by remember { mutableStateOf(false) }
 
     val currentNutrients = FoodNutrients(
         foodItem = foodItem,
@@ -441,21 +458,37 @@ fun FoodReviewDialog(
             }
         },
         confirmButton = {
-            Button(
-                onClick = {
-                    if (judgementalMode && judgement is Metric.Judgement.Negative) {
-                        showConfirmationDialog = true
-                    } else {
-                        val combinedInstant = now.with(selectedTime).atZone(ZoneId.systemDefault()).toInstant()
-                        onLog(currentNutrients, 1.0, combinedInstant)
-                    }
-                },
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(Icons.Rounded.Done, null)
-                Spacer(Modifier.width(8.dp))
-                Text(stringResource(R.string.log_food))
+                Button(
+                    onClick = {
+                        if (judgementalMode && judgement is Metric.Judgement.Negative) {
+                            showConfirmationDialog = true
+                        } else {
+                            val combinedInstant = now.with(selectedTime).atZone(ZoneId.systemDefault()).toInstant()
+                            onLog(currentNutrients, 1.0, combinedInstant)
+                        }
+                    },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(Icons.Rounded.Done, null)
+                    Spacer(Modifier.width(8.dp))
+                    Text(stringResource(R.string.log_food))
+                }
+                // Only items fresh from Gemini carry an explanation (not re-logs from history).
+                if (nutrients.explanation.isNotEmpty()) {
+                    FilledTonalIconButton(
+                        onClick = { showExplanation = true },
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.size(ButtonDefaults.MinHeight)
+                    ) {
+                        Icon(Icons.AutoMirrored.Rounded.HelpOutline, stringResource(R.string.estimate_explanation))
+                    }
+                }
             }
         },
         dismissButton = {
@@ -467,6 +500,32 @@ fun FoodReviewDialog(
             }
         }
     )
+
+    if (showExplanation) {
+        AlertDialog(
+            onDismissRequest = { showExplanation = false },
+            icon = { Icon(Icons.AutoMirrored.Rounded.HelpOutline, contentDescription = null) },
+            title = { Text(stringResource(R.string.estimate_explanation)) },
+            text = {
+                Column(
+                    modifier = Modifier.verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    nutrients.explanation.forEach { point ->
+                        Row {
+                            Text("•", modifier = Modifier.padding(end = 8.dp))
+                            Text(emphasizeAmounts(point, MaterialTheme.colorScheme.primary))
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showExplanation = false }) {
+                    Text(stringResource(R.string.close))
+                }
+            }
+        )
+    }
 
     if (showConfirmationDialog) {
         AlertDialog(
@@ -870,7 +929,11 @@ private fun FoodReviewDialogPreview() {
                 saturatedFat = 0.0,
                 fiber = 2.4,
                 sugar = 10.0,
-                sodium = 1.0
+                sodium = 1.0,
+                explanation = listOf(
+                    "Portion: medium apple, ~100g by size",
+                    "All values: standard raw apple data",
+                )
             ),
             onDismiss = {},
             onLog = { _, _, _ -> },
