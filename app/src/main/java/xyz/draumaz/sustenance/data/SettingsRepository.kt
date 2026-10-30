@@ -68,6 +68,7 @@ class SettingsRepository(private val context: Context) {
     private val geminiModelKey = stringPreferencesKey("gemini_model")
     private val geminiModelVerificationStatusKey = stringPreferencesKey("gemini_model_verification_status")
     private val pinnedHistoryItemsKey = stringSetPreferencesKey("pinned_history_items")
+    private val goalSetupPendingKey = booleanPreferencesKey("goal_setup_pending")
 
     val dynamicColor: Flow<Boolean> = context.settingsDataStore.data.map { prefs ->
         prefs[dynamicColorKey] ?: true
@@ -136,6 +137,17 @@ class SettingsRepository(private val context: Context) {
     suspend fun setDynamicColor(enabled: Boolean) {
         context.settingsDataStore.edit { prefs ->
             prefs[dynamicColorKey] = enabled
+        }
+    }
+
+    /** Set once Health Connect is first linked; cleared when the user leaves the goal setup sheet. */
+    val goalSetupPending: Flow<Boolean> = context.settingsDataStore.data.map { prefs ->
+        prefs[goalSetupPendingKey] ?: false
+    }
+
+    suspend fun setGoalSetupPending(pending: Boolean) {
+        context.settingsDataStore.edit { prefs ->
+            prefs[goalSetupPendingKey] = pending
         }
     }
 

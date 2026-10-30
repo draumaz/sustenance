@@ -84,6 +84,7 @@ import xyz.draumaz.sustenance.ui.components.PredictiveBackState
 import xyz.draumaz.sustenance.ui.components.ScallopedLoadingAnimation
 import xyz.draumaz.sustenance.ui.dashboard.DashboardScreen
 import xyz.draumaz.sustenance.ui.detail.DetailScreen
+import xyz.draumaz.sustenance.ui.onboarding.GoalSetupSheet
 import xyz.draumaz.sustenance.ui.onboarding.LoadingScreen
 import xyz.draumaz.sustenance.ui.onboarding.OnboardingScreen
 import xyz.draumaz.sustenance.ui.onboarding.UnavailableScreen
@@ -198,7 +199,10 @@ fun SustenanceRoot(
                 requestedExtras = true
                 permissionLauncher.launch(manager.extraPermissions)
             }
-            else -> inSetup = false                  // background resolved → enter the app
+            else -> {                                // background resolved → enter the app
+                settingsRepo.setGoalSetupPending(true)
+                inSetup = false
+            }
         }
     }
 
@@ -251,6 +255,21 @@ fun SustenanceRoot(
                 onSharedImagesConsumed = onSharedImagesConsumed,
                 onLogConsumed = onLogConsumed
             )
+            val goalSetupPending by settingsRepo.goalSetupPending.collectAsState(initial = false)
+            val currentGoals by goalsRepo.goals.collectAsState(initial = null)
+            val goalsToEdit = currentGoals
+            if (goalSetupPending && goalsToEdit != null) {
+                GoalSetupSheet(
+                    initial = goalsToEdit,
+                    onSave = { values ->
+                        scope.launch {
+                            goalsRepo.setGoals(values)
+                            settingsRepo.setGoalSetupPending(false)
+                        }
+                    },
+                    onSkip = { scope.launch { settingsRepo.setGoalSetupPending(false) } },
+                )
+            }
         }
     }
 }

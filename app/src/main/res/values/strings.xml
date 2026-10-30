@@ -184,6 +184,15 @@
     <string name="onboarding_title">Welcome to Sustenance</string>
     <string name="onboarding_subtitle">A private, expressive viewer for your nutritional data. Sustenance only reads—nothing ever leaves your device.</string>
     <string name="onboarding_button">Connect Health Connect</string>
+    <string name="goal_setup_title">Set your daily goals</string>
+    <string name="goal_setup_subtitle">Sustenance measures what you eat against these targets. You can change them any time from Insights.</string>
+    <string name="goal_setup_energy">Energy</string>
+    <string name="goal_setup_macros">Macronutrients</string>
+    <string name="goal_setup_micros">Micronutrients</string>
+    <string name="goal_setup_daily_goal">Daily goal</string>
+    <string name="goal_setup_daily_limit">Daily limit</string>
+    <string name="goal_setup_save">Save goals</string>
+    <string name="goal_setup_skip">Use defaults</string>
     <string name="unavailable_title">Health Connect needed</string>
     <string name="unavailable_subtitle">Sustenance requires Health Connect to access your nutritional data securely. Please install it to continue.</string>
     <string name="unavailable_button">Get Health Connect</string>

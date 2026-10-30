@@ -188,6 +188,15 @@
     <string name="onboarding_title">Добро пожаловать в Sustenance</string>
     <string name="onboarding_subtitle">Приватный и наглядный дневник вашего питания. Sustenance только читает данные — они никогда не покидают ваше устройство.</string>
     <string name="onboarding_button">Подключить Health Connect</string>
+    <string name="goal_setup_title">Задайте дневные цели</string>
+    <string name="goal_setup_subtitle">Sustenance сравнивает ваше питание с этими целями. Их можно изменить в любой момент в разделе «Аналитика».</string>
+    <string name="goal_setup_energy">Энергия</string>
+    <string name="goal_setup_macros">Макронутриенты</string>
+    <string name="goal_setup_micros">Микронутриенты</string>
+    <string name="goal_setup_daily_goal">Дневная цель</string>
+    <string name="goal_setup_daily_limit">Дневной лимит</string>
+    <string name="goal_setup_save">Сохранить цели</string>
+    <string name="goal_setup_skip">Использовать по умолчанию</string>
     <string name="unavailable_title">Требуется Health Connect</string>
     <string name="unavailable_subtitle">Sustenance требует наличия Health Connect для безопасного доступа к вашим данным о питании. Пожалуйста, установите его.</string>
     <string name="unavailable_button">Скачать Health Connect</string>

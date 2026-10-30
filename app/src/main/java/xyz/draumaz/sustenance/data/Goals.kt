@@ -42,4 +42,8 @@ class GoalsRepository(private val context: Context) {
     suspend fun setGoal(metric: Metric, value: Float) {
         context.goalsDataStore.edit { prefs -> prefs[key(metric)] = value }
     }
+
+    suspend fun setGoals(values: Map<Metric, Float>) {
+        context.goalsDataStore.edit { prefs -> values.forEach { (metric, value) -> prefs[key(metric)] = value } }
+    }
 }
