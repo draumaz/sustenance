@@ -30,6 +30,7 @@ import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Psychology
 import androidx.compose.material.icons.rounded.Scale
+import androidx.compose.material.icons.rounded.Spa
 import androidx.compose.material.icons.rounded.TrackChanges
 import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material.icons.rounded.VisibilityOff
@@ -547,6 +548,18 @@ fun SettingsScreen(
                             onClick = { vm.setJudgementalMode(!judgementalMode) }
                         ) {
                             Switch(checked = judgementalMode, onCheckedChange = null)
+                        }
+
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f))
+
+                        val bingeCheckEnabled by vm.bingeCheckEnabled.collectAsState(initial = true)
+                        SettingRow(
+                            icon = Icons.Rounded.Spa,
+                            title = stringResource(R.string.binge_check),
+                            subtitle = stringResource(R.string.binge_check_summary),
+                            onClick = { vm.setBingeCheckEnabled(!bingeCheckEnabled) }
+                        ) {
+                            Switch(checked = bingeCheckEnabled, onCheckedChange = null)
                         }
                     }
                 }

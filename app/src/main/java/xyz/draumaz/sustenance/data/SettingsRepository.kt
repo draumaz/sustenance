@@ -56,6 +56,7 @@ class SettingsRepository(private val context: Context) {
     private val ketoModeKey = booleanPreferencesKey("keto_mode")
     private val lastLogTimerEnabledKey = booleanPreferencesKey("last_log_timer_enabled")
     private val judgementalModeKey = booleanPreferencesKey("judgemental_mode")
+    private val bingeCheckEnabledKey = booleanPreferencesKey("binge_check_enabled")
     private val gramIncrementEnabledKey = booleanPreferencesKey("gram_increment_enabled")
     private val gramIncrementKey = androidx.datastore.preferences.core.intPreferencesKey("gram_increment")
     private val fastBreakingCaloriesKey = androidx.datastore.preferences.core.intPreferencesKey("fast_breaking_calories")
@@ -85,6 +86,10 @@ class SettingsRepository(private val context: Context) {
 
     val judgementalMode: Flow<Boolean> = context.settingsDataStore.data.map { prefs ->
         prefs[judgementalModeKey] ?: false
+    }
+
+    val bingeCheckEnabled: Flow<Boolean> = context.settingsDataStore.data.map { prefs ->
+        prefs[bingeCheckEnabledKey] ?: true
     }
 
     val gramIncrementEnabled: Flow<Boolean> = context.settingsDataStore.data.map { prefs ->
@@ -180,6 +185,12 @@ class SettingsRepository(private val context: Context) {
     suspend fun setJudgementalMode(enabled: Boolean) {
         context.settingsDataStore.edit { prefs ->
             prefs[judgementalModeKey] = enabled
+        }
+    }
+
+    suspend fun setBingeCheckEnabled(enabled: Boolean) {
+        context.settingsDataStore.edit { prefs ->
+            prefs[bingeCheckEnabledKey] = enabled
         }
     }
 

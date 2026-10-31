@@ -84,6 +84,20 @@
     <string name="gram_increment_amount">Шаг</string>
     <string name="judgemental_mode">Осуждающий режим</string>
     <string name="judgemental_mode_summary">Отмечать продукты, с которыми вы превысите дневной лимит</string>
+    <string name="binge_check">Бережные напоминания</string>
+    <string name="binge_check_summary">Мягко спросить, как вы, если одна и та же еда записана снова в течение часа</string>
+    <string name="binge_check_title">Давайте ненадолго остановимся</string>
+    <plurals name="binge_check_repeat">
+        <item quantity="one">Вы уже записали «%1$s» %2$d раз за последний час.</item>
+        <item quantity="few">Вы уже записали «%1$s» %2$d раза за последний час.</item>
+        <item quantity="many">Вы уже записали «%1$s» %2$d раз за последний час.</item>
+        <item quantity="other">Вы уже записали «%1$s» %2$d раза за последний час.</item>
+    </plurals>
+    <string name="binge_check_no_judgement">Здесь нет никакого осуждения. Когда снова и снова возвращаешься к одной и той же еде, иногда это перерастает в приступ переедания. Обычно причина в стрессе, усталости или недоедании, а не в нехватке силы воли.</string>
+    <string name="binge_check_suggestion">Сделайте несколько медленных вдохов и спросите себя, что вам сейчас нужно. Если вы голодны, полноценная сытная еда — это забота о себе.</string>
+    <string name="binge_check_reassurance">Что бы вы ни решили, вы справляетесь.</string>
+    <string name="binge_check_hold_off">Пока не записывать</string>
+    <string name="binge_check_log">Записать</string>
     <string name="show_last_log_timer">Таймер голодания</string>
     <string name="show_last_log_timer_summary">Показывать, сколько времени прошло с последнего приёма пищи</string>
     <string name="fast_breaking_calories">Калории для прерывания голодания</string>

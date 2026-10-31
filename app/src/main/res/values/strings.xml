@@ -84,6 +84,18 @@
     <string name="gram_increment_amount">Step size</string>
     <string name="judgemental_mode">Judgemental Mode</string>
     <string name="judgemental_mode_summary">Flag foods that would put you over a daily limit</string>
+    <string name="binge_check">Binge check-ins</string>
+    <string name="binge_check_summary">Gently check in if you log the same food again within an hour</string>
+    <string name="binge_check_title">Let\'s pause for a moment</string>
+    <plurals name="binge_check_repeat">
+        <item quantity="one">You\'ve already logged %1$s once in the last hour.</item>
+        <item quantity="other">You\'ve already logged %1$s %2$d times in the last hour.</item>
+    </plurals>
+    <string name="binge_check_no_judgement">There\'s no judgement here. Going back for the same food again and again can sometimes turn into a binge, and that usually comes from stress, tiredness, or not eating enough, not a lack of willpower.</string>
+    <string name="binge_check_suggestion">Take a few slow breaths and ask yourself what you need right now. If you\'re hungry, a full, satisfying meal is a kind choice.</string>
+    <string name="binge_check_reassurance">Whatever you decide, you\'re doing okay.</string>
+    <string name="binge_check_hold_off">Hold off for now</string>
+    <string name="binge_check_log">Log it</string>
     <string name="show_last_log_timer">Fasting timer</string>
     <string name="show_last_log_timer_summary">Show how long it\'s been since you last ate</string>
     <string name="fast_breaking_calories">Fast-breaking calories</string>

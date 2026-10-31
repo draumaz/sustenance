@@ -49,6 +49,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.roundToInt
+import java.time.Instant
 import androidx.health.connect.client.PermissionController
 import androidx.activity.compose.PredictiveBackHandler
 import androidx.lifecycle.compose.LifecycleResumeEffect
@@ -78,6 +79,8 @@ import xyz.draumaz.sustenance.data.GoalsRepository
 import xyz.draumaz.sustenance.data.HealthConnectManager
 import xyz.draumaz.sustenance.data.Metric
 import xyz.draumaz.sustenance.data.SettingsRepository
+import xyz.draumaz.sustenance.ui.components.BINGE_CHECK_WINDOW
+import xyz.draumaz.sustenance.ui.components.BingeCheckDialog
 import xyz.draumaz.sustenance.ui.components.ExpressiveNavigationBar
 import xyz.draumaz.sustenance.ui.components.CameraPreview
 import xyz.draumaz.sustenance.ui.components.PredictiveBackState
@@ -280,6 +283,14 @@ fun SustenanceRoot(
     }
 }
 
+/** A log held back while the binge check-in is showing. */
+private data class BingeCheck(
+    val nutrients: FoodNutrients,
+    val servingCount: Double,
+    val timestamp: Instant,
+    val priorLogs: Int,
+)
+
 @Composable
 private fun MainNav(
     manager: HealthConnectManager,
@@ -322,6 +333,8 @@ private fun MainNav(
 
     val goals by goalsRepo.goals.collectAsState(initial = emptyMap())
     val judgementalMode by settingsRepo.judgementalMode.collectAsState(initial = false)
+    val bingeCheckEnabled by settingsRepo.bingeCheckEnabled.collectAsState(initial = false)
+    var bingeCheck by remember { mutableStateOf<BingeCheck?>(null) }
     val gramIncrementEnabled by settingsRepo.gramIncrementEnabled.collectAsState(initial = false)
     val gramIncrement by settingsRepo.gramIncrement.collectAsState(initial = 1)
     val ketoMode by settingsRepo.ketoMode.collectAsState(initial = false)
@@ -344,6 +357,20 @@ private fun MainNav(
             if (uris.isNotEmpty()) {
                 isBatchMode = true
             }
+        }
+    }
+
+    suspend fun logFood(nutrients: FoodNutrients, servingCount: Double, timestamp: Instant) {
+        try {
+            manager.writeNutrition(nutrients, servingCount, timestamp)
+            pendingNutrients = null
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.e("MainNav", "Failed to log food", e)
+            reportHealthWriteFailure(
+                currentContext, e, R.string.failed_to_log_food, onManagePermissions
+            )
         }
     }
 
@@ -847,19 +874,32 @@ private fun MainNav(
                     goals = goals,
                     onLog = { nuts, count, timestamp ->
                         scope.launch {
-                            try {
-                                manager.writeNutrition(nuts, count, timestamp)
-                                pendingNutrients = null
-                            } catch (e: CancellationException) {
-                                throw e
-                            } catch (e: Exception) {
-                                Log.e("MainNav", "Failed to log food", e)
-                                reportHealthWriteFailure(
-                                    currentContext, e, R.string.failed_to_log_food, onManagePermissions
-                                )
+                            val priorLogs = if (bingeCheckEnabled) {
+                                manager.countLogsOf(nuts.foodItem, timestamp, BINGE_CHECK_WINDOW)
+                            } else 0
+                            if (priorLogs > 0) {
+                                bingeCheck = BingeCheck(nuts, count, timestamp, priorLogs)
+                            } else {
+                                logFood(nuts, count, timestamp)
                             }
                         }
                     }
+                )
+            }
+
+            bingeCheck?.let { check ->
+                BingeCheckDialog(
+                    foodName = check.nutrients.foodItem,
+                    priorLogs = check.priorLogs,
+                    onLog = {
+                        bingeCheck = null
+                        scope.launch { logFood(check.nutrients, check.servingCount, check.timestamp) }
+                    },
+                    onHoldOff = {
+                        bingeCheck = null
+                        pendingNutrients = null
+                    },
+                    onDismiss = { bingeCheck = null }
                 )
             }
         }

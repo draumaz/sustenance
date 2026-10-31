@@ -20,6 +20,7 @@ import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -84,8 +85,7 @@ class HealthConnectManager(internal val context: Context) {
     suspend fun writeNutrition(nutrients: FoodNutrients, servingCount: Double, timestamp: Instant = Instant.now()) {
         val baseGrams = "(\\d+(?:[.,]\\d+)?)".toRegex().find(nutrients.servingSize)?.groupValues?.get(1)?.replace(',', '.')?.toDoubleOrNull() ?: 100.0
         val totalGrams = kotlin.math.round(baseGrams * servingCount).toInt()
-        val cleanName = nutrients.foodItem.replace("\\s*\\(\\d+g\\)".toRegex(), "").trim()
-        val entryName = "$cleanName (${totalGrams}g)"
+        val entryName = "${cleanFoodName(nutrients.foodItem)} (${totalGrams}g)"
 
         val record = NutritionRecord(
             startTime = timestamp,
@@ -318,6 +318,20 @@ class HealthConnectManager(internal val context: Context) {
         }.getOrElse { emptyList() }
     }
 
+    /**
+     * How many times this app logged [foodName] within [window] either side of [around]. Names are
+     * matched the way they're stored: ignoring case and the "(123g)" serving suffix.
+     */
+    suspend fun countLogsOf(foodName: String, around: Instant, window: Duration): Int {
+        val target = cleanFoodName(foodName)
+        return runCatching {
+            read(NutritionRecord::class, around - window, around + window)
+                .filterIsInstance<NutritionRecord>()
+                .filter { it.metadata.dataOrigin.packageName == context.packageName }
+                .count { cleanFoodName(it.name.orEmpty()).equals(target, ignoreCase = true) }
+        }.getOrDefault(0)
+    }
+
     suspend fun readLastFoodLogTime(threshold: Double = 0.0): Instant? {
         return runCatching {
             val end = Instant.now()
@@ -391,10 +405,9 @@ class HealthConnectManager(internal val context: Context) {
         val rawName = r.name ?: context.getString(R.string.unknown_food)
         val gramsMatch = "\\((\\d+)g\\)".toRegex().find(rawName)
         val servingSize = gramsMatch?.groupValues?.get(0)?.removeSurrounding("(", ")") ?: "1 serving"
-        val cleanName = rawName.replace("\\s*\\(\\d+g\\)".toRegex(), "").trim()
-        
+
         return FoodNutrients(
-            foodItem = cleanName,
+            foodItem = cleanFoodName(rawName),
             servingSize = servingSize,
             calories = r.energy?.inKilocalories ?: 0.0,
             protein = r.protein?.inGrams ?: 0.0,
@@ -630,6 +643,9 @@ class HealthConnectManager(internal val context: Context) {
             ReadRecordsRequest(recordType = type, timeRangeFilter = TimeRangeFilter.between(start, end))
         ).records
 
+    /** A food name without the "(123g)" serving suffix [writeNutrition] appends. */
+    private fun cleanFoodName(name: String): String = name.replace(SERVING_SUFFIX, "").trim()
+
     private fun recordTime(r: Record): Instant? = when (r) {
         is NutritionRecord -> r.startTime
         is TotalCaloriesBurnedRecord -> r.startTime
@@ -701,5 +717,7 @@ class HealthConnectManager(internal val context: Context) {
         // without this. Older-than-30-days reads need the history permission.
         const val PERMISSION_READ_IN_BACKGROUND = "android.permission.health.READ_HEALTH_DATA_IN_BACKGROUND"
         const val PERMISSION_READ_HISTORY = "android.permission.health.READ_HEALTH_DATA_HISTORY"
+
+        private val SERVING_SUFFIX = "\\s*\\(\\d+g\\)".toRegex()
     }
 }
