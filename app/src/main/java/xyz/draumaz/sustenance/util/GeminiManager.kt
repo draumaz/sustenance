@@ -7,6 +7,7 @@ import com.google.ai.client.generativeai.GenerativeModel
 import com.google.ai.client.generativeai.type.BlockThreshold
 import com.google.ai.client.generativeai.type.HarmCategory
 import com.google.ai.client.generativeai.type.SafetySetting
+import com.google.ai.client.generativeai.type.Schema
 import com.google.ai.client.generativeai.type.content
 import com.google.ai.client.generativeai.type.generationConfig
 import kotlinx.coroutines.CancellationException
@@ -49,6 +50,22 @@ class GeminiManager(
         apiKey = apiKey,
         generationConfig = generationConfig {
             responseMimeType = "application/json"
+            // Every field is required and non-null, so the model can't skip the explanation or leave unlisted nutrients out.
+            responseSchema = Schema.obj(
+                "food",
+                "Nutrients for the pictured food",
+                Schema.str("food_item", "Name of the food"),
+                Schema.str("serving_size", "Serving weight in grams, e.g. '150g'"),
+                Schema.double("calories", "kcal"),
+                Schema.double("protein", "grams"),
+                Schema.double("carbs", "grams"),
+                Schema.double("fat", "grams"),
+                Schema.double("fiber", "grams"),
+                Schema.double("sugar", "grams"),
+                Schema.double("saturated_fat", "grams"),
+                Schema.double("sodium", "milligrams"),
+                Schema.arr("explanation", "One point per estimated value", Schema.str("point", "One brief sentence")),
+            )
         },
         safetySettings = listOf(
             SafetySetting(HarmCategory.HARASSMENT, BlockThreshold.NONE),
@@ -93,11 +110,13 @@ class GeminiManager(
                     var prompt = """
                         Return the nutrients for the food in the image(s) as JSON: food_item, serving_size (weight in grams, e.g. '150g'), calories (kcal), protein, carbs, fat, fiber, sugar, saturated_fat (all in grams), sodium (in milligrams), explanation. Use plain numbers for nutrient values.
 
-                        Nutrition labels come first. If any image shows a nutrition facts label, copy every value printed on it exactly, for the serving size printed on it. Never estimate, round or "correct" a value the label shows. Convert units only where needed (kJ to kcal only if kcal is missing; salt in grams to sodium in mg by multiplying by 400). Estimate only the fields the label doesn't list.
+                        Nutrition labels come first. If any image shows a nutrition facts label, copy every value printed on it exactly, for the serving size printed on it. Never estimate, round or "correct" a value the label shows. Convert units only where needed (kJ to kcal only if kcal is missing; salt in grams to sodium in mg by multiplying by 400).
 
-                        Without a label, estimate from what you see.
+                        Every nutrient field must have a real value. If the label leaves a nutrient out (often fiber, sugar, saturated fat or sodium), estimate it for that serving from the food, its ingredients and similar products. Don't return 0 just because a value isn't printed; use 0 only when the food genuinely contains none.
 
-                        explanation is an array of plain-text points (no markdown), one per value you had to guess. Never include values read from a label. Each point is one brief sentence naming the specific evidence (restaurant or brand, ingredient, visual size cue, typical recipe) and the resulting number, following patterns like '[Source]'s [ingredient] is usually [preparation], putting [nutrient] around [amount].' or '[Object] looks about [size], so roughly [amount] total.' Only mention a restaurant or brand if it is visible in the image or given in the context. Empty array if nothing was guessed.
+                        Without a label, estimate everything from what you see.
+
+                        explanation is an array of plain-text points (no markdown), one per value you estimated rather than read from a label. Never include values read from a label. Each point is one brief sentence naming the specific evidence (restaurant or brand, ingredient, visual size cue, typical recipe) and the resulting number, following patterns like '[Source]'s [ingredient] is usually [preparation], putting [nutrient] around [amount].' or '[Object] looks about [size], so roughly [amount] total.' Only mention a restaurant or brand if it is visible in the image or given in the context. Without a label every value is estimated, so the explanation must never be empty: cover at least the portion size, calories and each macro. Leave it empty only when every value came from a label.
                     """.trimIndent()
                     if (!additionalInfo.isNullOrBlank()) {
                         prompt += "\n\nContext: $additionalInfo"
