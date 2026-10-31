@@ -1,6 +1,6 @@
-* Gemini now reads nutrition labels directly, fills in any values a label leaves out, and a new "?" button explains every estimate
+* Gemini reads nutrition labels, fills in values a label leaves out, and a "?" button explains every estimate
 * Redesigned nutrition facts editor with % of your daily goals and adjustable gram steps
-* Choose your Gemini model and test your API key in Settings
+* Choose your Gemini model and test your API key
 * Pull up on Today to see previous days, including your longest fast
 * Set your daily goals during first-run setup
 * Fully resizable widget with a live preview
