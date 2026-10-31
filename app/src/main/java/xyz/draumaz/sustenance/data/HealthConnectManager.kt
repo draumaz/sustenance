@@ -167,7 +167,8 @@ class HealthConnectManager(internal val context: Context) {
 
         if (!isKeto) return@coroutineScope rawSummaries
 
-        // Keto logic: Transform Carbs into Net Carbs (Carbs - Fiber)
+        // Net Carb mode headlines carbs minus fiber, but the carb goal is a total-carb goal: the
+        // spark (which drives progress, the widget and the over-limit check) stays total carbs.
         val fiberSummary = rawSummaries.find { it.metric == Metric.FIBER }
         val carbsSummary = rawSummaries.find { it.metric == Metric.CARBS }
 
@@ -179,7 +180,7 @@ class HealthConnectManager(internal val context: Context) {
 
             val unit = context.getString(Metric.CARBS.unitRes)
             val displayValue = if (goal != null && goal > 0) {
-                val diff = netCarbs - goal
+                val diff = carbsVal - goal
                 val absDiff = if (diff < 0) -diff else diff
                 val label = context.getString(if (diff >= 0) R.string.over else R.string.left)
                 "${Metric.CARBS.formatValue(netCarbs)}$unit (${Metric.CARBS.formatValue(absDiff)} $label)"
@@ -188,7 +189,6 @@ class HealthConnectManager(internal val context: Context) {
             val netCarbsSummary = carbsSummary.copy(
                 titleOverride = context.getString(R.string.metric_net_carbs),
                 value = displayValue,
-                spark = carbsSummary.spark.zip(fiberSummary.spark.ifEmpty { List(carbsSummary.spark.size) { 0f } }) { c, f -> (c - f).coerceAtLeast(0f) }
             )
 
             return@coroutineScope rawSummaries.map { if (it.metric == Metric.CARBS) netCarbsSummary else it }

@@ -189,7 +189,7 @@
     <string name="onboarding_subtitle">A clean, private view of the nutrition data in Health Connect.</string>
     <string name="onboarding_button">Get started</string>
     <string name="goal_setup_title">Set your daily goals</string>
-    <string name="goal_setup_subtitle">Sustenance measures what you eat against these targets. You can change them any time in Settings or Insights.</string>
+    <string name="goal_setup_subtitle">Sustenance measures what you eat against these targets. Defaults follow US health guidelines for a 2,000 kcal diet. You can change them any time in Settings or Insights.</string>
     <string name="goal_setup_energy">Energy</string>
     <string name="goal_setup_macros">Macronutrients</string>
     <string name="goal_setup_micros">Micronutrients</string>
@@ -197,6 +197,16 @@
     <string name="goal_setup_daily_limit">Daily limit</string>
     <string name="goal_setup_save">Save goals</string>
     <string name="goal_setup_skip">Not now</string>
+    <string name="goal_setup_total_carbs">Daily limit · total carbs</string>
+    <string name="goal_setup_net_carb_note">Net Carb mode shows carbs minus fiber, but this goal counts total carbs, fiber included.</string>
+    <string name="goal_blurb_food">The energy in what you eat. Eating more than you burn over time leads to weight gain; too little leaves you tired and short on nutrients.</string>
+    <string name="goal_blurb_protein">Builds and repairs muscle, skin, and organs, and keeps you full for longer. Adults need about 0.8 g per kg of body weight, more if you\'re active or older.</string>
+    <string name="goal_blurb_carbs">Your body\'s main fuel, especially for the brain and exercise. Whole grains, fruit, and legumes serve you well; refined starches and sugar spike blood sugar and add little else.</string>
+    <string name="goal_blurb_fat">Needed to absorb vitamins A, D, E, and K and to make hormones. Favor unsaturated fats from nuts, seeds, fish, and olive oil. Gram for gram, it\'s the most energy-dense nutrient.</string>
+    <string name="goal_blurb_saturated_fat" formatted="false">Found in fatty meat, butter, cheese, and coconut oil. Too much raises LDL cholesterol and the risk of heart disease. The AHA advises keeping it under 6% of daily energy.</string>
+    <string name="goal_blurb_sugar">Sugar brings calories without other nutrients, and too much raises the risk of weight gain, type 2 diabetes, heart disease, and tooth decay. The AHA advises at most 25 g of added sugar a day.</string>
+    <string name="goal_blurb_fiber">Keeps digestion regular, steadies blood sugar, lowers cholesterol, and helps you feel full. Most people eat only about half of what they need.</string>
+    <string name="goal_blurb_sodium">Helps nerves and muscles work, but most diets have far too much. Excess sodium raises blood pressure, a leading cause of heart attack and stroke. The AHA\'s ideal limit is 1,500 mg.</string>
     <string name="daily_goals">Daily goals</string>
     <string name="daily_goals_summary">Targets for energy, macros, and micros</string>
     <string name="goal_setup_reminder">You\'re using the default targets</string>

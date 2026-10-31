@@ -259,6 +259,7 @@ fun SustenanceRoot(
         // Last step of setup: set goals before the dashboard ever loads.
         goalSetupPending == true -> if (goalsToEdit == null) LoadingScreen() else GoalSetupScreen(
             initial = goalsToEdit,
+            netCarbMode = settingsRepo.ketoMode.collectAsState(initial = false).value,
             onSave = { values ->
                 scope.launch {
                     goalsRepo.setGoals(values)
@@ -689,6 +690,7 @@ private fun MainNav(
                         GoalSetupScreen(
                             initial = initial,
                             editing = true,
+                            netCarbMode = ketoMode,
                             onSave = { values ->
                                 scope.launch {
                                     goalsRepo.setGoals(values)

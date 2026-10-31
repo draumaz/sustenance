@@ -115,7 +115,7 @@ fun SettingsScreen(
     val appContext = context.applicationContext as xyz.draumaz.sustenance.SustenanceApp
     val scope = rememberCoroutineScope()
     val vm: SettingsViewModel = viewModel(factory = SettingsViewModel.factory(settingsRepo))
-    val dynamicColor by vm.dynamicColor.collectAsState(initial = true)
+    val dynamicColor by vm.dynamicColor.collectAsState(initial = false)
     val goalSetupDeferred by settingsRepo.goalSetupDeferred.collectAsState(initial = false)
 
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())

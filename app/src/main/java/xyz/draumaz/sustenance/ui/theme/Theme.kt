@@ -24,6 +24,7 @@ import xyz.draumaz.sustenance.R
 @OptIn(ExperimentalTextApi::class)
 private fun createGoogleSansFlexFont(
     weight: FontWeight = FontWeight.Normal,
+    roundness: Float = 0f,
 ): Font {
     return Font(
         resId = R.font.google_sans_flex,
@@ -32,7 +33,7 @@ private fun createGoogleSansFlexFont(
             FontVariation.weight(weight.weight),
             FontVariation.width(100f),
             FontVariation.slant(0f),
-            FontVariation.Setting("ROND", 0f),
+            FontVariation.Setting("ROND", roundness),
         )
     )
 }
@@ -47,6 +48,12 @@ val GoogleSansFlexFontFamily = FontFamily(
     createGoogleSansFlexFont(FontWeight.Bold),
     createGoogleSansFlexFont(FontWeight.ExtraBold),
     createGoogleSansFlexFont(FontWeight.Black),
+)
+
+/** Fully rounded Google Sans Flex, for softer explanatory copy. */
+val GoogleSansFlexRoundedFontFamily = FontFamily(
+    createGoogleSansFlexFont(FontWeight.Normal, roundness = 100f),
+    createGoogleSansFlexFont(FontWeight.Bold, roundness = 100f),
 )
 
 @OptIn(ExperimentalTextApi::class)
@@ -133,7 +140,7 @@ private val VitalsTypography = Typography(
 @Composable
 fun SustenanceTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit,
 ) {
     val context = LocalContext.current

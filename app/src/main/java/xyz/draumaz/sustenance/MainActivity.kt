@@ -36,7 +36,7 @@ class MainActivity : ComponentActivity() {
         if (savedInstanceState == null) handleIntent(intent)
         val app = application as SustenanceApp
         setContent {
-            val dynamicColor by app.settings.dynamicColor.collectAsState(initial = true)
+            val dynamicColor by app.settings.dynamicColor.collectAsState(initial = false)
             SustenanceTheme(dynamicColor = dynamicColor) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),

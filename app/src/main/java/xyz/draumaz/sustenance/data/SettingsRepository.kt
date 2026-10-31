@@ -73,7 +73,7 @@ class SettingsRepository(private val context: Context) {
     private val goalSetupDeferredKey = booleanPreferencesKey("goal_setup_deferred")
 
     val dynamicColor: Flow<Boolean> = context.settingsDataStore.data.map { prefs ->
-        prefs[dynamicColorKey] ?: true
+        prefs[dynamicColorKey] ?: false
     }
 
     val ketoMode: Flow<Boolean> = context.settingsDataStore.data.map { prefs ->

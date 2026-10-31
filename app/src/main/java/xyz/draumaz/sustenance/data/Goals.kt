@@ -14,16 +14,19 @@ private val Context.goalsDataStore by preferencesDataStore(name = "sustenance_go
  * summary measures the week's daily average against these.
  */
 object GoalCatalog {
+    // Defaults follow US health-agency guidance for a 2,000 kcal day, taking the stricter figure
+    // where agencies differ: AHA for sodium, saturated fat and sugar; the low end of the National
+    // Academies' range (45% of energy) for carbs; FDA's long-standing 30%-of-energy figure for fat.
     val defaults: Map<Metric, Float> = linkedMapOf(
         Metric.TOTAL_CALORIES to 2000f,
         Metric.FOOD to 2000f,
         Metric.CALORIC_BALANCE to 0f,
         Metric.PROTEIN to 50f,
-        Metric.CARBS to 275f,
-        Metric.FAT to 78f,
-        Metric.SATURATED_FAT to 20f,
-        Metric.SODIUM to 2300f,
-        Metric.SUGAR to 50f,
+        Metric.CARBS to 225f,
+        Metric.FAT to 65f,
+        Metric.SATURATED_FAT to 13f,
+        Metric.SODIUM to 1500f,
+        Metric.SUGAR to 25f,
         Metric.FIBER to 28f,
     )
     val metrics: List<Metric> get() = defaults.keys.toList()
