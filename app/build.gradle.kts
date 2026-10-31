@@ -25,8 +25,8 @@ android {
         applicationId = "xyz.draumaz.sustenance"
         minSdk = 30
         targetSdk = 36
-        versionCode = 9
-        versionName = "1.8.0"
+        versionCode = 10
+        versionName = "1.9.0"
         vectorDrawables { useSupportLibrary = true }
     }
 
