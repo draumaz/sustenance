@@ -646,9 +646,33 @@ private fun MainNav(
                         settingsRepo = settingsRepo,
                         bottomInset = inner.calculateBottomPadding(),
                         onManagePermissions = onManagePermissions,
+                        onEditGoals = { navController.navigate("goals") },
                         onBack = { navController.popBackStack() },
                         scrollTo = entry.arguments?.getString("scrollTo")
                     )
+                }
+
+                composable(
+                    "goals",
+                    enterTransition = { fadeIn(tween(200)) },
+                    exitTransition = { fadeOut(tween(200)) }
+                ) {
+                    val goals by goalsRepo.goals.collectAsState(initial = null)
+                    goals?.let { initial ->
+                        GoalSetupScreen(
+                            initial = initial,
+                            editing = true,
+                            onSave = { values ->
+                                scope.launch {
+                                    goalsRepo.setGoals(values)
+                                    // Also clears the "using default targets" prompt if setup was skipped.
+                                    settingsRepo.finishGoalSetup(deferred = false)
+                                }
+                                navController.popBackStack()
+                            },
+                            onSkip = { navController.popBackStack() },
+                        )
+                    }
                 }
 
                 composable(

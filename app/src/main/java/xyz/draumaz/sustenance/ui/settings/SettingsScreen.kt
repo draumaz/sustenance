@@ -106,6 +106,7 @@ fun SettingsScreen(
     settingsRepo: SettingsRepository,
     bottomInset: Dp,
     onManagePermissions: () -> Unit,
+    onEditGoals: () -> Unit,
     onBack: () -> Unit = {},
     scrollTo: String? = null,
 ) {
@@ -185,7 +186,7 @@ fun SettingsScreen(
                         Row(
                             Modifier
                                 .fillMaxWidth()
-                                .clickable { scope.launch { settingsRepo.setGoalSetupPending(true) } }
+                                .clickable(onClick = onEditGoals)
                                 .padding(horizontal = 16.dp, vertical = 18.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
@@ -232,6 +233,15 @@ fun SettingsScreen(
             item { SectionLabel(stringResource(R.string.section_diet)) }
             item {
                 SettingsCard {
+                    SettingRow(
+                        icon = Icons.Rounded.TrackChanges,
+                        title = stringResource(R.string.daily_goals),
+                        subtitle = stringResource(R.string.daily_goals_summary),
+                        onClick = onEditGoals,
+                    )
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f))
+
                     val ketoMode by vm.ketoMode.collectAsState(initial = false)
                     SettingRow(
                         icon = Icons.Rounded.Whatshot,

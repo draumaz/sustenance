@@ -177,7 +177,7 @@
     <string name="onboarding_subtitle">A clean, private view of the nutrition data in Health Connect.</string>
     <string name="onboarding_button">Get started</string>
     <string name="goal_setup_title">Set your daily goals</string>
-    <string name="goal_setup_subtitle">Sustenance measures what you eat against these targets. You can change them any time from Insights.</string>
+    <string name="goal_setup_subtitle">Sustenance measures what you eat against these targets. You can change them any time in Settings or Insights.</string>
     <string name="goal_setup_energy">Energy</string>
     <string name="goal_setup_macros">Macronutrients</string>
     <string name="goal_setup_micros">Micronutrients</string>
@@ -185,6 +185,8 @@
     <string name="goal_setup_daily_limit">Daily limit</string>
     <string name="goal_setup_save">Save goals</string>
     <string name="goal_setup_skip">Not now</string>
+    <string name="daily_goals">Daily goals</string>
+    <string name="daily_goals_summary">Targets for energy, macros, and micros</string>
     <string name="goal_setup_reminder">You\'re using the default targets</string>
     <string name="unavailable_title">Health Connect needed</string>
     <string name="unavailable_subtitle">Sustenance reads and logs your nutrition through Health Connect. Install it to continue.</string>

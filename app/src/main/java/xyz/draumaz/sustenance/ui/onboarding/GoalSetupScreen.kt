@@ -56,12 +56,14 @@ private val microMetrics = listOf(Metric.SATURATED_FAT, Metric.SUGAR, Metric.FIB
 /**
  * The last step of first-time setup, shown after Health Connect is linked and before the
  * dashboard loads, so the user sets daily targets up front. "Not now" keeps [initial].
+ * Settings reopens it with [editing] set, which swaps "Not now" for "Cancel".
  */
 @Composable
 fun GoalSetupScreen(
     initial: Map<Metric, Float>,
     onSave: (Map<Metric, Float>) -> Unit,
     onSkip: () -> Unit,
+    editing: Boolean = false,
 ) {
     val metrics = energyMetrics + macroMetrics + microMetrics
     val text = remember {
@@ -123,7 +125,7 @@ fun GoalSetupScreen(
         }
         Spacer(Modifier.height(4.dp))
         TextButton(onClick = onSkip, modifier = Modifier.fillMaxWidth()) {
-            Text(stringResource(R.string.goal_setup_skip))
+            Text(stringResource(if (editing) R.string.cancel else R.string.goal_setup_skip))
         }
     }
 }
