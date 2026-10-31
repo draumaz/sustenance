@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Match GlanceTheme's dynamic widgetBackground / secondaryContainer -->
+    <color name="widget_preview_background">@android:color/system_accent2_50</color>
+    <color name="widget_preview_tile">@android:color/system_accent2_100</color>
+    <color name="widget_preview_on_tile">@android:color/system_accent2_900</color>
+</resources>

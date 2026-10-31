@@ -15,4 +15,4 @@
     android:description="@string/widget_description"
     android:updatePeriodMillis="0"
     android:initialLayout="@layout/glance_default_loading_layout"
-    android:previewLayout="@layout/glance_default_loading_layout" />
+    android:previewLayout="@layout/widget_preview" />

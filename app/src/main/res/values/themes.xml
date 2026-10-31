@@ -10,4 +10,16 @@
         <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
         <item name="postSplashScreenTheme">@style/Theme.Sustenance</item>
     </style>
+    <style name="WidgetPreviewTile">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">match_parent</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:background">@drawable/widget_preview_tile</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:paddingHorizontal">6dp</item>
+        <item name="android:maxLines">1</item>
+        <item name="android:textColor">@color/widget_preview_on_tile</item>
+        <item name="android:textSize">11sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
 </resources>
