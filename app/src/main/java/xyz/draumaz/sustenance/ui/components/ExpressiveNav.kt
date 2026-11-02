@@ -128,6 +128,9 @@ fun ExpressiveNavigationBar(
     val currentRoute = currentDestination?.route
 
     val isOnDetail = currentRoute?.startsWith("detail/") == true
+    val previousRoute = navController.previousBackStackEntry?.destination?.route
+    // A detail opened from Insights keeps Insights highlighted; otherwise it belongs to Today.
+    val detailFromInsights = isOnDetail && previousRoute == xyz.draumaz.sustenance.ui.Dest.INSIGHTS.route
     val detailMetric = if (isOnDetail) {
         navBackStackEntry?.arguments?.getString("metricKey")?.let { Metric.fromKey(it) }
     } else null
@@ -292,19 +295,20 @@ fun ExpressiveNavigationBar(
                         ) { if (isHistorySelected) { onHistoryClick() }; onCaptureBatch() }
                     }
                 } else {
-                    val previousRoute = navController.previousBackStackEntry?.destination?.route
-
                     val renderItem = @Composable { dest: xyz.draumaz.sustenance.ui.Dest ->
-                        val isSelected = currentDestination?.hierarchy?.any {
+                        val ownsDetail = detailFromInsights && dest == xyz.draumaz.sustenance.ui.Dest.INSIGHTS
+                        val isSelected = ownsDetail || currentDestination?.hierarchy?.any {
                             it.route == dest.route || it.route?.startsWith("${dest.route}?") == true
                         } == true
 
+                        // Like Today, the tab that owns an open detail takes on its metric.
+                        val ownedMetric = if (ownsDetail) detailMetric else null
                         ExpressiveNavItem(
-                            label = stringResource(dest.labelRes),
-                            icon = dest.icon,
+                            label = ownedMetric?.let { stringResource(it.titleRes) } ?: stringResource(dest.labelRes),
+                            icon = ownedMetric?.icon ?: dest.icon,
                             selected = previewSelected(
                                 isSelected = isSelected,
-                                isCurrent = currentRoute == dest.route,
+                                isCurrent = ownsDetail || currentRoute == dest.route,
                                 isPrevious = previousRoute == dest.route,
                             ),
                             onClick = { onNavigate(dest) }
@@ -320,7 +324,8 @@ fun ExpressiveNavigationBar(
                     // Today (Home) item - transforms into the detail metric, a past date, or Log
                     val isTodaySelected = (currentDestination?.hierarchy?.any { it.route == "today" } == true)
                     val isLog = (dateOffset == 0) && hasApiKey && isTodaySelected && !isOnDetail
-                    val targetMetric = if (isOnDetail) detailMetric else null
+                    val todayOwnsDetail = isOnDetail && !detailFromInsights
+                    val targetMetric = if (todayOwnsDetail) detailMetric else null
 
                     val labelText = when {
                         targetMetric != null -> stringResource(targetMetric.titleRes)
@@ -331,7 +336,8 @@ fun ExpressiveNavigationBar(
                             .format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))
                     }
 
-                    fun isTodayRoute(route: String?) = route == "today" || route?.startsWith("detail/") == true
+                    fun isTodayRoute(route: String?) =
+                        route == "today" || (todayOwnsDetail && route?.startsWith("detail/") == true)
 
                     ExpressiveNavItem(
                         label = labelText,
@@ -341,7 +347,7 @@ fun ExpressiveNavigationBar(
                             else -> todayDest.icon
                         },
                         selected = previewSelected(
-                            isSelected = isTodaySelected || isOnDetail,
+                            isSelected = isTodaySelected || todayOwnsDetail,
                             isCurrent = isTodayRoute(currentRoute),
                             isPrevious = isTodayRoute(previousRoute),
                         ),

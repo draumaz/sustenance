@@ -598,6 +598,13 @@ private fun MainNav(
                                     // This handles detail screens and settings regardless of parameters.
                                     navController.popBackStack(Dest.TODAY.route, inclusive = false)
                                 }
+                            } else if (
+                                currentRoute?.startsWith("detail/") == true &&
+                                navController.previousBackStackEntry?.destination?.route == dest.route
+                            ) {
+                                // A detail opened from this tab: go back to it rather than
+                                // restoring a saved stack that still has the detail on top.
+                                navController.popBackStack()
                             } else {
                                 navController.navigate(dest.route) {
                                     popUpTo(navController.graph.findStartDestination().id) {
