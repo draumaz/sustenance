@@ -73,6 +73,7 @@ fun InsightsScreen(
     manager: HealthConnectManager,
     goalsRepo: GoalsRepository,
     bottomInset: androidx.compose.ui.unit.Dp,
+    onOpenMetric: (Metric) -> Unit,
     onBack: () -> Unit = {},
 ) {
     val vm: InsightsViewModel = viewModel(factory = InsightsViewModel.factory(manager, goalsRepo))
@@ -167,6 +168,7 @@ fun InsightsScreen(
                     ) {
                         InsightCard(
                             stat = stat,
+                            onClick = { onOpenMetric(stat.metric) },
                             onEdit = { editing = stat },
                             editEnabled = !(stat.metric == Metric.FOOD && programmedDeficit)
                         )
@@ -186,7 +188,13 @@ fun InsightsScreen(
 }
 
 @Composable
-private fun InsightCard(stat: WeeklyStat, onEdit: () -> Unit, editEnabled: Boolean = true) {
+private fun InsightCard(
+    stat: WeeklyStat,
+    onClick: () -> Unit,
+    onEdit: () -> Unit,
+    editEnabled: Boolean = true,
+) {
+    val view = LocalView.current
     val currentVal = if (stat.metric == Metric.CALORIC_BALANCE) stat.todayValue.coerceAtLeast(0f) else stat.todayValue
     val isOver = stat.goal > 0 && currentVal > stat.goal
     val progress = stat.progress
@@ -203,6 +211,10 @@ private fun InsightCard(stat: WeeklyStat, onEdit: () -> Unit, editEnabled: Boole
     }
 
     Card(
+        onClick = {
+            view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+            onClick()
+        },
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.extraLarge,
         colors = CardDefaults.cardColors(containerColor = accent.copy(alpha = 0.18f)),

@@ -656,6 +656,11 @@ private fun MainNav(
                         manager = manager,
                         goalsRepo = goalsRepo,
                         bottomInset = inner.calculateBottomPadding(),
+                        // Insights always reflects today, so pin the detail view to today
+                        // rather than whichever day the Dashboard was last showing.
+                        onOpenMetric = { metric ->
+                            navController.navigate("detail/${metric.key}?offset=0")
+                        },
                         onBack = { navController.popBackStack() }
                     )
                 }
@@ -705,18 +710,23 @@ private fun MainNav(
                 }
 
                 composable(
-                    "detail/{metricKey}",
-                    arguments = listOf(navArgument("metricKey") { type = NavType.StringType }),
+                    "detail/{metricKey}?offset={offset}",
+                    arguments = listOf(
+                        navArgument("metricKey") { type = NavType.StringType },
+                        // Optional day override; absent means follow the Dashboard's selected day.
+                        navArgument("offset") { type = NavType.IntType; defaultValue = -1 },
+                    ),
                     enterTransition = { fadeIn(tween(200)) },
                     exitTransition = { fadeOut(tween(200)) }
                 ) { entry ->
                     val key = entry.arguments?.getString("metricKey") ?: ""
                     val metric = Metric.fromKey(key) ?: Metric.TOTAL_CALORIES
+                    val offsetArg = entry.arguments?.getInt("offset") ?: -1
                     DetailScreen(
                         manager = manager,
                         goalsRepo = goalsRepo,
                         metric = metric,
-                        dateOffset = dashboardDateOffset,
+                        dateOffset = if (offsetArg >= 0) offsetArg else dashboardDateOffset,
                         onReLog = { pendingNutrients = it },
                         onManagePermissions = onManagePermissions,
                         onBack = { navController.popBackStack() }
