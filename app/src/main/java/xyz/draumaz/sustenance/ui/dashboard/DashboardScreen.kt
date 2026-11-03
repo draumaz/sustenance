@@ -183,7 +183,7 @@ fun DashboardScreen(
 
     val greeting = when (dateOffset) {
         0 -> if (BuildConfig.DEBUG) {
-            "${BuildConfig.VERSION_NAME} (debug)"
+            BuildConfig.VERSION_NAME
         } else {
             when (LocalTime.now().hour) {
                 in 0..11 -> stringResource(R.string.greeting_morning)
