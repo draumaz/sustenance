@@ -16,6 +16,12 @@ import androidx.compose.material.icons.rounded.Insights
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Today
 import androidx.compose.animation.AnimatedContent
+import xyz.draumaz.sustenance.ui.components.ScreenCard
+import xyz.draumaz.sustenance.ui.components.isOpeningDetail
+import xyz.draumaz.sustenance.ui.components.pushEnterCard
+import xyz.draumaz.sustenance.ui.components.pushExitUnder
+import xyz.draumaz.sustenance.ui.components.popEnterBack
+import xyz.draumaz.sustenance.ui.components.popExitBack
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.animateDpAsState
@@ -631,45 +637,53 @@ private fun MainNav(
                 composable(
                     Dest.TODAY.route,
                     enterTransition = { fadeIn(tween(200)) },
-                    exitTransition = { fadeOut(tween(200)) }
+                    exitTransition = { if (isOpeningDetail()) pushExitUnder() else fadeOut(tween(200)) },
+                    popEnterTransition = popEnterBack,
+                    popExitTransition = popExitBack,
                 ) {
-                    DashboardScreen(
-                        manager = manager,
-                        goalsRepo = goalsRepo,
-                        settingsRepo = settingsRepo,
-                        granted = granted,
-                        bottomInset = inner.calculateBottomPadding(),
-                        todayClickCount = todayClickCount,
-                        onOpenMetric = { metric, _ ->
-                            navController.navigate("detail/${metric.key}")
-                        },
-                        onTimerClick = {
-                            navController.navigate("settings?scrollTo=fasting")
-                        },
-                        onManagePermissions = onManagePermissions,
-                        onDateChanged = { 
-                            dashboardDateOffset = it
-                            bottomBarOffsetHeightPx.floatValue = 0f
-                        }
-                    )
+                    ScreenCard {
+                        DashboardScreen(
+                            manager = manager,
+                            goalsRepo = goalsRepo,
+                            settingsRepo = settingsRepo,
+                            granted = granted,
+                            bottomInset = inner.calculateBottomPadding(),
+                            todayClickCount = todayClickCount,
+                            onOpenMetric = { metric, _ ->
+                                navController.navigate("detail/${metric.key}")
+                            },
+                            onTimerClick = {
+                                navController.navigate("settings?scrollTo=fasting")
+                            },
+                            onManagePermissions = onManagePermissions,
+                            onDateChanged = { 
+                                dashboardDateOffset = it
+                                bottomBarOffsetHeightPx.floatValue = 0f
+                            }
+                        )
+                    }
                 }
 
                 composable(
                     Dest.INSIGHTS.route,
                     enterTransition = { fadeIn(tween(200)) },
-                    exitTransition = { fadeOut(tween(200)) }
+                    exitTransition = { if (isOpeningDetail()) pushExitUnder() else fadeOut(tween(200)) },
+                    popEnterTransition = popEnterBack,
+                    popExitTransition = popExitBack,
                 ) {
-                    InsightsScreen(
-                        manager = manager,
-                        goalsRepo = goalsRepo,
-                        bottomInset = inner.calculateBottomPadding(),
-                        // Insights always reflects today, so pin the detail view to today
-                        // rather than whichever day the Dashboard was last showing.
-                        onOpenMetric = { metric ->
-                            navController.navigate("detail/${metric.key}?offset=0")
-                        },
-                        onBack = { navController.popBackStack() }
-                    )
+                    ScreenCard {
+                        InsightsScreen(
+                            manager = manager,
+                            goalsRepo = goalsRepo,
+                            bottomInset = inner.calculateBottomPadding(),
+                            // Insights always reflects today, so pin the detail view to today
+                            // rather than whichever day the Dashboard was last showing.
+                            onOpenMetric = { metric ->
+                                navController.navigate("detail/${metric.key}?offset=0")
+                            },
+                            onBack = { navController.popBackStack() }
+                        )
+                    }
                 }
 
                 composable(
@@ -680,39 +694,47 @@ private fun MainNav(
                         defaultValue = null
                     }),
                     enterTransition = { fadeIn(tween(200)) },
-                    exitTransition = { fadeOut(tween(200)) }
+                    exitTransition = { fadeOut(tween(200)) },
+                    popEnterTransition = popEnterBack,
+                    popExitTransition = popExitBack,
                 ) { entry ->
-                    SettingsScreen(
-                        settingsRepo = settingsRepo,
-                        bottomInset = inner.calculateBottomPadding(),
-                        onManagePermissions = onManagePermissions,
-                        onEditGoals = { navController.navigate("goals") },
-                        onBack = { navController.popBackStack() },
-                        scrollTo = entry.arguments?.getString("scrollTo")
-                    )
+                    ScreenCard {
+                        SettingsScreen(
+                            settingsRepo = settingsRepo,
+                            bottomInset = inner.calculateBottomPadding(),
+                            onManagePermissions = onManagePermissions,
+                            onEditGoals = { navController.navigate("goals") },
+                            onBack = { navController.popBackStack() },
+                            scrollTo = entry.arguments?.getString("scrollTo")
+                        )
+                    }
                 }
 
                 composable(
                     "goals",
                     enterTransition = { fadeIn(tween(200)) },
-                    exitTransition = { fadeOut(tween(200)) }
+                    exitTransition = { fadeOut(tween(200)) },
+                    popEnterTransition = popEnterBack,
+                    popExitTransition = popExitBack,
                 ) {
-                    val goals by goalsRepo.goals.collectAsState(initial = null)
-                    goals?.let { initial ->
-                        GoalSetupScreen(
-                            initial = initial,
-                            editing = true,
-                            netCarbMode = ketoMode,
-                            onSave = { values ->
-                                scope.launch {
-                                    goalsRepo.setGoals(values)
-                                    // Also clears the "using default targets" prompt if setup was skipped.
-                                    settingsRepo.finishGoalSetup(deferred = false)
-                                }
-                                navController.popBackStack()
-                            },
-                            onSkip = { navController.popBackStack() },
-                        )
+                    ScreenCard {
+                        val goals by goalsRepo.goals.collectAsState(initial = null)
+                        goals?.let { initial ->
+                            GoalSetupScreen(
+                                initial = initial,
+                                editing = true,
+                                netCarbMode = ketoMode,
+                                onSave = { values ->
+                                    scope.launch {
+                                        goalsRepo.setGoals(values)
+                                        // Also clears the "using default targets" prompt if setup was skipped.
+                                        settingsRepo.finishGoalSetup(deferred = false)
+                                    }
+                                    navController.popBackStack()
+                                },
+                                onSkip = { navController.popBackStack() },
+                            )
+                        }
                     }
                 }
 
@@ -723,21 +745,25 @@ private fun MainNav(
                         // Optional day override; absent means follow the Dashboard's selected day.
                         navArgument("offset") { type = NavType.IntType; defaultValue = -1 },
                     ),
-                    enterTransition = { fadeIn(tween(200)) },
-                    exitTransition = { fadeOut(tween(200)) }
+                    enterTransition = pushEnterCard,
+                    exitTransition = { fadeOut(tween(200)) },
+                    popEnterTransition = popEnterBack,
+                    popExitTransition = popExitBack,
                 ) { entry ->
-                    val key = entry.arguments?.getString("metricKey") ?: ""
-                    val metric = Metric.fromKey(key) ?: Metric.TOTAL_CALORIES
-                    val offsetArg = entry.arguments?.getInt("offset") ?: -1
-                    DetailScreen(
-                        manager = manager,
-                        goalsRepo = goalsRepo,
-                        metric = metric,
-                        dateOffset = if (offsetArg >= 0) offsetArg else dashboardDateOffset,
-                        onReLog = { pendingNutrients = it },
-                        onManagePermissions = onManagePermissions,
-                        onBack = { navController.popBackStack() }
-                    )
+                    ScreenCard {
+                        val key = entry.arguments?.getString("metricKey") ?: ""
+                        val metric = Metric.fromKey(key) ?: Metric.TOTAL_CALORIES
+                        val offsetArg = entry.arguments?.getInt("offset") ?: -1
+                        DetailScreen(
+                            manager = manager,
+                            goalsRepo = goalsRepo,
+                            metric = metric,
+                            dateOffset = if (offsetArg >= 0) offsetArg else dashboardDateOffset,
+                            onReLog = { pendingNutrients = it },
+                            onManagePermissions = onManagePermissions,
+                            onBack = { navController.popBackStack() }
+                        )
+                    }
                 }
             }
 
