@@ -47,7 +47,7 @@ private fun NutrientIconItem(metric: Metric, value: Double, modifier: Modifier =
     Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically) {
         Icon(
             imageVector = metric.icon,
-            contentDescription = stringResource(metric.titleRes),
+            contentDescription = metric.title(),
             tint = metric.accent,
             modifier = Modifier.size(14.dp)
         )

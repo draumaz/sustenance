@@ -524,7 +524,7 @@ class HealthConnectManager(internal val context: Context) {
                             val macros = mutableListOf<String>()
                             r.protein?.let { macros.add("${context.getString(R.string.metric_protein)}: ${formatNumber(it.inGrams)}${context.getString(R.string.unit_g)}") }
                             r.totalCarbohydrate?.let { macros.add("${context.getString(R.string.metric_carbs)}: ${formatNumber(it.inGrams)}${context.getString(R.string.unit_g)}") }
-                            r.dietaryFiber?.let { macros.add("${context.getString(R.string.metric_fiber)}: ${formatNumber(it.inGrams)}${context.getString(R.string.unit_g)}") }
+                            r.dietaryFiber?.let { macros.add("${context.getString(Metric.FIBER.titleResFor(context.resources.configuration.locales))}: ${formatNumber(it.inGrams)}${context.getString(R.string.unit_g)}") }
                             r.totalFat?.let { macros.add("${context.getString(R.string.metric_fat)}: ${formatNumber(it.inGrams)}${context.getString(R.string.unit_g)}") }
                             r.saturatedFat?.let { macros.add("${context.getString(R.string.metric_saturated_fat)}: ${formatNumber(it.inGrams)}${context.getString(R.string.unit_g)}") }
                             r.sugar?.let { macros.add("${context.getString(R.string.metric_sugar)}: ${formatNumber(it.inGrams)}${context.getString(R.string.unit_g)}") }

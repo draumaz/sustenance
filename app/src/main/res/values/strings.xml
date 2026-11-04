@@ -29,6 +29,7 @@
     <string name="metric_sodium">Sodium</string>
     <string name="metric_sugar">Sugar</string>
     <string name="metric_fiber">Fiber</string>
+    <string name="metric_fibre">Fibre</string>
     <string name="metric_net_carbs">Net carbs</string>
 
     <string name="nutrition_facts">Nutrition Facts</string>
@@ -39,6 +40,7 @@
     <string name="nutrition_saturated">Saturated</string>
     <string name="nutrition_carbohydrate">Carbohydrate</string>
     <string name="nutrition_fibre">Fibre</string>
+    <string name="nutrition_fiber">Fiber</string>
     <string name="nutrition_sugars">Sugars</string>
     <string name="nutrition_protein">Protein</string>
     <string name="nutrition_sodium">Sodium</string>

@@ -129,7 +129,7 @@ fun DetailScreen(
     if (showGoalDialog) {
         val currentGoal = detail?.goal ?: 0f
         var text by remember { mutableStateOf(currentGoal.toString().removeSuffix(".0")) }
-        val titleText = if (metric == Metric.CALORIC_BALANCE) stringResource(R.string.edit_caloric_balance_offset) else stringResource(R.string.edit_metric_goal, stringResource(metric.titleRes))
+        val titleText = if (metric == Metric.CALORIC_BALANCE) stringResource(R.string.edit_caloric_balance_offset) else stringResource(R.string.edit_metric_goal, metric.title())
         AlertDialog(
             onDismissRequest = { showGoalDialog = false },
             title = { Text(titleText) },
@@ -203,7 +203,7 @@ fun DetailScreen(
                 TopAppBar(
                     title = {
                         Text(
-                            stringResource(metric.titleRes),
+                            metric.title(),
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.ExtraBold
                         )

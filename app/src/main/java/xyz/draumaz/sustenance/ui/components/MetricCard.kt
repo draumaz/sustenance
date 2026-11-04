@@ -159,7 +159,7 @@ fun MetricItemContent(
             verticalArrangement = Arrangement.Center
         ) {
             Text(
-                text = summary.titleOverride ?: stringResource(summary.metric.titleRes),
+                text = summary.titleOverride ?: summary.metric.title(),
                 style = if (hasFill) {
                     MaterialTheme.typography.labelSmall.copy(shadow = textShadow, lineHeight = 13.sp)
                 } else {

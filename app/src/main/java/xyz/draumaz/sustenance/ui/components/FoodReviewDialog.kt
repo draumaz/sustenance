@@ -47,6 +47,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import android.view.HapticFeedbackConstants
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -702,7 +703,10 @@ private fun NutritionFactsLabel(
                 color = contentColor
             )
             NutritionFactsRow(
-                label = stringResource(R.string.nutrition_fibre),
+                label = stringResource(
+                    if (Metric.usesFibreSpelling(LocalConfiguration.current.locales)) R.string.nutrition_fibre
+                    else R.string.nutrition_fiber
+                ),
                 value = fiber,
                 onValueChange = onFiberChange,
                 unit = stringResource(R.string.unit_g),

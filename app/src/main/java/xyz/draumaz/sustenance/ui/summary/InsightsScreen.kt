@@ -231,7 +231,7 @@ private fun InsightCard(
                 Spacer(Modifier.size(20.dp))
                 Column(Modifier.weight(1f)) {
                     Text(
-                        stringResource(stat.metric.titleRes),
+                        stat.metric.title(),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Black,
                         letterSpacing = (-0.5).sp

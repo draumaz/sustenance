@@ -1,5 +1,6 @@
 package xyz.draumaz.sustenance.data
 
+import android.os.LocaleList
 import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.BakeryDining
@@ -12,10 +13,14 @@ import androidx.compose.material.icons.rounded.Grain
 import androidx.compose.material.icons.rounded.Icecream
 import androidx.compose.material.icons.rounded.Restaurant
 import androidx.compose.material.icons.rounded.WaterDrop
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.stringResource
 import xyz.draumaz.sustenance.R
 import xyz.draumaz.sustenance.util.FoodNutrients
+import java.util.Locale
 
 /** How a metric is summarised and charted. */
 enum class MetricKind {
@@ -49,12 +54,35 @@ enum class Metric(
     SUGAR("sugar", R.string.metric_sugar, R.string.unit_g, MetricKind.DAILY_TOTAL, Color(0xFFAB8A9B), Icons.Rounded.Cookie),
     FIBER("fiber", R.string.metric_fiber, R.string.unit_g, MetricKind.DAILY_TOTAL, Color(0xFF8F857E), Icons.Rounded.Eco, moreIsBetter = true);
 
+    /**
+     * Resource for the metric's display name. FIBER follows the device region: "fiber" where
+     * simplified (US) spelling is standard, "fibre" where British spelling is used.
+     */
+    fun titleResFor(locales: LocaleList): Int =
+        if (this == FIBER && usesFibreSpelling(locales)) R.string.metric_fibre else titleRes
+
+    /** Region-aware display name; use instead of stringResource(metric.titleRes). */
+    @Composable
+    fun title(): String = stringResource(titleResFor(LocalConfiguration.current.locales))
+
     sealed class Judgement {
         object Positive : Judgement()
         object Negative : Judgement()
     }
 
     companion object {
+        /** Regions whose English uses the British "fibre" spelling. */
+        private val FIBRE_REGIONS = setOf(
+            "GB", "IE", "AU", "NZ", "IN", "PK", "BD", "LK", "ZA", "SG", "MY", "HK",
+            "NG", "KE", "GH", "ZM", "ZW", "TZ", "UG", "JM", "TT", "MT", "CY", "FJ", "PG",
+        )
+
+        /** True when the first device locale is in a region that spells the nutrient "fibre". */
+        fun usesFibreSpelling(locales: LocaleList): Boolean {
+            val region = locales.get(0)?.country?.uppercase(Locale.ROOT)
+            return region != null && region in FIBRE_REGIONS
+        }
+
         fun fromKey(key: String): Metric? = entries.firstOrNull { it.key == key }
 
         fun judgeFoodItem(

@@ -193,7 +193,7 @@ private fun GoalSection(
                         Spacer(Modifier.width(16.dp))
                         Column(Modifier.weight(1f)) {
                             Text(
-                                stringResource(metric.titleRes),
+                                metric.title(),
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.SemiBold,
                             )

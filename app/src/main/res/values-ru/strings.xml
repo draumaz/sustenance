@@ -29,6 +29,7 @@
     <string name="metric_sodium">Натрий</string>
     <string name="metric_sugar">Сахар</string>
     <string name="metric_fiber">Клетчатка</string>
+    <string name="metric_fibre">Клетчатка</string>
     <string name="metric_net_carbs">Чистые углеводы</string>
 
     <string name="nutrition_facts">Пищевая ценность</string>
@@ -39,6 +40,7 @@
     <string name="nutrition_saturated">Насыщенные</string>
     <string name="nutrition_carbohydrate">Углеводы</string>
     <string name="nutrition_fibre">Клетчатка</string>
+    <string name="nutrition_fiber">Клетчатка</string>
     <string name="nutrition_sugars">Сахар</string>
     <string name="nutrition_protein">Белки</string>
     <string name="nutrition_sodium">Натрий</string>

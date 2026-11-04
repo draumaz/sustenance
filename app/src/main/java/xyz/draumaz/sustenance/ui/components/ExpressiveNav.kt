@@ -304,7 +304,7 @@ fun ExpressiveNavigationBar(
                         // Like Today, the tab that owns an open detail takes on its metric.
                         val ownedMetric = if (ownsDetail) detailMetric else null
                         ExpressiveNavItem(
-                            label = ownedMetric?.let { stringResource(it.titleRes) } ?: stringResource(dest.labelRes),
+                            label = ownedMetric?.title() ?: stringResource(dest.labelRes),
                             icon = ownedMetric?.icon ?: dest.icon,
                             selected = previewSelected(
                                 isSelected = isSelected,
@@ -328,7 +328,7 @@ fun ExpressiveNavigationBar(
                     val targetMetric = if (todayOwnsDetail) detailMetric else null
 
                     val labelText = when {
-                        targetMetric != null -> stringResource(targetMetric.titleRes)
+                        targetMetric != null -> targetMetric.title()
                         isLog -> stringResource(R.string.log)
                         dateOffset == 0 -> stringResource(todayDest.labelRes)
                         dateOffset == 1 -> stringResource(R.string.yesterday)
