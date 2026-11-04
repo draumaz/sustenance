@@ -7,6 +7,7 @@ import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import xyz.draumaz.sustenance.notifications.FastingNotificationScheduler
 
 /** Periodically re-renders the home-screen widget(s) with fresh Health Connect data. */
 class WidgetUpdateWorker(
@@ -17,6 +18,9 @@ class WidgetUpdateWorker(
     override suspend fun doWork(): Result {
         return runCatching {
             SustenanceWidget().updateAll(applicationContext)
+            // The dashboard's ViewModel isn't alive here, so nothing else keeps fasting
+            // notifications honest with food logged by other apps while we're in the background.
+            FastingNotificationScheduler.syncWithHealthConnect(applicationContext)
             Result.success()
         }.getOrElse { Result.retry() }
     }

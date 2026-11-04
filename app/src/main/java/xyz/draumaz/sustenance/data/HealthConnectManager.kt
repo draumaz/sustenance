@@ -9,17 +9,31 @@ import androidx.health.connect.client.records.Record
 import androidx.health.connect.client.records.TotalCaloriesBurnedRecord
 import androidx.health.connect.client.records.metadata.Metadata
 import androidx.health.connect.client.request.AggregateGroupByPeriodRequest
+import androidx.health.connect.client.request.ChangesTokenRequest
 import androidx.health.connect.client.request.ReadRecordsRequest
 import androidx.health.connect.client.time.TimeRangeFilter
 import androidx.health.connect.client.units.Energy
 import androidx.health.connect.client.units.Mass
 import xyz.draumaz.sustenance.util.FoodNutrients
 import xyz.draumaz.sustenance.R
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.merge
+import kotlinx.coroutines.flow.shareIn
+import kotlinx.coroutines.isActive
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
@@ -29,6 +43,7 @@ import java.time.Period
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import kotlin.reflect.KClass
+import kotlin.time.Duration.Companion.seconds
 
 /**
  * Thin, read-only wrapper around Health Connect. Knows how to turn each [Metric] into a dashboard
@@ -46,8 +61,21 @@ class HealthConnectManager(internal val context: Context) {
 
     val client: HealthConnectClient by lazy { HealthConnectClient.getOrCreate(context) }
 
-    private val _changes = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
-    val changes = _changes.asSharedFlow()
+    // Scope for the changes poller; lives as long as the manager, which is an app singleton.
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+    private val _localChanges = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+
+    /**
+     * Signals that Health Connect data may have changed. Our own writes emit immediately, and
+     * a polling loop watches HC's changes feed so writes from *other* apps surface while the
+     * app is open too. HC has no push API; without this, cross-app writes used to sit unnoticed
+     * until a manual refresh or the 30-minute widget worker.
+     */
+    val changes: SharedFlow<Unit> = merge(
+        _localChanges.asSharedFlow(),
+        polledChanges(),
+    ).shareIn(scope, SharingStarted.WhileSubscribed(5000))
 
     /** Per-metric data-type read permissions (used for the dashboard's per-tile lock state). */
     val metricPermissions: Set<String> =
@@ -106,8 +134,44 @@ class HealthConnectManager(internal val context: Context) {
         // Failures propagate unchanged so callers can tell a SecurityException (missing write
         // permission) apart from other errors.
         client.insertRecords(listOf(record))
-        _changes.tryEmit(Unit)
+        _localChanges.tryEmit(Unit)
     }
+
+    /**
+     * Polls HC's changes feed for writes made by other apps. Re-requests a token whenever a read
+     * fails (permissions revoked, token expired) so polling resumes once access returns. Backs
+     * off after consecutive failures — the poll keeps running while ViewModels subscribe, and
+     * without READ_HEALTH_DATA_IN_BACKGROUND every backgrounded poll would be refused.
+     */
+    private fun polledChanges(): Flow<Unit> = flow {
+        var token: String? = null
+        var failures = 0
+        while (currentCoroutineContext().isActive) {
+            delay((CHANGE_POLL_SECONDS * (1L shl failures.coerceAtMost(4))).seconds)
+            val response = token?.let { runChangesCatching { client.getChanges(it) } }
+            if (response == null) {
+                token = runChangesCatching {
+                    client.getChangesToken(ChangesTokenRequest(recordTypes(), emptySet()))
+                }
+                failures = if (token != null) 0 else failures + 1
+                continue
+            }
+            failures = 0
+            token = response.nextChangesToken
+            if (response.changes.isNotEmpty()) emit(Unit)
+        }
+    }
+
+    /** Like runCatching, but rethrows cancellation instead of swallowing it. */
+    private suspend fun <T> runChangesCatching(block: suspend () -> T): T? = try {
+        block()
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        null
+    }
+
+    private fun recordTypes(): Set<KClass<out Record>> = Metric.entries.map { recordClass(it) }.toSet()
 
     // ---- Dashboard -----------------------------------------------------------------------------
 
@@ -157,8 +221,13 @@ class HealthConnectManager(internal val context: Context) {
                 } else {
                     runCatching { summarize(metric, goal, dateOffset) }
                         .getOrElse { e ->
-                            val isSecurity = e is SecurityException || e.javaClass.name.contains("Security") || e.message?.contains("permission", ignoreCase = true) == true
-                            MetricSummary(metric, "-", context.getString(R.string.no_data), hasData = false, granted = !isSecurity, goal = goal)
+                            if (e is CancellationException) throw e
+                            // Lock the tile only when the permission is verifiably gone right now;
+                            // anything else (IPC hiccup, one failed record type) stays "no data"
+                            // so a transient error never looks like a revoked grant. HC's own
+                            // granted-permissions state is authoritative — no string matching.
+                            val revoked = e is SecurityException && !isGranted(metric)
+                            MetricSummary(metric, "-", context.getString(R.string.no_data), hasData = false, granted = !revoked, goal = goal)
                         }
                 }
             }
@@ -276,7 +345,7 @@ class HealthConnectManager(internal val context: Context) {
             recordIdsList = listOf(recordId),
             clientRecordIdsList = emptyList()
         )
-        _changes.tryEmit(Unit)
+        _localChanges.tryEmit(Unit)
     }
 
     suspend fun readHistory(): List<HistoryItem> {
@@ -717,6 +786,9 @@ class HealthConnectManager(internal val context: Context) {
         // without this. Older-than-30-days reads need the history permission.
         const val PERMISSION_READ_IN_BACKGROUND = "android.permission.health.READ_HEALTH_DATA_IN_BACKGROUND"
         const val PERMISSION_READ_HISTORY = "android.permission.health.READ_HEALTH_DATA_HISTORY"
+
+        /** How often the changes feed is polled for cross-app writes while the app is open. */
+        private const val CHANGE_POLL_SECONDS = 30L
 
         private val SERVING_SUFFIX = "\\s*\\(\\d+g\\)".toRegex()
     }

@@ -100,12 +100,7 @@ class DashboardViewModel(
                 fastingGoalHours,
                 settingsRepo.lastFastingNotificationTime
             ) { enabled, lastLog, goal, lastNotified ->
-                val alreadyNotifiedForThisFast = lastLog != null && lastLog.epochSecond <= lastNotified
-                if (enabled && lastLog != null && !alreadyNotifiedForThisFast) {
-                    FastingNotificationScheduler.schedule(getApplication(), lastLog, goal)
-                } else if (!enabled || alreadyNotifiedForThisFast) {
-                    FastingNotificationScheduler.cancel(getApplication())
-                }
+                FastingNotificationScheduler.apply(getApplication(), enabled, lastLog, goal, lastNotified)
             }.collect { }
         }
     }

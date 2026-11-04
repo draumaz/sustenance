@@ -49,11 +49,12 @@ constructed manually:
   and `extraPermissions` (`READ_HEALTH_DATA_IN_BACKGROUND` + history; raw string constants at
   the bottom of the file).
   - `readDashboard` fans out with `async` per metric and **swallows per-metric errors**
-    (including string-matching "Security"/"permission" to catch revoked grants) so one missing
-    record type never blanks the dashboard.
-  - The `changes: SharedFlow<Unit>` flow is **self-emitted only on app-driven inserts** — there
-    is no HC `ChangesCallback`. Cross-app writes surface only on the next app refresh or the
-    30-min widget worker.
+    (a failure only marks a tile "revoked" when `permissionController` confirms the grant is
+    actually missing) so one missing record type never blanks the dashboard.
+  - The `changes: SharedFlow<Unit>` flow emits on app-driven inserts **and** is backed by a
+    30-second poll of HC's changes feed, so cross-app writes surface while the app is open too
+    (HC has no push API). The poll backs off on failures and re-requests its token when reads
+    are refused (e.g. backgrounded without the background-read permission).
   - Writes use `Metadata.manualEntry()` with 1-second-duration NutritionRecords; failures
     propagate raw so callers can distinguish `SecurityException`.
 - Three DataStore preference stores: `sustenance_goals` (per-metric `goal_<key>` floats),
@@ -78,7 +79,10 @@ constructed manually:
 - **Fasting notifications**: `FastingNotificationScheduler` enqueues one-time WorkManager work
   (delay = last food log + fasting goal hours). All scheduling logic lives in
   `DashboardViewModel.init`, combining settings flows with last-log time; a fast is notified
-  only once per period (`lastFastingNotificationTime`).
+  only once per period (`lastFastingNotificationTime`). The decision lives in the scheduler's
+  `apply()`, and the 30-min widget worker re-derives it from live HC data
+  (`syncWithHealthConnect`) so food logged by other apps while the app is closed still moves
+  the fast target.
 
 ### Gemini food logging (`util/GeminiManager.kt`)
 
