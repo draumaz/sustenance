@@ -147,19 +147,39 @@ class HealthConnectManager(internal val context: Context) {
         var token: String? = null
         var failures = 0
         while (currentCoroutineContext().isActive) {
-            delay((CHANGE_POLL_SECONDS * (1L shl failures.coerceAtMost(4))).seconds)
-            val response = token?.let { runChangesCatching { client.getChanges(it) } }
-            if (response == null) {
-                token = runChangesCatching {
-                    client.getChangesToken(ChangesTokenRequest(recordTypes(), emptySet()))
+            val current = token
+            if (current == null) {
+                // Fetched before the first wait so writes in the first poll interval aren't missed.
+                token = runChangesCatching { requestChangesToken() }
+                if (token == null) failures++
+            } else {
+                val response = runChangesCatching { client.getChanges(current) }
+                when {
+                    response == null -> { token = null; failures++ }
+                    response.changesTokenExpired -> { token = null; emit(Unit) } // may have missed some
+                    else -> {
+                        // Only a successful read resets the backoff: a token can often still be
+                        // fetched while every getChanges is refused (backgrounded), and resetting
+                        // on the token alone would poll at full rate forever.
+                        failures = 0
+                        token = response.nextChangesToken
+                        if (response.changes.isNotEmpty()) emit(Unit)
+                    }
                 }
-                failures = if (token != null) 0 else failures + 1
-                continue
             }
-            failures = 0
-            token = response.nextChangesToken
-            if (response.changes.isNotEmpty()) emit(Unit)
+            delay((CHANGE_POLL_SECONDS * (1L shl failures.coerceAtMost(4))).seconds)
         }
+    }
+
+    /**
+     * HC refuses a token unless every requested type is readable, so ask only for granted types;
+     * with partial grants, requesting all of them meant the poll never ran.
+     */
+    private suspend fun requestChangesToken(): String {
+        val granted = grantedPermissions()
+        val types = recordTypes().filter { HealthPermission.getReadPermission(it) in granted }.toSet()
+        if (types.isEmpty()) throw SecurityException("No readable record types")
+        return client.getChangesToken(ChangesTokenRequest(types, emptySet()))
     }
 
     /** Like runCatching, but rethrows cancellation instead of swallowing it. */
