@@ -19,7 +19,7 @@ Forked from GuyOnWifi/heartwood. GPL-3.0-or-later.
 ## Commands and verification
 
 ```bash
-./gradlew :app:assembleDebug :app:lintDebug   # build + lint: exactly what CI runs
+./gradlew :app:assembleDebug :app:lintDebug   # build + lint: run locally before every push
 ./gradlew :app:assembleRelease                # unsigned unless signing is configured
 ./gradlew :app:dependencies --write-locks     # after any dependency change
 ```
@@ -35,7 +35,9 @@ Forked from GuyOnWifi/heartwood. GPL-3.0-or-later.
   The debug build (`applicationId` suffix `.debug`, version suffix `-debug`) installs alongside
   the user's store copy. The device is usually the user's own phone, so screenshots
   (`adb exec-out screencap -p`) are fine, but don't send input taps without asking.
-- CI (`.github/workflows/ci.yml`) runs build + lint on every push/PR to `main`.
+- There is no CI build/lint on push (the workflow was removed on purpose): the agent runs build +
+  lint locally and reads `app/build/reports/lint-results-debug.html` for new warnings, not just
+  the pass/fail. Don't re-add a GitHub lint workflow.
 
 ## Releases
 
