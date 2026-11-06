@@ -18,7 +18,7 @@ object FastingNotificationScheduler {
     /**
      * One shared decision for "what should be scheduled": used live by the dashboard (in-memory
      * state) and by background re-syncs (live Health Connect reads), so both paths can't drift.
-     * A fast is only notified once per period: [lastNotified] records when the current fast
+     * A fast is only notified once per period: [lastNotifiedEpochSecond] records when the current fast
      * already fired.
      */
     fun apply(
@@ -31,9 +31,11 @@ object FastingNotificationScheduler {
         val alreadyNotifiedForThisFast = lastLog != null && lastLog.epochSecond <= lastNotifiedEpochSecond
         if (enabled && lastLog != null && !alreadyNotifiedForThisFast) {
             schedule(context, lastLog, goalHours)
-        } else {
+        } else if (!enabled || alreadyNotifiedForThisFast) {
             cancel(context)
         }
+        // Enabled with no known last log: leave existing work alone. A null lastLog usually means
+        // the read failed (or hasn't answered yet), which must not cancel a pending notification.
     }
 
     /**
@@ -54,12 +56,10 @@ object FastingNotificationScheduler {
         val granted = runCatching { app.healthConnect.grantedPermissions() }.getOrDefault(emptySet())
         if (HealthConnectManager.PERMISSION_READ_IN_BACKGROUND !in granted) return
 
+        // readLastFoodLogTime returns null on read failures too, so null can't be told apart from
+        // "nothing logged" here: leave existing work untouched, same as apply() does.
         val lastLog = app.healthConnect.readLastFoodLogTime(app.settings.fastBreakingCalories.first().toDouble())
-            ?: run {
-                // No qualifying food log: nothing to fast from, so nothing to notify about.
-                cancel(context)
-                return
-            }
+            ?: return
 
         apply(
             context = context,
