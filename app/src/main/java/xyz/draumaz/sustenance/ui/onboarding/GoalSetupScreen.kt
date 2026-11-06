@@ -13,9 +13,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.windowInsetsTopHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -94,58 +96,68 @@ fun GoalSetupScreen(
     val allValid = parsed.values.all { it != null }
 
     // Insets are padded inside the scroll so the list runs under the transparent system bars.
-    Column(
-        Modifier
-            .fillMaxSize()
-            .imePadding()
-            .verticalScroll(rememberScrollState())
-            .windowInsetsPadding(WindowInsets.systemBars)
-            .padding(horizontal = 24.dp)
-            .padding(top = 32.dp, bottom = 16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Box(
-            Modifier.size(72.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer),
-            contentAlignment = Alignment.Center,
+    // The status bar gets an opaque strip on top, though: this screen has no app bar to back it,
+    // so scrolled text would otherwise show straight through the clock and icons.
+    Box(Modifier.fillMaxSize()) {
+        Column(
+            Modifier
+                .fillMaxSize()
+                .imePadding()
+                .verticalScroll(rememberScrollState())
+                .windowInsetsPadding(WindowInsets.systemBars)
+                .padding(horizontal = 24.dp)
+                .padding(top = 32.dp, bottom = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Icon(
-                Icons.Rounded.TrackChanges, null,
-                tint = MaterialTheme.colorScheme.onPrimaryContainer,
-                modifier = Modifier.size(36.dp),
+            Box(
+                Modifier.size(72.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Rounded.TrackChanges, null,
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.size(36.dp),
+                )
+            }
+            Spacer(Modifier.height(20.dp))
+            Text(
+                stringResource(R.string.goal_setup_title),
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Black,
+                textAlign = TextAlign.Center,
             )
-        }
-        Spacer(Modifier.height(20.dp))
-        Text(
-            stringResource(R.string.goal_setup_title),
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Black,
-            textAlign = TextAlign.Center,
-        )
-        Spacer(Modifier.height(8.dp))
-        Text(
-            stringResource(R.string.goal_setup_subtitle),
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-        )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                stringResource(R.string.goal_setup_subtitle),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
 
-        GoalSection(R.string.goal_setup_energy, energyMetrics, text, netCarbMode)
-        GoalSection(R.string.goal_setup_macros, macroMetrics, text, netCarbMode)
-        GoalSection(R.string.goal_setup_micros, microMetrics, text, netCarbMode, isLast = true)
+            GoalSection(R.string.goal_setup_energy, energyMetrics, text, netCarbMode)
+            GoalSection(R.string.goal_setup_macros, macroMetrics, text, netCarbMode)
+            GoalSection(R.string.goal_setup_micros, microMetrics, text, netCarbMode, isLast = true)
 
-        Spacer(Modifier.height(28.dp))
-        Button(
-            onClick = { onSave(parsed.mapValues { it.value!! }) },
-            enabled = allValid,
-            modifier = Modifier.fillMaxWidth().height(56.dp),
-            shape = CircleShape,
-        ) {
-            Text(stringResource(R.string.goal_setup_save), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Spacer(Modifier.height(28.dp))
+            Button(
+                onClick = { onSave(parsed.mapValues { it.value!! }) },
+                enabled = allValid,
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+                shape = CircleShape,
+            ) {
+                Text(stringResource(R.string.goal_setup_save), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            }
+            Spacer(Modifier.height(4.dp))
+            TextButton(onClick = onSkip, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(if (editing) R.string.cancel else R.string.goal_setup_skip))
+            }
         }
-        Spacer(Modifier.height(4.dp))
-        TextButton(onClick = onSkip, modifier = Modifier.fillMaxWidth()) {
-            Text(stringResource(if (editing) R.string.cancel else R.string.goal_setup_skip))
-        }
+        Spacer(
+            Modifier
+                .fillMaxWidth()
+                .windowInsetsTopHeight(WindowInsets.statusBars)
+                .background(MaterialTheme.colorScheme.background)
+        )
     }
 }
 
