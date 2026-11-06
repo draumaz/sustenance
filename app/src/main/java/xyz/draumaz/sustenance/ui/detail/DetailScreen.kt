@@ -469,13 +469,16 @@ private fun HeaderCard(d: MetricDetail, onEditGoal: () -> Unit) {
         }
     }
     Card(
-        // Grow beyond 100dp when the caption/goal lines need it: taller Cyrillic
-        // glyphs overflow the fixed height and the goal row gets clipped (ru locale).
-        modifier = Modifier.fillMaxWidth().heightIn(min = 100.dp),
+        modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.extraLarge,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
     ) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+        // Min height (not fixed) so taller Cyrillic glyphs can grow the card instead of clipping
+        // the goal row (ru locale); on the Row rather than the Card so content stays centered.
+        Row(
+            Modifier.fillMaxWidth().heightIn(min = 100.dp).padding(horizontal = 24.dp, vertical = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             Box(
                 Modifier.size(64.dp).clip(CircleShape)
                     .background(accent.copy(alpha = 0.15f)),
