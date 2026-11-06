@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -468,11 +469,13 @@ private fun HeaderCard(d: MetricDetail, onEditGoal: () -> Unit) {
         }
     }
     Card(
-        modifier = Modifier.fillMaxWidth().height(100.dp),
+        // Grow beyond 100dp when the caption/goal lines need it: taller Cyrillic
+        // glyphs overflow the fixed height and the goal row gets clipped (ru locale).
+        modifier = Modifier.fillMaxWidth().heightIn(min = 100.dp),
         shape = MaterialTheme.shapes.extraLarge,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
     ) {
-        Row(Modifier.padding(horizontal = 24.dp, vertical = 16.dp).fillMaxSize(), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
             Box(
                 Modifier.size(64.dp).clip(CircleShape)
                     .background(accent.copy(alpha = 0.15f)),
