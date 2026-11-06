@@ -403,6 +403,15 @@ private fun MainNav(
         navController.popBackStack(Dest.TODAY.route, inclusive = false)
     }
 
+    /** Drops back from batch mode to the plain capture view, discarding the batch; camera stays open. */
+    fun exitBatchMode() {
+        isBatchMode = false
+        isCapturing = false
+        batchInfoText = ""
+        capturedBitmaps.forEach { it.recycle() }
+        capturedBitmaps = emptyList()
+    }
+
     val cameraPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
@@ -412,12 +421,22 @@ private fun MainNav(
     }
 
     // Back closes the camera (and the history overlay opened from it), previewing via pbState.
+    // From batch mode it first backs out to the plain capture view, discarding the batch;
+    // a second back then closes the camera. Not while analyzing (the batch's bitmaps are in
+    // Gemini's hands, so only clearCapture's cancel is safe) or from the history overlay.
     PredictiveBackHandler(enabled = isCameraActive || isHistoryActive) { progress ->
-        pbState.isSwipeActive = true
+        // Decided at gesture start so the preview matches the outcome: leaving batch mode keeps
+        // the camera, so don't preview it fading away (or the nav bar switching tabs).
+        val exitsBatchOnly = isBatchMode && !isAnalyzing && !isHistoryActive
+        pbState.isSwipeActive = !exitsBatchOnly
         try {
-            progress.collect { event -> pbState.progress = event.progress }
-            isHistoryActive = false
-            clearCapture()
+            progress.collect { event -> if (!exitsBatchOnly) pbState.progress = event.progress }
+            if (exitsBatchOnly) {
+                exitBatchMode()
+            } else {
+                isHistoryActive = false
+                clearCapture()
+            }
         } catch (_: CancellationException) {
             // Gesture cancelled; stay where we are.
         } finally {
@@ -843,7 +862,10 @@ private fun MainNav(
                                     isBatchMode = isBatchMode,
                                     isTorchOn = isTorchOn,
                                     onImageCaptured = { imageProxy ->
-                                        if (!isBatchMode) {
+                                        // Snapshot the mode: backing out of batch mode while this
+                                        // shot processes must drop it, not analyze it as a single.
+                                        val batchShot = isBatchMode
+                                        if (!batchShot) {
                                             isAnalyzing = true
                                         }
                                         analysisJob = scope.launch(Dispatchers.Default) {
@@ -863,8 +885,9 @@ private fun MainNav(
                                             }
 
                                             withContext(Dispatchers.Main) {
-                                                if (isBatchMode) {
-                                                    capturedBitmaps += rotatedBitmap
+                                                if (batchShot) {
+                                                    if (isBatchMode) capturedBitmaps += rotatedBitmap
+                                                    else rotatedBitmap.recycle()
                                                     isCapturing = false
                                                 } else {
                                                     analyzePhotos(listOf(rotatedBitmap))
