@@ -455,14 +455,9 @@ class HealthConnectManager(internal val context: Context) {
             val queryStart = dayStart.minus(java.time.Duration.ofDays(2))
             val queryEnd = dayEnd.plus(java.time.Duration.ofDays(2))
 
-            val records = client.readRecords(
-                ReadRecordsRequest(
-                    recordType = NutritionRecord::class,
-                    timeRangeFilter = TimeRangeFilter.between(queryStart, queryEnd),
-                    ascendingOrder = true,
-                    pageSize = 1000
-                )
-            ).records
+            // All pages: a single 1000-record page could cut off the target day's meals.
+            val records = read(NutritionRecord::class, queryStart, queryEnd)
+                .filterIsInstance<NutritionRecord>()
 
             val mealTimes = records
                 .filter { (it.energy?.inKilocalories ?: 0.0) >= threshold }
@@ -727,10 +722,26 @@ class HealthConnectManager(internal val context: Context) {
         return read(NutritionRecord::class, start, end).filterIsInstance<NutritionRecord>()
     }
 
-    private suspend fun read(type: KClass<out Record>, start: Instant, end: Instant): List<Record> =
-        client.readRecords(
-            ReadRecordsRequest(recordType = type, timeRangeFilter = TimeRangeFilter.between(start, end))
-        ).records
+    /**
+     * Reads every page. HC caps each response (1000 records by default), so reading only the
+     * first page silently truncates busy ranges, e.g. a multi-day series of frequent food logs.
+     */
+    private suspend fun read(type: KClass<out Record>, start: Instant, end: Instant): List<Record> {
+        val out = mutableListOf<Record>()
+        var pageToken: String? = null
+        do {
+            val response = client.readRecords(
+                ReadRecordsRequest(
+                    recordType = type,
+                    timeRangeFilter = TimeRangeFilter.between(start, end),
+                    pageToken = pageToken,
+                )
+            )
+            out += response.records
+            pageToken = response.pageToken
+        } while (!pageToken.isNullOrEmpty())
+        return out
+    }
 
     /** A food name without the "(123g)" serving suffix [writeNutrition] appends. */
     private fun cleanFoodName(name: String): String = name.replace(SERVING_SUFFIX, "").trim()
