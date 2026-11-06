@@ -106,8 +106,6 @@ import xyz.draumaz.sustenance.util.GeminiManager
 import xyz.draumaz.sustenance.widget.WidgetUpdateWorker
 
 private const val HEALTH_CONNECT_PACKAGE = "com.google.android.apps.healthdata"
-private const val ACTION_HC_SETTINGS = "androidx.health.connect.action.HEALTH_CONNECT_SETTINGS"
-private const val ACTION_MANAGE_HEALTH_PERMISSIONS = "androidx.health.connect.action.MANAGE_HEALTH_PERMISSIONS"
 
 private fun decodeDownsampledBitmap(context: android.content.Context, uri: Uri, maxDim: Int = 1024): Bitmap? {
     return try {
@@ -247,9 +245,9 @@ fun SustenanceRoot(
 
             // Everything granted → open Health Connect's per-app screen (then its home) to review.
             else -> {
-                val candidates = listOf(
-                    Intent(ACTION_MANAGE_HEALTH_PERMISSIONS).putExtra(Intent.EXTRA_PACKAGE_NAME, currentContext.packageName),
-                    Intent(ACTION_HC_SETTINGS),
+                val candidates = listOfNotNull(
+                    HealthConnectManager.managePermissionsIntent(currentContext.packageName),
+                    HealthConnectManager.settingsIntent(),
                 )
                 for (intent in candidates) {
                     if (runCatching { currentContext.startActivity(intent) }.isSuccess) return

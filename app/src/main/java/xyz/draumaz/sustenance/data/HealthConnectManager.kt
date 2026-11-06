@@ -1,6 +1,8 @@
 package xyz.draumaz.sustenance.data
 
 import android.content.Context
+import android.content.Intent
+import android.os.Build
 import android.text.format.DateFormat
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.permission.HealthPermission
@@ -820,6 +822,23 @@ class HealthConnectManager(internal val context: Context) {
 
         /** How often the changes feed is polled for cross-app writes while the app is open. */
         private const val CHANGE_POLL_SECONDS = 30L
+
+        /**
+         * Health Connect's permission screen for one app, or null where a third-party app can't
+         * open it. From Android 14 (API 34) HC is part of the platform and that screen requires the
+         * system-only GRANT_RUNTIME_PERMISSIONS, so launching it always fails; before that HC is a
+         * separate APK that answers the `androidx.health.ACTION_*` intent.
+         */
+        fun managePermissionsIntent(packageName: String): Intent? =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                null
+            } else {
+                Intent("androidx.health.ACTION_MANAGE_HEALTH_PERMISSIONS")
+                    .putExtra(Intent.EXTRA_PACKAGE_NAME, packageName)
+            }
+
+        /** HC's home screen. The client constant resolves to the right action per API level. */
+        fun settingsIntent(): Intent = Intent(HealthConnectClient.ACTION_HEALTH_CONNECT_SETTINGS)
 
         private val SERVING_SUFFIX = "\\s*\\(\\d+g\\)".toRegex()
     }
