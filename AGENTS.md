@@ -24,7 +24,7 @@ Forked from GuyOnWifi/heartwood. GPL-3.0-or-later.
 ./gradlew :app:dependencies --write-locks     # after any dependency change
 ```
 
-- JDK 17, Gradle 9.8.2, AGP 9.5.0, compileSdk/targetSdk 36, minSdk 30.
+- JDK 17, Gradle 9.8.2, AGP 9.5.0, compileSdk 37 (Compose 1.12 requires it), targetSdk 36, minSdk 30.
 - **There are no unit or instrumented tests.** "Done" means build + lint pass, and for behavior
   changes, the debug build checked on a device:
   ```bash
@@ -133,10 +133,12 @@ Single activity (`MainActivity`), Compose-only, dependencies constructed by hand
   `MainNav` collects settings flows with `collectAsStateWithLifecycle`.
 - Loading states are "null until DataStore answers" so the dashboard doesn't flash defaults.
 - Comments explain *why* and are dense. Read them before changing nearby logic.
-- Compose BOM 2026.05.01 resolves material3 to **1.4.0 stable**, where the M3 Expressive APIs
-  (`LoadingIndicator`, wavy progress, `MaterialShapes`, `MotionScheme.expressive()`, custom
-  `motionScheme`) are internal and won't compile. Build Expressive-style UI from stable
-  components and explicit springs.
+- Compose BOM 2026.09.00 still pins material3 to 1.4.0, so material3 is pinned ahead of it to
+  **1.5.0-rc01** in `libs.versions.toml`, for the stable M3 Expressive `HorizontalFloatingToolbar`
+  (the navigation pill's container). Other Expressive APIs in 1.5.0 are still gated behind
+  `@ExperimentalMaterial3ExpressiveApi` (e.g. `LoadingIndicator`): check the sources before
+  relying on one, and otherwise build Expressive-style UI from stable components and explicit
+  springs. Drop the pin once a BOM ships 1.5.0.
 - Commits: imperative, user-facing subject (e.g. "Keep the detail header content vertically
   centred"); the body explains what was wrong and why the fix works. One logical change per commit.
 

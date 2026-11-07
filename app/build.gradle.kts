@@ -19,7 +19,7 @@ val hasSigning = signingValue("storeFile", "SUSTENANCE_STORE_FILE") != null
 
 android {
     namespace = "xyz.draumaz.sustenance"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "xyz.draumaz.sustenance"
