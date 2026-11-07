@@ -93,7 +93,9 @@ class PredictiveBackState {
 // Spacing the M3 Expressive floating toolbar spec gives but HorizontalFloatingToolbar leaves to
 // the caller.
 private val ToolbarItemSpacing = 4.dp
-private val ToolbarElevation = 6.dp // Elevation level 3, for the batch info box above the bar
+// Elevation level 3, for the bar and the batch info box above it. The toolbar spec's default is
+// level 0, which leaves the bar flat against the cards scrolling under it.
+private val ToolbarElevation = 6.dp
 private val ToolbarScreenOffset = 16.dp
 
 // How far a toolbar item squishes while held. Released, the fast spatial spring overshoots back.
@@ -236,9 +238,10 @@ fun ExpressiveNavigationBar(
         }
 
         // Always expanded: the bar holds top-level navigation, so it never collapses on scroll.
-        // Shape, colors, height, padding and elevation are the component's spec defaults.
+        // Shape, colors, height and padding are the component's spec defaults.
         HorizontalFloatingToolbar(
             expanded = true,
+            expandedShadowElevation = ToolbarElevation,
             modifier = Modifier.animateContentSize(ExpressiveSprings.defaultSpatial()),
         ) {
             // The toolbar's own content Row has no item spacing.
