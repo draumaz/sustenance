@@ -26,7 +26,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBars
@@ -35,7 +34,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
@@ -45,6 +43,7 @@ import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.HorizontalFloatingToolbar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -91,11 +90,10 @@ class PredictiveBackState {
     var isSwipeActive by mutableStateOf(value = false)
 }
 
-// M3 Expressive floating toolbar spec.
-private val ToolbarHeight = 64.dp
-private val ToolbarContentPadding = 8.dp
+// Spacing the M3 Expressive floating toolbar spec gives but HorizontalFloatingToolbar leaves to
+// the caller.
 private val ToolbarItemSpacing = 4.dp
-private val ToolbarElevation = 6.dp // Elevation level 3
+private val ToolbarElevation = 6.dp // Elevation level 3, for the batch info box above the bar
 private val ToolbarScreenOffset = 16.dp
 
 // How far a toolbar item squishes while held. Released, the fast spatial spring overshoots back.
@@ -237,16 +235,14 @@ fun ExpressiveNavigationBar(
             }
         }
 
-        Surface(
+        // Always expanded: the bar holds top-level navigation, so it never collapses on scroll.
+        // Shape, colors, height, padding and elevation are the component's spec defaults.
+        HorizontalFloatingToolbar(
+            expanded = true,
             modifier = Modifier.animateContentSize(ExpressiveSprings.defaultSpatial()),
-            shape = CircleShape,
-            color = MaterialTheme.colorScheme.surfaceContainer,
-            shadowElevation = ToolbarElevation
         ) {
+            // The toolbar's own content Row has no item spacing.
             Row(
-                modifier = Modifier
-                    .height(ToolbarHeight)
-                    .padding(horizontal = ToolbarContentPadding),
                 horizontalArrangement = Arrangement.spacedBy(ToolbarItemSpacing),
                 verticalAlignment = Alignment.CenterVertically
             ) {
