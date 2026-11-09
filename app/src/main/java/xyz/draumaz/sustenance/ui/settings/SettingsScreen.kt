@@ -1,5 +1,13 @@
 package xyz.draumaz.sustenance.ui.settings
 
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.animation.core.VisibilityThreshold
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import android.content.Intent
@@ -276,7 +284,7 @@ fun SettingsScreen(
                         onToggle = { vm.setApiKeyEnabled(!apiKeyEnabled) }
                     )
 
-                    if (apiKeyEnabled) {
+                    RevealedRows(visible = apiKeyEnabled) {
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f))
                         Row(
                             modifier = Modifier
@@ -387,7 +395,7 @@ fun SettingsScreen(
                             onToggle = { vm.setGramIncrementEnabled(!gramIncrementEnabled) }
                         )
 
-                        if (gramIncrementEnabled) {
+                        RevealedRows(visible = gramIncrementEnabled) {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -481,7 +489,7 @@ fun SettingsScreen(
                         onToggle = { vm.setLastLogTimerEnabled(!lastLogTimerEnabled) }
                     )
 
-                    if (lastLogTimerEnabled) {
+                    RevealedRows(visible = lastLogTimerEnabled) {
                         val fastBreakingCalories by vm.fastBreakingCalories.collectAsState(initial = 0)
                         // Local edits win over the stored value, so a save landing mid-typing can't reset the field.
                         var tempCalories by remember { mutableStateOf<String?>(null) }
@@ -687,6 +695,28 @@ private fun SettingRow(
             Spacer(Modifier.size(16.dp))
             content()
         }
+    }
+}
+
+/**
+ * Rows that a toggle reveals beneath itself. They unfold with M3 Expressive's spatial spring (a
+ * touch of overshoot on the height) while fading in on the quicker, bounce-free effects spring, so
+ * the text never wobbles; folding away uses the same pair, and the rows below glide to make room.
+ */
+@Composable
+private fun RevealedRows(visible: Boolean, content: @Composable () -> Unit) {
+    AnimatedVisibility(
+        visible = visible,
+        enter = expandVertically(
+            spring(dampingRatio = 0.8f, stiffness = 380f, visibilityThreshold = IntSize.VisibilityThreshold),
+            expandFrom = Alignment.Top
+        ) + fadeIn(spring(dampingRatio = 1f, stiffness = 1600f)),
+        exit = shrinkVertically(
+            spring(dampingRatio = 1f, stiffness = 800f, visibilityThreshold = IntSize.VisibilityThreshold),
+            shrinkTowards = Alignment.Top
+        ) + fadeOut(spring(dampingRatio = 1f, stiffness = 1600f)),
+    ) {
+        Column { content() }
     }
 }
 
