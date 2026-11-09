@@ -84,7 +84,7 @@
     <string name="gram_increment">Шаг изменения в граммах</string>
     <string name="gram_increment_summary">Шаг кнопок +/− при просмотре еды</string>
     <string name="gram_increment_amount">Шаг</string>
-    <string name="judgemental_mode">Осуждающий режим</string>
+    <string name="judgemental_mode">Предупреждать о лимитах</string>
     <string name="judgemental_mode_summary">Отмечать продукты, с которыми вы превысите дневной лимит</string>
     <string name="always_batch">Всегда серией</string>
     <string name="always_batch_summary">Открывать камеру из «+» сразу для нескольких фото</string>
