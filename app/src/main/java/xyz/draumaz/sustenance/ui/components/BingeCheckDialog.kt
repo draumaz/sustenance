@@ -279,7 +279,13 @@ private const val RATTLE_FAST_MILLIS = 35f
  * Tick strength at the start of a hold; it rises to full by the end. Barely there on purpose:
  * the further it has to climb, the more the end of the hold presses on you.
  */
-private const val RATTLE_MIN_SCALE = 0.04f
+private const val RATTLE_MIN_SCALE = 0.32f
+
+/**
+ * Where the strength curve would end if the motor allowed it. Above 1 the curve is capped, so the
+ * ticks reach full strength early and the quickening pace carries the rest of the build.
+ */
+private const val RATTLE_PEAK_SCALE = 4f
 
 /** Length of a fallback pulse on motors without primitives: short enough to read as a tap. */
 private const val RATTLE_PULSE_MILLIS = 8L
@@ -314,7 +320,10 @@ private class HoldRattle(context: Context) {
             // Cubic, so the first seconds stay sparse and faint and the build lands hard at the end.
             val p = progress().coerceIn(0f, 1f)
             val level = p * p * p
-            vibrate(vibrator, tick(RATTLE_MIN_SCALE + level * (1f - RATTLE_MIN_SCALE)))
+            // Strength climbs a little sooner than the pace, so the middle of the hold has bite.
+            val strength = p * p
+            val scale = RATTLE_MIN_SCALE + strength * (RATTLE_PEAK_SCALE - RATTLE_MIN_SCALE)
+            vibrate(vibrator, tick(scale.coerceAtMost(1f)))
             delay(
                 (RATTLE_SLOW_MILLIS + level * (RATTLE_FAST_MILLIS - RATTLE_SLOW_MILLIS)).roundToLong()
             )
