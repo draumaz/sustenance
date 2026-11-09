@@ -7,11 +7,14 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -147,20 +150,24 @@ fun BingeCheckDialog(
             }
         },
         confirmButton = {
+            // Intrinsic height so both buttons match when only one label wraps.
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 FilledTonalButton(
                     onClick = onHoldOff,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f).fillMaxHeight(),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text(stringResource(R.string.binge_check_hold_off))
+                    Text(
+                        stringResource(R.string.binge_check_hold_off),
+                        textAlign = TextAlign.Center
+                    )
                 }
                 HoldToConfirmButton(
                     onConfirm = onLog,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f).fillMaxHeight()
                 ) {
                     Text(
                         stringResource(R.string.binge_check_log),
