@@ -367,20 +367,6 @@ private fun MainNav(
         }
     }
 
-    suspend fun logFood(nutrients: FoodNutrients, servingCount: Double, timestamp: Instant) {
-        try {
-            manager.writeNutrition(nutrients, servingCount, timestamp)
-            pendingNutrients = null
-        } catch (e: CancellationException) {
-            throw e
-        } catch (e: Exception) {
-            Log.e("MainNav", "Failed to log food", e)
-            reportHealthWriteFailure(
-                currentContext, e, R.string.failed_to_log_food, onManagePermissions
-            )
-        }
-    }
-
     var analysisJob by remember { mutableStateOf<Job?>(null) }
 
     /** Closes the camera and discards any in-progress capture or analysis. */
@@ -397,10 +383,29 @@ private fun MainNav(
         capturedBitmaps = emptyList()
     }
 
+    /** Closes the camera and history overlays and returns to Today, discarding any capture. */
     fun clearCapture() {
+        isHistoryActive = false
         resetCamera()
         pendingNutrients = null
         navController.popBackStack(Dest.TODAY.route, inclusive = false)
+    }
+
+    suspend fun logFood(nutrients: FoodNutrients, servingCount: Double, timestamp: Instant) {
+        try {
+            manager.writeNutrition(nutrients, servingCount, timestamp)
+            pendingNutrients = null
+            // A re-log from History is done once it's written: show it landing on Today rather
+            // than leaving the user in the list. Only on success, so a failed write can be retried.
+            if (isHistoryActive) clearCapture()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.e("MainNav", "Failed to log food", e)
+            reportHealthWriteFailure(
+                currentContext, e, R.string.failed_to_log_food, onManagePermissions
+            )
+        }
     }
 
     /** Drops back from batch mode to the plain capture view, discarding the batch; camera stays open. */
@@ -930,10 +935,7 @@ private fun MainNav(
                     onItemSelected = { item ->
                         pendingNutrients = item.nutrients
                     },
-                    onBack = { 
-                        isHistoryActive = false 
-                        clearCapture()
-                    }
+                    onBack = { clearCapture() }
                 )
             }
 
