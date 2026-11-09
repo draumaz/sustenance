@@ -99,7 +99,7 @@
     <string name="binge_check_suggestion">Сделайте несколько медленных вдохов и спросите себя, что вам сейчас нужно. Если вы голодны, полноценная сытная еда — это забота о себе.</string>
     <string name="binge_check_reassurance">Что бы вы ни решили, вы справляетесь.</string>
     <string name="binge_check_hold_off">Пока не записывать</string>
-    <string name="binge_check_log">Записать</string>
+    <string name="binge_check_log">Удержите, чтобы записать</string>
     <string name="show_last_log_timer">Таймер голодания</string>
     <string name="show_last_log_timer_summary">Показывать, сколько времени прошло с последнего приёма пищи</string>
     <string name="fast_breaking_calories">Калории для прерывания голодания</string>

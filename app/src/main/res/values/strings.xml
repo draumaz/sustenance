@@ -97,7 +97,7 @@
     <string name="binge_check_suggestion">Take a few slow breaths and ask yourself what you need right now. If you\'re hungry, a full, satisfying meal is a kind choice.</string>
     <string name="binge_check_reassurance">Whatever you decide, you\'re doing okay.</string>
     <string name="binge_check_hold_off">Hold off for now</string>
-    <string name="binge_check_log">Log it</string>
+    <string name="binge_check_log">Hold to log it</string>
     <string name="show_last_log_timer">Fasting timer</string>
     <string name="show_last_log_timer_summary">Show how long it\'s been since you last ate</string>
     <string name="fast_breaking_calories">Fast-breaking calories</string>
