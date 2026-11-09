@@ -859,6 +859,7 @@ private fun MainNav(
                                     isCapturing = isCapturing,
                                     isBatchMode = isBatchMode,
                                     isTorchOn = isTorchOn,
+                                    onToggleTorch = { isTorchOn = !isTorchOn },
                                     onImageCaptured = { imageProxy ->
                                         // Snapshot the mode: backing out of batch mode while this
                                         // shot processes must drop it, not analyze it as a single.

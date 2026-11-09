@@ -1,5 +1,29 @@
 package xyz.draumaz.sustenance.ui.components
 
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.FlashlightOff
+import androidx.compose.material.icons.rounded.FlashlightOn
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialShapes
+import androidx.compose.material3.toShape
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.toggleableState
+import androidx.compose.ui.state.ToggleableState
+import xyz.draumaz.sustenance.R
 import android.graphics.Bitmap
 import androidx.camera.core.resolutionselector.AspectRatioStrategy
 import androidx.camera.core.resolutionselector.ResolutionSelector
@@ -53,6 +77,7 @@ fun CameraPreview(
     isCapturing: Boolean = false,
     isBatchMode: Boolean = false,
     isTorchOn: Boolean = false,
+    onToggleTorch: () -> Unit = {},
     onImageCaptured: (ImageProxy) -> Unit = {}
 ) {
     val context = LocalContext.current
@@ -213,6 +238,91 @@ fun CameraPreview(
                     contentScale = ContentScale.Fit
                 )
             }
+
+            if (camera?.cameraInfo?.hasFlashUnit() == true) {
+                TorchButton(
+                    isOn = isTorchOn,
+                    onClick = onToggleTorch,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 16.dp)
+                )
+            }
         }
+    }
+}
+
+/**
+ * The viewfinder's flashlight toggle: a see-through scallop (the 12-sided cookie) so the preview
+ * stays visible behind it. Off it's a dark scrim with a white icon, readable over any scene; on it
+ * fills with a light tint, and the cookie turns a quarter-scallop so the change is felt as well as
+ * seen, with an on/off toggle click. A springy squish on press, like the rest of the Expressive controls.
+ */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun TorchButton(isOn: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        if (pressed) 0.88f else 1f,
+        spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+        label = "torch_press"
+    )
+    val rotation by animateFloatAsState(
+        if (isOn) 15f else 0f,
+        spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
+        label = "torch_rotation"
+    )
+    val container by animateColorAsState(
+        if (isOn) Color.White.copy(alpha = 0.85f) else Color.Black.copy(alpha = 0.35f),
+        label = "torch_container"
+    )
+    val content by animateColorAsState(
+        if (isOn) Color.Black else Color.White,
+        label = "torch_content"
+    )
+    val shape = MaterialShapes.Cookie12Sided.toShape()
+    val label = stringResource(if (isOn) R.string.torch_off else R.string.torch_on)
+    val haptics = LocalHapticFeedback.current
+
+    Box(
+        modifier
+            .size(56.dp)
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+            }
+            .clickable(
+                interactionSource = interaction,
+                indication = null,
+                role = Role.Switch,
+                onClick = {
+                    // The toggle haptics read as a firmer click on and a softer one off.
+                    haptics.performHapticFeedback(
+                        if (isOn) HapticFeedbackType.ToggleOff else HapticFeedbackType.ToggleOn
+                    )
+                    onClick()
+                }
+            )
+            .semantics {
+                contentDescription = label
+                toggleableState = ToggleableState(isOn)
+            },
+        contentAlignment = Alignment.Center
+    ) {
+        // Only the shape turns; the icon stays upright.
+        Box(
+            Modifier
+                .matchParentSize()
+                .graphicsLayer { rotationZ = rotation }
+                .background(container, shape)
+                .border(1.dp, Color.White.copy(alpha = 0.25f), shape)
+        )
+        Icon(
+            if (isOn) Icons.Rounded.FlashlightOn else Icons.Rounded.FlashlightOff,
+            contentDescription = null,
+            tint = content,
+            modifier = Modifier.size(26.dp)
+        )
     }
 }

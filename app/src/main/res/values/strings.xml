@@ -86,6 +86,8 @@
     <string name="gram_increment_amount">Step size</string>
     <string name="judgemental_mode">Judgemental Mode</string>
     <string name="judgemental_mode_summary">Flag foods that would put you over a daily limit</string>
+    <string name="torch_on">Turn on flashlight</string>
+    <string name="torch_off">Turn off flashlight</string>
     <string name="binge_check">Binge check-ins</string>
     <string name="binge_check_summary">Gently check in if you log the same food again within an hour</string>
     <string name="binge_check_title">Let\'s pause for a moment</string>

@@ -86,6 +86,8 @@
     <string name="gram_increment_amount">Шаг</string>
     <string name="judgemental_mode">Осуждающий режим</string>
     <string name="judgemental_mode_summary">Отмечать продукты, с которыми вы превысите дневной лимит</string>
+    <string name="torch_on">Включить фонарик</string>
+    <string name="torch_off">Выключить фонарик</string>
     <string name="binge_check">Бережные напоминания</string>
     <string name="binge_check_summary">Мягко спросить, как вы, если одна и та же еда записана снова в течение часа</string>
     <string name="binge_check_title">Давайте ненадолго остановимся</string>
