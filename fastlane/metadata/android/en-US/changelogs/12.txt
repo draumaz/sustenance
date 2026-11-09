@@ -1,0 +1,3 @@
+* Insights opens with a Gemini summary of your day: what went over or fell short, what caused it, and gentle tips for tomorrow. Before your first log, it looks back at yesterday. Tap to expand
+* A clear message when your free Gemini limit runs out
+* Settings explains how Google may use food photos on Gemini's free tier
