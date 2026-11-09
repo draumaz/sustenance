@@ -408,15 +408,6 @@ private fun MainNav(
         }
     }
 
-    /** Drops back from batch mode to the plain capture view, discarding the batch; camera stays open. */
-    fun exitBatchMode() {
-        isBatchMode = false
-        isCapturing = false
-        batchInfoText = ""
-        capturedBitmaps.forEach { it.recycle() }
-        capturedBitmaps = emptyList()
-    }
-
     val cameraPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
@@ -427,23 +418,14 @@ private fun MainNav(
         }
     }
 
-    // Back closes the camera (and the history overlay opened from it), previewing via pbState.
-    // From batch mode it first backs out to the plain capture view, discarding the batch;
-    // a second back then closes the camera. Not while analyzing (the batch's bitmaps are in
-    // Gemini's hands, so only clearCapture's cancel is safe) or from the history overlay.
+    // Back closes the camera (and the history overlay opened from it) straight to Today,
+    // previewing via pbState. Batch mode included: it never stops at single-shot capture on the
+    // way out. clearCapture cancels any analysis before recycling the batch Gemini was reading.
     PredictiveBackHandler(enabled = isCameraActive || isHistoryActive) { progress ->
-        // Decided at gesture start so the preview matches the outcome: leaving batch mode keeps
-        // the camera, so don't preview it fading away (or the nav bar switching tabs).
-        val exitsBatchOnly = isBatchMode && !isAnalyzing && !isHistoryActive
-        pbState.isSwipeActive = !exitsBatchOnly
+        pbState.isSwipeActive = true
         try {
-            progress.collect { event -> if (!exitsBatchOnly) pbState.progress = event.progress }
-            if (exitsBatchOnly) {
-                exitBatchMode()
-            } else {
-                isHistoryActive = false
-                clearCapture()
-            }
+            progress.collect { event -> pbState.progress = event.progress }
+            clearCapture()
         } catch (_: CancellationException) {
             // Gesture cancelled; stay where we are.
         } finally {
@@ -611,6 +593,8 @@ private fun MainNav(
                         },
                         onFinishBatch = {
                             isTorchOn = false
+                            // The analysis spinner lives in the camera overlay, which History hides.
+                            isHistoryActive = false
                             analysisJob = scope.launch { analyzePhotos(capturedBitmaps) }
                         },
                         onLogClick = {
@@ -872,9 +856,13 @@ private fun MainNav(
                                     isBatchMode = isBatchMode,
                                     isTorchOn = isTorchOn,
                                     onToggleTorch = { isTorchOn = !isTorchOn },
+                                    // Batch mode's toolbar slot went to History; the gallery
+                                    // moved into the viewfinder, beside the flashlight.
+                                    showGallery = isBatchMode,
+                                    onSelectGallery = { galleryLauncher.launch("image/*") },
                                     onImageCaptured = { imageProxy ->
-                                        // Snapshot the mode: backing out of batch mode while this
-                                        // shot processes must drop it, not analyze it as a single.
+                                        // Snapshot the mode: closing the camera while this shot
+                                        // processes must drop it, not analyze it as a single.
                                         val batchShot = isBatchMode
                                         if (!batchShot) {
                                             isAnalyzing = true

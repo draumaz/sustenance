@@ -13,6 +13,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.FlashlightOff
 import androidx.compose.material.icons.rounded.FlashlightOn
+import androidx.compose.material.icons.rounded.Image
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialShapes
@@ -78,6 +82,8 @@ fun CameraPreview(
     isBatchMode: Boolean = false,
     isTorchOn: Boolean = false,
     onToggleTorch: () -> Unit = {},
+    showGallery: Boolean = false,
+    onSelectGallery: () -> Unit = {},
     onImageCaptured: (ImageProxy) -> Unit = {}
 ) {
     val context = LocalContext.current
@@ -239,51 +245,111 @@ fun CameraPreview(
                 )
             }
 
-            if (camera?.cameraInfo?.hasFlashUnit() == true) {
-                TorchButton(
-                    isOn = isTorchOn,
-                    onClick = onToggleTorch,
+            val hasFlash = camera?.cameraInfo?.hasFlashUnit() == true
+            if (showGallery || hasFlash) {
+                Row(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
-                        .padding(bottom = 16.dp)
-                )
+                        .padding(bottom = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    if (showGallery) GalleryButton(onClick = onSelectGallery)
+                    if (hasFlash) TorchButton(isOn = isTorchOn, onClick = onToggleTorch)
+                }
             }
         }
     }
 }
 
 /**
- * The viewfinder's flashlight toggle: a see-through scallop (the 12-sided cookie) so the preview
- * stays visible behind it. Off it's a dark scrim with a white icon, readable over any scene; on it
- * fills with a light tint, and the cookie turns a quarter-scallop so the change is felt as well as
- * seen, with an on/off toggle click. A springy squish on press, like the rest of the Expressive controls.
+ * The viewfinder's flashlight toggle: a [ScallopButton] that fills with a light tint when on, and
+ * whose cookie turns a quarter-scallop so the change is felt as well as seen, with an on/off
+ * toggle click.
  */
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun TorchButton(isOn: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    val interaction = remember { MutableInteractionSource() }
-    val pressed by interaction.collectIsPressedAsState()
-    val scale by animateFloatAsState(
-        if (pressed) 0.88f else 1f,
-        spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
-        label = "torch_press"
-    )
     val rotation by animateFloatAsState(
         if (isOn) 15f else 0f,
         spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
         label = "torch_rotation"
     )
     val container by animateColorAsState(
-        if (isOn) Color.White.copy(alpha = 0.85f) else Color.Black.copy(alpha = 0.35f),
+        if (isOn) Color.White.copy(alpha = 0.85f) else ScallopScrim,
         label = "torch_container"
     )
     val content by animateColorAsState(
         if (isOn) Color.Black else Color.White,
         label = "torch_content"
     )
-    val shape = MaterialShapes.Cookie12Sided.toShape()
     val label = stringResource(if (isOn) R.string.torch_off else R.string.torch_on)
     val haptics = LocalHapticFeedback.current
+
+    ScallopButton(
+        icon = if (isOn) Icons.Rounded.FlashlightOn else Icons.Rounded.FlashlightOff,
+        container = container,
+        content = content,
+        rotation = rotation,
+        role = Role.Switch,
+        onClick = {
+            // The toggle haptics read as a firmer click on and a softer one off.
+            haptics.performHapticFeedback(
+                if (isOn) HapticFeedbackType.ToggleOff else HapticFeedbackType.ToggleOn
+            )
+            onClick()
+        },
+        modifier = modifier.semantics {
+            contentDescription = label
+            toggleableState = ToggleableState(isOn)
+        },
+    )
+}
+
+/** Opens the photo picker to add gallery photos to the batch; sits beside the flashlight. */
+@Composable
+private fun GalleryButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val label = stringResource(R.string.select_from_gallery)
+    val haptics = LocalHapticFeedback.current
+    ScallopButton(
+        icon = Icons.Rounded.Image,
+        container = ScallopScrim,
+        content = Color.White,
+        rotation = 0f,
+        role = Role.Button,
+        onClick = {
+            haptics.performHapticFeedback(HapticFeedbackType.KeyboardTap)
+            onClick()
+        },
+        modifier = modifier.semantics { contentDescription = label },
+    )
+}
+
+// A dark see-through scrim keeps the white icons readable over any scene.
+private val ScallopScrim = Color.Black.copy(alpha = 0.35f)
+
+/**
+ * A see-through scallop (the 12-sided cookie) over the viewfinder, so the preview stays visible
+ * behind it. A springy squish on press, like the rest of the Expressive controls. Only the shape
+ * takes [rotation]; the icon stays upright.
+ */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun ScallopButton(
+    icon: ImageVector,
+    container: Color,
+    content: Color,
+    rotation: Float,
+    role: Role,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val interaction = remember { MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        if (pressed) 0.88f else 1f,
+        spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMedium),
+        label = "scallop_press"
+    )
+    val shape = MaterialShapes.Cookie12Sided.toShape()
 
     Box(
         modifier
@@ -295,22 +361,11 @@ private fun TorchButton(isOn: Boolean, onClick: () -> Unit, modifier: Modifier =
             .clickable(
                 interactionSource = interaction,
                 indication = null,
-                role = Role.Switch,
-                onClick = {
-                    // The toggle haptics read as a firmer click on and a softer one off.
-                    haptics.performHapticFeedback(
-                        if (isOn) HapticFeedbackType.ToggleOff else HapticFeedbackType.ToggleOn
-                    )
-                    onClick()
-                }
-            )
-            .semantics {
-                contentDescription = label
-                toggleableState = ToggleableState(isOn)
-            },
+                role = role,
+                onClick = onClick
+            ),
         contentAlignment = Alignment.Center
     ) {
-        // Only the shape turns; the icon stays upright.
         Box(
             Modifier
                 .matchParentSize()
@@ -319,7 +374,7 @@ private fun TorchButton(isOn: Boolean, onClick: () -> Unit, modifier: Modifier =
                 .border(1.dp, Color.White.copy(alpha = 0.25f), shape)
         )
         Icon(
-            if (isOn) Icons.Rounded.FlashlightOn else Icons.Rounded.FlashlightOff,
+            icon,
             contentDescription = null,
             tint = content,
             modifier = Modifier.size(26.dp)

@@ -40,7 +40,6 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.CameraAlt
 import androidx.compose.material.icons.rounded.FileUpload
 import androidx.compose.material.icons.rounded.History
-import androidx.compose.material.icons.rounded.Image
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalFloatingToolbar
@@ -162,7 +161,8 @@ fun ExpressiveNavigationBar(
             .padding(bottom = ToolbarScreenOffset),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        if (isCameraMode && capturedBitmaps.isNotEmpty()) {
+        // The batch's photos and info box belong to the viewfinder, so History hides them.
+        if (isCameraMode && !isHistorySelected && capturedBitmaps.isNotEmpty()) {
             val lastPhotos = remember(capturedBitmaps) { capturedBitmaps.takeLast(8) }
             val photoShape = MaterialTheme.shapes.medium
             Row(
@@ -192,7 +192,7 @@ fun ExpressiveNavigationBar(
 
         // Grows up out of the toolbar so it reads as part of it.
         AnimatedVisibility(
-            visible = isCameraMode && isBatchMode,
+            visible = isCameraMode && isBatchMode && !isHistorySelected,
             enter = expandVertically(ExpressiveSprings.defaultSpatial(), expandFrom = Alignment.Bottom) +
                 scaleIn(ExpressiveSprings.defaultSpatial(), initialScale = 0.8f, transformOrigin = TransformOrigin(0.5f, 1f)) +
                 fadeIn(ExpressiveSprings.defaultEffects()),
@@ -265,19 +265,20 @@ fun ExpressiveNavigationBar(
                     }
 
                     if (isBatchMode) {
+                        // The gallery lives in the viewfinder (beside the flashlight) in batch mode.
                         ToolbarAction(
-                            label = stringResource(R.string.select_from_gallery),
-                            icon = Icons.Rounded.Image,
-                            emphasized = false,
-                            onClick = onSelectGallery
-                        )
+                            label = stringResource(R.string.history),
+                            icon = Icons.Rounded.History,
+                            emphasized = isHistorySelected,
+                        ) { if (!isHistorySelected) onHistoryClick() }
+                        // From History, Add returns to the viewfinder (keeping the batch) instead
+                        // of shooting a photo the user can't see.
                         ToolbarAction(
                             label = stringResource(R.string.add_label),
                             icon = Icons.Rounded.CameraAlt,
-                            emphasized = true,
+                            emphasized = !isHistorySelected,
                             onLongHold = onToggleTorch,
-                            onClick = onCaptureBatch
-                        )
+                        ) { if (isHistorySelected) onHistoryClick() else onCaptureBatch() }
                         ToolbarAction(
                             label = pluralStringResource(R.plurals.analyze_photos, batchCount, batchCount),
                             icon = Icons.Rounded.FileUpload,
