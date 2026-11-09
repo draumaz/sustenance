@@ -17,7 +17,7 @@ import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Today
 import androidx.compose.animation.AnimatedContent
 import xyz.draumaz.sustenance.ui.components.ScreenCard
-import xyz.draumaz.sustenance.ui.components.isOpeningDetail
+import xyz.draumaz.sustenance.ui.components.isOpeningCard
 import xyz.draumaz.sustenance.ui.components.pushEnterCard
 import xyz.draumaz.sustenance.ui.components.pushExitUnder
 import xyz.draumaz.sustenance.ui.components.popEnterBack
@@ -657,7 +657,7 @@ private fun MainNav(
                 composable(
                     Dest.TODAY.route,
                     enterTransition = { fadeIn(tween(200)) },
-                    exitTransition = { if (isOpeningDetail()) pushExitUnder() else fadeOut(tween(200)) },
+                    exitTransition = { if (isOpeningCard()) pushExitUnder() else fadeOut(tween(200)) },
                     popEnterTransition = popEnterBack,
                     popExitTransition = popExitBack,
                 ) {
@@ -687,7 +687,7 @@ private fun MainNav(
                 composable(
                     Dest.INSIGHTS.route,
                     enterTransition = { fadeIn(tween(200)) },
-                    exitTransition = { if (isOpeningDetail()) pushExitUnder() else fadeOut(tween(200)) },
+                    exitTransition = { if (isOpeningCard()) pushExitUnder() else fadeOut(tween(200)) },
                     popEnterTransition = popEnterBack,
                     popExitTransition = popExitBack,
                 ) {
@@ -714,7 +714,7 @@ private fun MainNav(
                         defaultValue = null
                     }),
                     enterTransition = { fadeIn(tween(200)) },
-                    exitTransition = { fadeOut(tween(200)) },
+                    exitTransition = { if (isOpeningCard()) pushExitUnder() else fadeOut(tween(200)) },
                     popEnterTransition = popEnterBack,
                     popExitTransition = popExitBack,
                 ) { entry ->
@@ -732,7 +732,7 @@ private fun MainNav(
 
                 composable(
                     "goals",
-                    enterTransition = { fadeIn(tween(200)) },
+                    enterTransition = pushEnterCard,
                     exitTransition = { fadeOut(tween(200)) },
                     popEnterTransition = popEnterBack,
                     popExitTransition = popExitBack,

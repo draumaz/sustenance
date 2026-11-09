@@ -69,7 +69,7 @@ private const val OPEN_MILLIS = 400
 private val emphasizedDecelerate = CubicBezierEasing(0.05f, 0.7f, 0.1f, 1f)
 private fun <T> open() = tween<T>(OPEN_MILLIS, easing = emphasizedDecelerate)
 
-/** The detail screen grows in from the right as a card; it turns solid quickly so nothing shows through. */
+/** A detail or goals screen grows in from the right as a card; it turns solid quickly so nothing shows through. */
 val pushEnterCard: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition = {
     scaleIn(open(), initialScale = 0.86f) +
         slideInHorizontally(open()) { it / 4 } +
@@ -81,9 +81,9 @@ val pushExitUnder: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitT
     slideOutHorizontally(open()) { -it / 8 } + fadeOut(open())
 }
 
-/** True when this transition is opening a metric's detail screen. */
-fun AnimatedContentTransitionScope<NavBackStackEntry>.isOpeningDetail(): Boolean =
-    targetState.destination.route?.startsWith("detail/") == true
+/** True when this transition is opening a screen that grows in as a card (a metric's detail, goals). */
+fun AnimatedContentTransitionScope<NavBackStackEntry>.isOpeningCard(): Boolean =
+    targetState.destination.route.let { it?.startsWith("detail/") == true || it == "goals" }
 
 /**
  * Rounds the screen's corners while it's a card: as it leaves on pop, and as it grows in on
