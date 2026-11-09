@@ -1,5 +1,12 @@
 package xyz.draumaz.sustenance.ui.components
 
+import android.content.Context
+import android.os.Build
+import android.os.VibrationAttributes
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
+
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
@@ -42,6 +49,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -54,9 +62,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import xyz.draumaz.sustenance.R
 import java.time.Duration
+import kotlin.math.roundToInt
+import kotlin.math.roundToLong
 
 /**
  * How close together two logs of the same food need to be to prompt a check-in. DSM-5 caps a single
@@ -188,6 +199,8 @@ fun BingeCheckDialog(
  * The label is drawn twice, once over the empty track and once over the fill clipped to its width,
  * so it keeps its contrast where the fill edge crosses it. Progress is only read in the draw phase,
  * so the 5-second animation redraws without recomposing.
+ *
+ * While held, [HoldRattle] ticks along with the fill, ending on a firmer click when it logs.
  */
 @Composable
 private fun HoldToConfirmButton(
@@ -198,6 +211,8 @@ private fun HoldToConfirmButton(
     val progress = remember { Animatable(0f) }
     val scope = rememberCoroutineScope()
     val haptics = LocalHapticFeedback.current
+    val context = LocalContext.current
+    val rattle = remember(context) { HoldRattle(context) }
     val currentOnConfirm by rememberUpdatedState(onConfirm)
     val shape = RoundedCornerShape(12.dp)
     val colors = MaterialTheme.colorScheme
@@ -210,10 +225,11 @@ private fun HoldToConfirmButton(
             .semantics(mergeDescendants = true) { role = Role.Button }
             .pointerInput(Unit) {
                 detectTapGestures(onPress = {
-                    haptics.performHapticFeedback(HapticFeedbackType.KeyboardTap)
                     val hold = scope.launch {
+                        val ticking = launch { rattle.play { progress.value } }
                         val remaining = ((1f - progress.value) * LOG_HOLD_MILLIS).toInt()
                         progress.animateTo(1f, tween(remaining, easing = LinearEasing))
+                        ticking.cancel()
                         haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                         currentOnConfirm()
                     }
@@ -252,5 +268,79 @@ private fun HoldButtonLabel(color: Color, content: @Composable () -> Unit) {
         contentAlignment = Alignment.Center
     ) {
         CompositionLocalProvider(LocalContentColor provides color, content = content)
+    }
+}
+
+/** Gap between rattle ticks at the start of a hold, and at the end. */
+private const val RATTLE_SLOW_MILLIS = 160f
+private const val RATTLE_FAST_MILLIS = 35f
+
+/**
+ * Tick strength at the start of a hold; it rises to full by the end. Barely there on purpose:
+ * the further it has to climb, the more the end of the hold presses on you.
+ */
+private const val RATTLE_MIN_SCALE = 0.04f
+
+/** Length of a fallback pulse on motors without primitives: short enough to read as a tap. */
+private const val RATTLE_PULSE_MILLIS = 8L
+
+/**
+ * The hold's haptics: a ratchet-like rattle of separate ticks rather than a continuous buzz, each
+ * one crisper and closer to the last as the fill grows. Ticks are played one by one from a loop
+ * that reads the live fill, so they stay in step with it however the hold was resumed, and
+ * cancelling the loop stops them dead.
+ *
+ * Best is the TICK primitive, scaled per tick (the crisp clicks the system UI uses). Without it,
+ * a few-millisecond pulse at a set amplitude, and failing that the fixed tick effect, where only
+ * the quickening rhythm carries the build.
+ */
+private class HoldRattle(context: Context) {
+    private val vibrator: Vibrator? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        context.getSystemService(VibratorManager::class.java)?.defaultVibrator
+    } else {
+        context.getSystemService(Vibrator::class.java)
+    }?.takeIf { it.hasVibrator() }
+
+    private val hasPrimitives = vibrator?.areAllPrimitivesSupported(
+        VibrationEffect.Composition.PRIMITIVE_TICK
+    ) == true
+
+    private val hasAmplitude = vibrator?.hasAmplitudeControl() == true
+
+    /** Rattles until cancelled, with strength and pace taken from [progress] (0 to 1). */
+    suspend fun play(progress: () -> Float) {
+        val vibrator = vibrator ?: return
+        while (true) {
+            // Cubic, so the first seconds stay sparse and faint and the build lands hard at the end.
+            val p = progress().coerceIn(0f, 1f)
+            val level = p * p * p
+            vibrate(vibrator, tick(RATTLE_MIN_SCALE + level * (1f - RATTLE_MIN_SCALE)))
+            delay(
+                (RATTLE_SLOW_MILLIS + level * (RATTLE_FAST_MILLIS - RATTLE_SLOW_MILLIS)).roundToLong()
+            )
+        }
+    }
+
+    private fun tick(scale: Float): VibrationEffect = when {
+        hasPrimitives -> VibrationEffect.startComposition()
+            .addPrimitive(VibrationEffect.Composition.PRIMITIVE_TICK, scale)
+            .compose()
+        hasAmplitude -> VibrationEffect.createOneShot(
+            RATTLE_PULSE_MILLIS,
+            (scale * 255).roundToInt().coerceIn(1, 255)
+        )
+        else -> VibrationEffect.createPredefined(VibrationEffect.EFFECT_TICK)
+    }
+
+    private fun vibrate(vibrator: Vibrator, effect: VibrationEffect) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            // Touch usage, so turning off touch feedback in system settings also silences this.
+            vibrator.vibrate(
+                effect,
+                VibrationAttributes.createForUsage(VibrationAttributes.USAGE_TOUCH)
+            )
+        } else {
+            vibrator.vibrate(effect)
+        }
     }
 }
