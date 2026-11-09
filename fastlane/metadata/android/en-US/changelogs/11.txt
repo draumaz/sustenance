@@ -1,8 +1,9 @@
-* Binge check-ins: a gentle pause and a hold to log a repeat food within an hour
-* Goal setup explains every nutrient, with stricter default limits
-* Change your daily goals any time from Settings
-* Tap an Insights card to open that metric's details
-* New card-style back animations
-* Food logged by other apps, like a watch, now shows up on its own
-* Gemini always explains photo estimates and fills in what a label leaves out
-* Widget preview, "Fibre" spelling in the UK and more, and many fixes
+* Binge check-ins: a gentle pause and a hold to log a repeat food
+* Goal setup explains every nutrient; edit goals any time in Settings
+* Camera opens in batch mode by default, with a flashlight button
+* Tap an Insights card to open its details
+* Food logged by other apps, like a watch, shows up on its own
+* Gemini always explains its estimates
+* Judgemental Mode is now Limit heads-up
+* Smoother animations and haptics throughout
+* "Fibre" spelling in the UK, and many fixes
