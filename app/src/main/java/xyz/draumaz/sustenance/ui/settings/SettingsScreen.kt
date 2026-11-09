@@ -345,6 +345,9 @@ fun SettingsScreen(
                                 placeholder = { Text("AQ.", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)) },
                                 singleLine = true,
                                 label = { Text(stringResource(R.string.api_key)) },
+                                // Photos are the most personal thing the app sends anywhere, so say
+                                // plainly where they can end up.
+                                supportingText = { Text(stringResource(R.string.api_key_privacy_note)) },
                                 visualTransformation = if (apiKeyVisible) VisualTransformation.None else PasswordVisualTransformation(),
                                 colors = verificationFieldColors(apiKeyVerificationStatus),
                                 trailingIcon = {

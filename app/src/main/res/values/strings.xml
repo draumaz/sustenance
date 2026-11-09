@@ -182,6 +182,7 @@
     <string name="api_key_missing">Add a Gemini API key first.</string>
     <string name="api_key_invalid">Couldn\'t verify that API key.</string>
     <string name="gemini_quota_reached">You\'ve reached today\'s free Gemini limit. Try again tomorrow, or pick another model in Settings.</string>
+    <string name="api_key_privacy_note">On Gemini\'s free tier, Google may use your food photos to improve its products. Keys with billing turned on keep them out.</string>
     <string name="analysis_failed">Analysis failed: %s</string>
     <string name="no_response_from_gemini">No response from Gemini</string>
     <string name="write_permission_required">Allow Sustenance to write nutrition data in Health Connect.</string>
