@@ -93,7 +93,7 @@ class GeminiManager(
                     "A kind summary of the user's day",
                     Schema.str("headline", "One short, warm sentence summing up the day"),
                     Schema.arr("points", "One per goal that is over or short, naming the foods that caused it", Schema.str("point", "One brief sentence")),
-                    Schema.arr("tomorrow", "One or two gentle, concrete suggestions for tomorrow", Schema.str("tip", "One brief sentence")),
+                    Schema.arr("tomorrow", "One or two gentle, concrete suggestions for the next day", Schema.str("tip", "One brief sentence")),
                 )
             },
             safetySettings = safetySettings,
@@ -210,16 +210,21 @@ class GeminiManager(
     /**
      * Writes the short, kind day summary shown at the top of Insights. [dayReport] is the plain
      * text facts (goals, totals, food logs) built by the Insights screen; [language] is the
-     * English name of the language to answer in.
+     * English name of the language to answer in. [finishedDay] when the facts are yesterday's,
+     * so the tips are for today rather than tomorrow.
      */
-    suspend fun summarizeDay(dayReport: String, language: String): Result<DaySummaryText> = withContext(Dispatchers.IO) {
+    suspend fun summarizeDay(dayReport: String, language: String, finishedDay: Boolean): Result<DaySummaryText> = withContext(Dispatchers.IO) {
         try {
+            val day = if (finishedDay) {
+                "yesterday, a finished day (nothing is logged today yet). Talk about it in the past tense, and make the suggestions for today"
+            } else "the user's day so far"
+            val next = if (finishedDay) "today" else "tomorrow"
             val prompt = """
-                You are a warm, encouraging nutrition coach inside a food tracking app. Using only the facts below about the user's day so far, summarise it as JSON.
+                You are a warm, encouraging nutrition coach inside a food tracking app. Using only the facts below about $day, summarise it as JSON.
 
                 headline: one short sentence (under 15 words) capturing the day overall.
                 points: one sentence per goal they went over or fell short of, naming the logged foods that caused it and roughly how much each contributed. Skip goals that are fine. Empty if every goal is on track.
-                tomorrow: one or two concrete, gentle suggestions for doing better tomorrow. If everything went well, one suggestion to keep it up.
+                tomorrow: one or two concrete, gentle suggestions for doing better $next. If everything went well, one suggestion to keep it up.
 
                 Tone: kind, reassuring and never judgemental or alarming. One day doesn't define progress, so frame misses as easy to adjust, not as failures. Talk to the user directly ("you"). Never give medical advice or mention weight loss unless the facts do.
 

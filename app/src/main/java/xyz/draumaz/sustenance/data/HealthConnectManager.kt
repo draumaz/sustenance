@@ -718,6 +718,13 @@ class HealthConnectManager(internal val context: Context) {
 
     // ---- Low-level reads -----------------------------------------------------------------------
 
+    /** Every food log on [date] (a whole local day). */
+    suspend fun readNutritionOn(date: LocalDate): List<NutritionRecord> {
+        val start = date.atStartOfDay(zone).toInstant()
+        val end = date.plusDays(1).atStartOfDay(zone).toInstant()
+        return read(NutritionRecord::class, start, end).filterIsInstance<NutritionRecord>()
+    }
+
     suspend fun readTodayNutrition(): List<NutritionRecord> {
         val start = LocalDate.now().atStartOfDay(zone).toInstant()
         val end = Instant.now()

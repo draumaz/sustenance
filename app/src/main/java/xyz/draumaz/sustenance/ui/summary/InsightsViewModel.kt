@@ -19,6 +19,8 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import java.util.Locale
+import java.time.LocalDate
+import kotlinx.coroutines.CancellationException
 import androidx.health.connect.client.records.NutritionRecord
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -46,6 +48,8 @@ class InsightsViewModel(
     // Raw daily series per metric (null until first load completes).
     private val series = MutableStateFlow<Map<Metric, List<SeriesPoint>>?>(null)
     private val todayLogs = MutableStateFlow<List<NutritionRecord>>(emptyList())
+    /** Only read while nothing is logged today: the AI summary looks back at yesterday then. */
+    private val yesterdayLogs = MutableStateFlow<List<NutritionRecord>>(emptyList())
 
     private val _refreshing = MutableStateFlow(value = false)
     val refreshing = _refreshing.asStateFlow()
@@ -141,36 +145,55 @@ class InsightsViewModel(
     init {
         refresh(showIndicator = false)
         viewModelScope.launch {
-            combine(state, todayLogs, gemini, summaryRetries) { s, logs, g, _ -> Triple(s, logs, g) }
-                .collectLatest { (s, logs, g) -> updateSummary(s, logs, g) }
+            combine(state, todayLogs, yesterdayLogs, gemini, summaryRetries) { s, today, yesterday, g, _ ->
+                SummaryInput(s, today, yesterday, g)
+            }.collectLatest(::updateSummary)
         }
     }
 
-    private suspend fun updateSummary(s: InsightsState, logs: List<NutritionRecord>, g: Pair<String, String>?) {
+    private data class SummaryInput(
+        val state: InsightsState,
+        val todayLogs: List<NutritionRecord>,
+        val yesterdayLogs: List<NutritionRecord>,
+        val gemini: Pair<String, String>?,
+    )
+
+    private suspend fun updateSummary(input: SummaryInput) {
+        val (s, todayLogs, yesterdayLogs, g) = input
         if (g == null) { _summary.value = DaySummaryState.Hidden; return }
         // Show the spinner card before the stats arrive, so it's never inserted above cards that
         // are already on screen (LazyColumn keeps the old first item put, pushing the new card
         // off the top). If nothing turns out to be logged, it's removed below, which is harmless.
-        if (s.loading) { _summary.value = DaySummaryState.Loading; return }
-        val deficitGoal = (goalsRepo.goals.first()[Metric.CALORIC_BALANCE] ?: 0f) > 0f
-        val report = buildDayReport(s.stats, logs, deficitGoal)
-            ?: run { _summary.value = DaySummaryState.Hidden; return }
+        if (s.loading) { _summary.value = DaySummaryState.Loading(); return }
+        val deficitGoal = goalsRepo.goals.first()[Metric.CALORIC_BALANCE] ?: 0f
+        // Until today's first log there's nothing to say about today, so look back at yesterday
+        // (a finished day, which is when tips for the next day are most useful).
+        val yesterday = todayLogs.isEmpty()
+        val report = if (yesterday) {
+            buildDayReport(yesterdayFacts(s.stats, deficitGoal), yesterdayLogs, deficitGoal > 0f, yesterday = true)
+        } else {
+            buildDayReport(todayFacts(s.stats), todayLogs, deficitGoal > 0f, yesterday = false)
+        } ?: run { _summary.value = DaySummaryState.Hidden; return }
         val (key, model) = g
         val language = manager.context.resources.configuration.locales[0].getDisplayLanguage(Locale.ENGLISH)
         DaySummaryCache.lookup(report, model, language, System.currentTimeMillis())?.let {
-            _summary.value = DaySummaryState.Ready(it)
+            _summary.value = DaySummaryState.Ready(it, yesterday)
             return
         }
-        _summary.value = DaySummaryState.Loading
+        _summary.value = DaySummaryState.Loading(yesterday)
         // A refresh sets the series and today's logs one after the other; wait for both so one
         // refresh costs one request, not two (collectLatest cancels this on the next emission).
         delay(SUMMARY_DEBOUNCE)
         val now = java.time.LocalTime.now().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm", Locale.US))
         GeminiManager(key, model)
-            .summarizeDay("Local time now: $now (the day may not be over).\n\n${report.report}", language)
+            .summarizeDay(
+                if (yesterday) report.report else "Local time now: $now (the day may not be over).\n\n${report.report}",
+                language,
+                finishedDay = yesterday,
+            )
             .onSuccess { summary ->
                 DaySummaryCache.store(report, model, language, summary, System.currentTimeMillis())
-                _summary.value = DaySummaryState.Ready(summary)
+                _summary.value = DaySummaryState.Ready(summary, yesterday)
             }
             .onFailure { error ->
                 _summary.value = DaySummaryState.Failed(
@@ -194,7 +217,17 @@ class InsightsViewModel(
             // Logs before the series: the first state with stats then already has today's food,
             // so the AI summary card doesn't blink out and back in on the first load.
             if (granted.contains(manager.permissionFor(Metric.FOOD))) {
-                todayLogs.value = runCatching { manager.readTodayNutrition() }.getOrDefault(emptyList())
+                val today = runCatching { manager.readTodayNutrition() }.getOrDefault(emptyList())
+                if (today.isEmpty()) {
+                    yesterdayLogs.value = try {
+                        manager.readNutritionOn(LocalDate.now().minusDays(1))
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (_: Exception) {
+                        emptyList()
+                    }
+                }
+                todayLogs.value = today
             }
             series.value = seriesMap
 

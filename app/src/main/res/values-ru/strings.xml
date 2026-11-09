@@ -67,6 +67,8 @@
     <string name="insights_summary_loading">Готовим сводку…</string>
     <string name="insights_summary_failed">Не удалось составить сводку за сегодня. Нажмите, чтобы повторить.</string>
     <string name="insights_summary_tomorrow">Завтра</string>
+    <string name="insights_summary_title_yesterday">Вчера</string>
+    <string name="insights_summary_today">Сегодня</string>
     <string name="insights_summary_expand">Показать сводку полностью</string>
     <string name="insights_summary_collapse">Свернуть</string>
     <string name="new_label">Новое</string>

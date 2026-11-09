@@ -67,6 +67,8 @@
     <string name="insights_summary_loading">Writing your summary…</string>
     <string name="insights_summary_failed">Couldn\'t write today\'s summary. Tap to try again.</string>
     <string name="insights_summary_tomorrow">Tomorrow</string>
+    <string name="insights_summary_title_yesterday">Yesterday</string>
+    <string name="insights_summary_today">Today</string>
     <string name="insights_summary_expand">Show the full summary</string>
     <string name="insights_summary_collapse">Show less</string>
     <string name="new_label">New</string>

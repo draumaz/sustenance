@@ -16,8 +16,10 @@ import kotlin.time.Duration.Companion.minutes
 sealed interface DaySummaryState {
     /** AI features are off, or nothing is logged yet, so there's no card at all. */
     data object Hidden : DaySummaryState
-    data object Loading : DaySummaryState
-    data class Ready(val summary: DaySummaryText) : DaySummaryState
+    /** [yesterday]: see [Ready]. Before the stats load it's unknown, so today is assumed. */
+    data class Loading(val yesterday: Boolean = false) : DaySummaryState
+    /** [yesterday] when nothing is logged today yet, so the card looks back at yesterday instead. */
+    data class Ready(val summary: DaySummaryText, val yesterday: Boolean) : DaySummaryState
     data class Failed(@param:StringRes val messageRes: Int) : DaySummaryState
 }
 
@@ -27,26 +29,35 @@ sealed interface DaySummaryState {
  */
 internal data class DayReport(val report: String, val materialKey: String)
 
+/** One goal's total and target for the day being summarised. */
+internal data class GoalFact(val metric: Metric, val value: Float, val goal: Float)
+
 /**
- * Builds the plain-English facts for today's summary, or null when no food is logged (there's
- * nothing to explain yet). English regardless of the UI language: the prompt names the output
+ * Builds the plain-English facts for a day's summary ([yesterday] or today), or null when no food
+ * is logged (there's nothing to explain). English regardless of the UI language: the prompt names the output
  * language separately, and fixed units keep the numbers unambiguous.
  */
-internal fun buildDayReport(stats: List<WeeklyStat>, logs: List<NutritionRecord>, deficitGoal: Boolean): DayReport? {
+internal fun buildDayReport(
+    facts: List<GoalFact>,
+    logs: List<NutritionRecord>,
+    deficitGoal: Boolean,
+    yesterday: Boolean,
+): DayReport? {
     if (logs.isEmpty()) return null
+    val day = if (yesterday) "yesterday" else "today"
     val goalLines = mutableListOf<String>()
     val statuses = mutableListOf<String>()
-    for (stat in stats) {
+    for (stat in facts) {
         if (stat.goal <= 0f) continue
         val unit = unitFor(stat.metric)
-        val value = stat.todayValue
+        val value = stat.value
         val goal = stat.goal
         val (line, status) = when (stat.metric) {
             Metric.CALORIC_BALANCE -> {
                 // Positive is a deficit (burned more than eaten); the goal is the deficit to reach.
                 val today = if (value >= 0f) "deficit of ${num(value)} $unit" else "surplus of ${num(abs(value))} $unit"
                 val status = if (value >= goal) "reached" else "short by ${num(goal - value)} $unit"
-                "Calorie deficit (calories burned minus eaten), a target to reach: today a $today, goal a deficit of ${num(goal)} $unit. Status: $status." to status.substringBefore(" by")
+                "Calorie deficit (calories burned minus eaten), a target to reach: $day a $today, goal a deficit of ${num(goal)} $unit. Status: $status." to status.substringBefore(" by")
             }
             else -> {
                 val target = stat.metric.moreIsBetter
@@ -60,7 +71,7 @@ internal fun buildDayReport(stats: List<WeeklyStat>, logs: List<NutritionRecord>
                 val goalNote = if (stat.metric == Metric.FOOD && deficitGoal) {
                     " (set from calories burned minus the deficit goal, so it rises as they move)"
                 } else ""
-                "${labelFor(stat.metric)}, $kind: today ${num(value)} $unit, goal ${num(goal)} $unit$goalNote. Status: $status." to status.substringBefore(" by")
+                "${labelFor(stat.metric)}, $kind: $day ${num(value)} $unit, goal ${num(goal)} $unit$goalNote. Status: $status." to status.substringBefore(" by")
             }
         }
         goalLines += "- $line"
@@ -87,13 +98,30 @@ internal fun buildDayReport(stats: List<WeeklyStat>, logs: List<NutritionRecord>
         appendLine("Goals:")
         goalLines.forEach(::appendLine)
         appendLine()
-        appendLine("Food logged today:")
+        appendLine("Food logged $day:")
         foodLines.forEach(::appendLine)
     }.trim()
     val logKey = logs.sortedBy { it.startTime }.joinToString("|") {
         "${it.startTime.toEpochMilli()}:${it.name}:${it.energy?.inKilocalories}"
     }
-    return DayReport(report, "$logKey#${statuses.joinToString()}")
+    return DayReport(report, "$day#$logKey#${statuses.joinToString()}")
+}
+
+/** Today's goal facts, straight from the Insights stats. */
+internal fun todayFacts(stats: List<WeeklyStat>) = stats.map { GoalFact(it.metric, it.todayValue, it.goal) }
+
+/**
+ * Yesterday's goal facts. Goals are the same as today's, except a deficit-derived food goal,
+ * which follows what was burned that day (as [InsightsViewModel] works out for today).
+ */
+internal fun yesterdayFacts(stats: List<WeeklyStat>, deficitGoal: Float): List<GoalFact> {
+    val burned = stats.firstOrNull { it.metric == Metric.TOTAL_CALORIES }?.yesterdayValue ?: 0f
+    return stats.map { stat ->
+        val goal = if (stat.metric == Metric.FOOD && deficitGoal > 0f && burned > 0f) {
+            (burned - deficitGoal).coerceAtLeast(0f)
+        } else stat.goal
+        GoalFact(stat.metric, stat.yesterdayValue, goal)
+    }
 }
 
 private fun num(value: Number): String = String.format(Locale.US, "%.0f", value.toDouble())

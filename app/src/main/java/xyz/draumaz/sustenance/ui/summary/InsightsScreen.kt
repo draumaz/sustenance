@@ -255,6 +255,7 @@ private fun DaySummaryCard(
     val view = LocalView.current
     var expanded by rememberSaveable { mutableStateOf(false) }
     val ready = state is DaySummaryState.Ready
+    val yesterday = (state as? DaySummaryState.Ready)?.yesterday ?: (state as? DaySummaryState.Loading)?.yesterday ?: false
     val open = expanded && ready
     Card(
         onClick = {
@@ -279,7 +280,7 @@ private fun DaySummaryCard(
                 Icon(Icons.Rounded.AutoAwesome, contentDescription = null, modifier = Modifier.size(20.dp))
                 Spacer(Modifier.size(10.dp))
                 Text(
-                    stringResource(R.string.insights_summary_title),
+                    stringResource(if (yesterday) R.string.insights_summary_title_yesterday else R.string.insights_summary_title),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Black,
                     modifier = Modifier.weight(1f),
@@ -297,12 +298,12 @@ private fun DaySummaryCard(
             }
             Spacer(Modifier.height(if (open) 12.dp else 8.dp))
             when (state) {
-                DaySummaryState.Loading -> Row(verticalAlignment = Alignment.CenterVertically) {
+                is DaySummaryState.Loading -> Row(verticalAlignment = Alignment.CenterVertically) {
                     CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                     Spacer(Modifier.size(12.dp))
                     Text(stringResource(R.string.insights_summary_loading), style = summaryBodyStyle())
                 }
-                is DaySummaryState.Ready -> SummaryBody(state.summary, expanded = open)
+                is DaySummaryState.Ready -> SummaryBody(state.summary, expanded = open, yesterday = state.yesterday)
                 is DaySummaryState.Failed -> Text(stringResource(state.messageRes), style = summaryBodyStyle())
                 DaySummaryState.Hidden -> Unit
             }
@@ -321,7 +322,7 @@ private fun summaryBodyStyle(): TextStyle = MaterialTheme.typography.bodyMedium.
 )
 
 @Composable
-private fun ColumnScope.SummaryBody(summary: DaySummaryText, expanded: Boolean) {
+private fun ColumnScope.SummaryBody(summary: DaySummaryText, expanded: Boolean, yesterday: Boolean) {
     val body = summaryBodyStyle()
     if (!expanded) {
         // Collapsed: just the gist. weight(fill = false) caps it at the space the card's fixed
@@ -347,7 +348,8 @@ private fun ColumnScope.SummaryBody(summary: DaySummaryText, expanded: Boolean) 
         if (summary.tomorrow.isNotEmpty()) {
             Spacer(Modifier.height(4.dp))
             Text(
-                stringResource(R.string.insights_summary_tomorrow),
+                // Looking back at yesterday, the tips are for today.
+                stringResource(if (yesterday) R.string.insights_summary_today else R.string.insights_summary_tomorrow),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.primary,
             )
