@@ -74,7 +74,7 @@
     <string name="settings_title">Settings</string>
     <string name="section_appearance">Customization</string>
     <string name="section_diet">Diet</string>
-    <string name="section_misc">Misc</string>
+    <string name="section_ai">AI</string>
     <string name="section_data">Data</string>
     <string name="section_about">About</string>
     <string name="dynamic_color">Dynamic color</string>

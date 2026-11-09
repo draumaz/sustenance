@@ -124,8 +124,9 @@ fun SettingsScreen(
 
     LaunchedEffect(scrollTo, goalSetupDeferred) {
         if (scrollTo == "fasting") {
-            // The diet card sits one item lower while the goal setup prompt is shown.
-            listState.animateScrollToItem(if (goalSetupDeferred) 3 else 2)
+            // The diet card follows the AI section (label + card), one item lower again while the
+            // goal setup prompt is shown.
+            listState.animateScrollToItem(if (goalSetupDeferred) 5 else 4)
         }
     }
 
@@ -219,145 +220,7 @@ fun SettingsScreen(
                     }
                 }
             }
-            item { SectionLabel(stringResource(R.string.section_appearance)) }
-            item {
-                SettingsCard {
-                    SettingRow(
-                        icon = Icons.Rounded.Palette,
-                        title = stringResource(R.string.dynamic_color),
-                        subtitle = stringResource(R.string.dynamic_color_summary),
-                        onClick = { vm.setDynamicColor(!dynamicColor) }
-                    ) {
-                        Switch(checked = dynamicColor, onCheckedChange = null)
-                    }
-                }
-            }
-            item { SectionLabel(stringResource(R.string.section_diet)) }
-            item {
-                SettingsCard {
-                    SettingRow(
-                        icon = Icons.Rounded.TrackChanges,
-                        title = stringResource(R.string.daily_goals),
-                        subtitle = stringResource(R.string.daily_goals_summary),
-                        onClick = onEditGoals,
-                    )
-
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f))
-
-                    val ketoMode by vm.ketoMode.collectAsState(initial = false)
-                    SettingRow(
-                        icon = Icons.Rounded.Whatshot,
-                        title = stringResource(R.string.keto_mode),
-                        subtitle = stringResource(R.string.keto_mode_summary),
-                        onClick = { vm.setKetoMode(!ketoMode) }
-                    ) {
-                        Switch(checked = ketoMode, onCheckedChange = null)
-                    }
-
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f))
-
-                    val lastLogTimerEnabled by vm.lastLogTimerEnabled.collectAsState(initial = false)
-                    SettingRow(
-                        icon = Icons.Rounded.History,
-                        title = stringResource(R.string.show_last_log_timer),
-                        subtitle = stringResource(R.string.show_last_log_timer_summary),
-                        onClick = { vm.setLastLogTimerEnabled(!lastLogTimerEnabled) }
-                    ) {
-                        Switch(checked = lastLogTimerEnabled, onCheckedChange = null)
-                    }
-
-                    if (lastLogTimerEnabled) {
-                        val fastBreakingCalories by vm.fastBreakingCalories.collectAsState(initial = 0)
-                        // Local edits win over the stored value, so a save landing mid-typing can't reset the field.
-                        var tempCalories by remember { mutableStateOf<String?>(null) }
-
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            OutlinedTextField(
-                                value = tempCalories ?: fastBreakingCalories.toString(),
-                                onValueChange = { newValue ->
-                                    if (newValue.isEmpty() || newValue.all { it.isDigit() }) {
-                                        tempCalories = newValue
-                                        newValue.toIntOrNull()?.let { vm.setFastBreakingCalories(it) }
-                                    }
-                                },
-                                modifier = Modifier.weight(1f),
-                                singleLine = true,
-                                label = { Text(stringResource(R.string.fast_breaking_calories)) },
-                                placeholder = { Text("0") },
-                                suffix = { Text(stringResource(R.string.unit_kcal)) },
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                supportingText = { Text(stringResource(R.string.fast_breaking_calories_summary)) }
-                            )
-                            Spacer(Modifier.size(8.dp))
-                        }
-
-                        val fastingGoalHours by vm.fastingGoalHours.collectAsState(initial = 16f)
-                        var tempGoal by remember { mutableStateOf<String?>(null) }
-
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            OutlinedTextField(
-                                value = tempGoal ?: if (fastingGoalHours % 1f == 0f) fastingGoalHours.toInt().toString() else fastingGoalHours.toString(),
-                                onValueChange = { newValue ->
-                                    val parsed = parseDecimal(newValue)
-                                    if (newValue.isEmpty() || parsed != null || newValue == "." || newValue == ",") {
-                                        tempGoal = newValue
-                                        parsed?.let { vm.setFastingGoalHours(it.toFloat()) }
-                                    }
-                                },
-                                modifier = Modifier.weight(1f),
-                                singleLine = true,
-                                label = { Text(stringResource(R.string.fasting_goal)) },
-                                placeholder = { Text("16") },
-                                suffix = { Text(stringResource(R.string.unit_hr)) },
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                                supportingText = { Text(stringResource(R.string.fasting_goal_summary)) }
-                            )
-                            Spacer(Modifier.size(8.dp))
-                        }
-
-                        val fastingNotificationsEnabled by vm.fastingNotificationsEnabled.collectAsState(initial = false)
-                        val permissionLauncher = rememberLauncherForActivityResult(
-                            ActivityResultContracts.RequestPermission()
-                        ) { isGranted ->
-                            if (isGranted) {
-                                vm.setFastingNotificationsEnabled(true)
-                            }
-                        }
-
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f))
-
-                        SettingRow(
-                            icon = Icons.Rounded.Notifications,
-                            title = stringResource(R.string.fasting_notifications),
-                            subtitle = stringResource(R.string.fasting_notifications_summary),
-                            onClick = {
-                                if (!fastingNotificationsEnabled) {
-                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                        permissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
-                                    } else {
-                                        vm.setFastingNotificationsEnabled(true)
-                                    }
-                                } else {
-                                    vm.setFastingNotificationsEnabled(false)
-                                }
-                            }
-                        ) {
-                            Switch(checked = fastingNotificationsEnabled, onCheckedChange = null)
-                        }
-                    }
-                }
-            }
-            item { SectionLabel(stringResource(R.string.section_misc)) }
+            item { SectionLabel(stringResource(R.string.section_ai)) }
             item {
                 SettingsCard {
                     val apiKeyEnabled by vm.apiKeyEnabled.collectAsState(initial = false)
@@ -573,6 +436,144 @@ fun SettingsScreen(
                             onClick = { vm.setBingeCheckEnabled(!bingeCheckEnabled) }
                         ) {
                             Switch(checked = bingeCheckEnabled, onCheckedChange = null)
+                        }
+                    }
+                }
+            }
+            item { SectionLabel(stringResource(R.string.section_appearance)) }
+            item {
+                SettingsCard {
+                    SettingRow(
+                        icon = Icons.Rounded.Palette,
+                        title = stringResource(R.string.dynamic_color),
+                        subtitle = stringResource(R.string.dynamic_color_summary),
+                        onClick = { vm.setDynamicColor(!dynamicColor) }
+                    ) {
+                        Switch(checked = dynamicColor, onCheckedChange = null)
+                    }
+                }
+            }
+            item { SectionLabel(stringResource(R.string.section_diet)) }
+            item {
+                SettingsCard {
+                    SettingRow(
+                        icon = Icons.Rounded.TrackChanges,
+                        title = stringResource(R.string.daily_goals),
+                        subtitle = stringResource(R.string.daily_goals_summary),
+                        onClick = onEditGoals,
+                    )
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f))
+
+                    val ketoMode by vm.ketoMode.collectAsState(initial = false)
+                    SettingRow(
+                        icon = Icons.Rounded.Whatshot,
+                        title = stringResource(R.string.keto_mode),
+                        subtitle = stringResource(R.string.keto_mode_summary),
+                        onClick = { vm.setKetoMode(!ketoMode) }
+                    ) {
+                        Switch(checked = ketoMode, onCheckedChange = null)
+                    }
+
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f))
+
+                    val lastLogTimerEnabled by vm.lastLogTimerEnabled.collectAsState(initial = false)
+                    SettingRow(
+                        icon = Icons.Rounded.History,
+                        title = stringResource(R.string.show_last_log_timer),
+                        subtitle = stringResource(R.string.show_last_log_timer_summary),
+                        onClick = { vm.setLastLogTimerEnabled(!lastLogTimerEnabled) }
+                    ) {
+                        Switch(checked = lastLogTimerEnabled, onCheckedChange = null)
+                    }
+
+                    if (lastLogTimerEnabled) {
+                        val fastBreakingCalories by vm.fastBreakingCalories.collectAsState(initial = 0)
+                        // Local edits win over the stored value, so a save landing mid-typing can't reset the field.
+                        var tempCalories by remember { mutableStateOf<String?>(null) }
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            OutlinedTextField(
+                                value = tempCalories ?: fastBreakingCalories.toString(),
+                                onValueChange = { newValue ->
+                                    if (newValue.isEmpty() || newValue.all { it.isDigit() }) {
+                                        tempCalories = newValue
+                                        newValue.toIntOrNull()?.let { vm.setFastBreakingCalories(it) }
+                                    }
+                                },
+                                modifier = Modifier.weight(1f),
+                                singleLine = true,
+                                label = { Text(stringResource(R.string.fast_breaking_calories)) },
+                                placeholder = { Text("0") },
+                                suffix = { Text(stringResource(R.string.unit_kcal)) },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                supportingText = { Text(stringResource(R.string.fast_breaking_calories_summary)) }
+                            )
+                            Spacer(Modifier.size(8.dp))
+                        }
+
+                        val fastingGoalHours by vm.fastingGoalHours.collectAsState(initial = 16f)
+                        var tempGoal by remember { mutableStateOf<String?>(null) }
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            OutlinedTextField(
+                                value = tempGoal ?: if (fastingGoalHours % 1f == 0f) fastingGoalHours.toInt().toString() else fastingGoalHours.toString(),
+                                onValueChange = { newValue ->
+                                    val parsed = parseDecimal(newValue)
+                                    if (newValue.isEmpty() || parsed != null || newValue == "." || newValue == ",") {
+                                        tempGoal = newValue
+                                        parsed?.let { vm.setFastingGoalHours(it.toFloat()) }
+                                    }
+                                },
+                                modifier = Modifier.weight(1f),
+                                singleLine = true,
+                                label = { Text(stringResource(R.string.fasting_goal)) },
+                                placeholder = { Text("16") },
+                                suffix = { Text(stringResource(R.string.unit_hr)) },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                supportingText = { Text(stringResource(R.string.fasting_goal_summary)) }
+                            )
+                            Spacer(Modifier.size(8.dp))
+                        }
+
+                        val fastingNotificationsEnabled by vm.fastingNotificationsEnabled.collectAsState(initial = false)
+                        val permissionLauncher = rememberLauncherForActivityResult(
+                            ActivityResultContracts.RequestPermission()
+                        ) { isGranted ->
+                            if (isGranted) {
+                                vm.setFastingNotificationsEnabled(true)
+                            }
+                        }
+
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f))
+
+                        SettingRow(
+                            icon = Icons.Rounded.Notifications,
+                            title = stringResource(R.string.fasting_notifications),
+                            subtitle = stringResource(R.string.fasting_notifications_summary),
+                            onClick = {
+                                if (!fastingNotificationsEnabled) {
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                        permissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                                    } else {
+                                        vm.setFastingNotificationsEnabled(true)
+                                    }
+                                } else {
+                                    vm.setFastingNotificationsEnabled(false)
+                                }
+                            }
+                        ) {
+                            Switch(checked = fastingNotificationsEnabled, onCheckedChange = null)
                         }
                     }
                 }
