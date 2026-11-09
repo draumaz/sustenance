@@ -339,6 +339,7 @@ private fun MainNav(
     val goals by goalsRepo.goals.collectAsState(initial = emptyMap())
     val judgementalMode by settingsRepo.judgementalMode.collectAsState(initial = false)
     val bingeCheckEnabled by settingsRepo.bingeCheckEnabled.collectAsState(initial = false)
+    val alwaysBatch by settingsRepo.alwaysBatch.collectAsState(initial = true)
     var bingeCheck by remember { mutableStateOf<BingeCheck?>(null) }
     val gramIncrementEnabled by settingsRepo.gramIncrementEnabled.collectAsState(initial = false)
     val gramIncrement by settingsRepo.gramIncrement.collectAsState(initial = 1)
@@ -415,6 +416,8 @@ private fun MainNav(
     ) { isGranted ->
         if (isGranted) {
             isCameraActive = true
+            // Only the mode it opens in: the single-shot button still takes a lone photo.
+            if (alwaysBatch) isBatchMode = true
         }
     }
 

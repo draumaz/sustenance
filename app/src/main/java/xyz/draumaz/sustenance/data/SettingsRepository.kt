@@ -57,6 +57,7 @@ class SettingsRepository(private val context: Context) {
     private val lastLogTimerEnabledKey = booleanPreferencesKey("last_log_timer_enabled")
     private val judgementalModeKey = booleanPreferencesKey("judgemental_mode")
     private val bingeCheckEnabledKey = booleanPreferencesKey("binge_check_enabled")
+    private val alwaysBatchKey = booleanPreferencesKey("always_batch")
     private val gramIncrementEnabledKey = booleanPreferencesKey("gram_increment_enabled")
     private val gramIncrementKey = androidx.datastore.preferences.core.intPreferencesKey("gram_increment")
     private val fastBreakingCaloriesKey = androidx.datastore.preferences.core.intPreferencesKey("fast_breaking_calories")
@@ -90,6 +91,11 @@ class SettingsRepository(private val context: Context) {
 
     val bingeCheckEnabled: Flow<Boolean> = context.settingsDataStore.data.map { prefs ->
         prefs[bingeCheckEnabledKey] ?: true
+    }
+
+    /** Open the camera from +Log straight into batch mode. */
+    val alwaysBatch: Flow<Boolean> = context.settingsDataStore.data.map { prefs ->
+        prefs[alwaysBatchKey] ?: true
     }
 
     val gramIncrementEnabled: Flow<Boolean> = context.settingsDataStore.data.map { prefs ->
@@ -191,6 +197,12 @@ class SettingsRepository(private val context: Context) {
     suspend fun setBingeCheckEnabled(enabled: Boolean) {
         context.settingsDataStore.edit { prefs ->
             prefs[bingeCheckEnabledKey] = enabled
+        }
+    }
+
+    suspend fun setAlwaysBatch(enabled: Boolean) {
+        context.settingsDataStore.edit { prefs ->
+            prefs[alwaysBatchKey] = enabled
         }
     }
 

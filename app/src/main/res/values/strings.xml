@@ -86,6 +86,8 @@
     <string name="gram_increment_amount">Step size</string>
     <string name="judgemental_mode">Judgemental Mode</string>
     <string name="judgemental_mode_summary">Flag foods that would put you over a daily limit</string>
+    <string name="always_batch">Always batch</string>
+    <string name="always_batch_summary">Open the camera from +Log ready to take several photos</string>
     <string name="torch_on">Turn on flashlight</string>
     <string name="torch_off">Turn off flashlight</string>
     <string name="binge_check">Binge check-ins</string>

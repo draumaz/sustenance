@@ -86,6 +86,8 @@
     <string name="gram_increment_amount">Шаг</string>
     <string name="judgemental_mode">Осуждающий режим</string>
     <string name="judgemental_mode_summary">Отмечать продукты, с которыми вы превысите дневной лимит</string>
+    <string name="always_batch">Всегда серией</string>
+    <string name="always_batch_summary">Открывать камеру из «+» сразу для нескольких фото</string>
     <string name="torch_on">Включить фонарик</string>
     <string name="torch_off">Выключить фонарик</string>
     <string name="binge_check">Бережные напоминания</string>

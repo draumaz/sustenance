@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.automirrored.rounded.OpenInNew
+import androidx.compose.material.icons.rounded.BurstMode
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.HealthAndSafety
 import androidx.compose.material.icons.rounded.History
@@ -498,6 +499,18 @@ fun SettingsScreen(
                             )
                             Spacer(Modifier.size(8.dp))
                         }
+
+                        val alwaysBatch by vm.alwaysBatch.collectAsState(initial = true)
+                        SettingRow(
+                            icon = Icons.Rounded.BurstMode,
+                            title = stringResource(R.string.always_batch),
+                            subtitle = stringResource(R.string.always_batch_summary),
+                            onClick = { vm.setAlwaysBatch(!alwaysBatch) }
+                        ) {
+                            Switch(checked = alwaysBatch, onCheckedChange = null)
+                        }
+
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f))
 
                         val gramIncrementEnabled by vm.gramIncrementEnabled.collectAsState(initial = false)
                         val gramIncrement by vm.gramIncrement.collectAsState(initial = 1)

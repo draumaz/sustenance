@@ -256,6 +256,7 @@ class SettingsViewModel(
     val lastLogTimerEnabled = repository.lastLogTimerEnabled
     val judgementalMode = repository.judgementalMode
     val bingeCheckEnabled = repository.bingeCheckEnabled
+    val alwaysBatch = repository.alwaysBatch
     val gramIncrementEnabled = repository.gramIncrementEnabled
     val gramIncrement = repository.gramIncrement
     val fastBreakingCalories = repository.fastBreakingCalories
@@ -285,6 +286,10 @@ class SettingsViewModel(
 
     fun setBingeCheckEnabled(enabled: Boolean) {
         viewModelScope.launch { repository.setBingeCheckEnabled(enabled) }
+    }
+
+    fun setAlwaysBatch(enabled: Boolean) {
+        viewModelScope.launch { repository.setAlwaysBatch(enabled) }
     }
 
     fun setGramIncrementEnabled(enabled: Boolean) {
