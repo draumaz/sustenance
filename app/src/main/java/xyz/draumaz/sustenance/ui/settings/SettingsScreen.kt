@@ -1,5 +1,7 @@
 package xyz.draumaz.sustenance.ui.settings
 
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import android.content.Intent
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -266,14 +268,13 @@ fun SettingsScreen(
                         }
                     }
 
-                    SettingRow(
+                    ToggleRow(
                         icon = Icons.Rounded.Key,
                         title = stringResource(R.string.enable_food_logging),
                         subtitle = stringResource(R.string.food_logging_summary),
-                        onClick = { vm.setApiKeyEnabled(!apiKeyEnabled) }
-                    ) {
-                        Switch(checked = apiKeyEnabled, onCheckedChange = null)
-                    }
+                        checked = apiKeyEnabled,
+                        onToggle = { vm.setApiKeyEnabled(!apiKeyEnabled) }
+                    )
 
                     if (apiKeyEnabled) {
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f))
@@ -364,14 +365,13 @@ fun SettingsScreen(
                         }
 
                         val alwaysBatch by vm.alwaysBatch.collectAsState(initial = true)
-                        SettingRow(
+                        ToggleRow(
                             icon = Icons.Rounded.BurstMode,
                             title = stringResource(R.string.always_batch),
                             subtitle = stringResource(R.string.always_batch_summary),
-                            onClick = { vm.setAlwaysBatch(!alwaysBatch) }
-                        ) {
-                            Switch(checked = alwaysBatch, onCheckedChange = null)
-                        }
+                            checked = alwaysBatch,
+                            onToggle = { vm.setAlwaysBatch(!alwaysBatch) }
+                        )
 
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f))
 
@@ -379,14 +379,13 @@ fun SettingsScreen(
                         val gramIncrement by vm.gramIncrement.collectAsState(initial = 1)
                         var tempIncrement by remember { mutableStateOf<String?>(null) }
 
-                        SettingRow(
+                        ToggleRow(
                             icon = Icons.Rounded.Scale,
                             title = stringResource(R.string.gram_increment),
                             subtitle = stringResource(R.string.gram_increment_summary),
-                            onClick = { vm.setGramIncrementEnabled(!gramIncrementEnabled) }
-                        ) {
-                            Switch(checked = gramIncrementEnabled, onCheckedChange = null)
-                        }
+                            checked = gramIncrementEnabled,
+                            onToggle = { vm.setGramIncrementEnabled(!gramIncrementEnabled) }
+                        )
 
                         if (gramIncrementEnabled) {
                             Row(
@@ -417,40 +416,37 @@ fun SettingsScreen(
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f))
 
                         val judgementalMode by vm.judgementalMode.collectAsState(initial = false)
-                        SettingRow(
+                        ToggleRow(
                             icon = Icons.Rounded.Psychology,
                             title = stringResource(R.string.judgemental_mode),
                             subtitle = stringResource(R.string.judgemental_mode_summary),
-                            onClick = { vm.setJudgementalMode(!judgementalMode) }
-                        ) {
-                            Switch(checked = judgementalMode, onCheckedChange = null)
-                        }
+                            checked = judgementalMode,
+                            onToggle = { vm.setJudgementalMode(!judgementalMode) }
+                        )
 
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f))
 
                         val bingeCheckEnabled by vm.bingeCheckEnabled.collectAsState(initial = true)
-                        SettingRow(
+                        ToggleRow(
                             icon = Icons.Rounded.Spa,
                             title = stringResource(R.string.binge_check),
                             subtitle = stringResource(R.string.binge_check_summary),
-                            onClick = { vm.setBingeCheckEnabled(!bingeCheckEnabled) }
-                        ) {
-                            Switch(checked = bingeCheckEnabled, onCheckedChange = null)
-                        }
+                            checked = bingeCheckEnabled,
+                            onToggle = { vm.setBingeCheckEnabled(!bingeCheckEnabled) }
+                        )
                     }
                 }
             }
             item { SectionLabel(stringResource(R.string.section_appearance)) }
             item {
                 SettingsCard {
-                    SettingRow(
+                    ToggleRow(
                         icon = Icons.Rounded.Palette,
                         title = stringResource(R.string.dynamic_color),
                         subtitle = stringResource(R.string.dynamic_color_summary),
-                        onClick = { vm.setDynamicColor(!dynamicColor) }
-                    ) {
-                        Switch(checked = dynamicColor, onCheckedChange = null)
-                    }
+                        checked = dynamicColor,
+                        onToggle = { vm.setDynamicColor(!dynamicColor) }
+                    )
                 }
             }
             item { SectionLabel(stringResource(R.string.section_diet)) }
@@ -466,26 +462,24 @@ fun SettingsScreen(
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f))
 
                     val ketoMode by vm.ketoMode.collectAsState(initial = false)
-                    SettingRow(
+                    ToggleRow(
                         icon = Icons.Rounded.Whatshot,
                         title = stringResource(R.string.keto_mode),
                         subtitle = stringResource(R.string.keto_mode_summary),
-                        onClick = { vm.setKetoMode(!ketoMode) }
-                    ) {
-                        Switch(checked = ketoMode, onCheckedChange = null)
-                    }
+                        checked = ketoMode,
+                        onToggle = { vm.setKetoMode(!ketoMode) }
+                    )
 
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f))
 
                     val lastLogTimerEnabled by vm.lastLogTimerEnabled.collectAsState(initial = false)
-                    SettingRow(
+                    ToggleRow(
                         icon = Icons.Rounded.History,
                         title = stringResource(R.string.show_last_log_timer),
                         subtitle = stringResource(R.string.show_last_log_timer_summary),
-                        onClick = { vm.setLastLogTimerEnabled(!lastLogTimerEnabled) }
-                    ) {
-                        Switch(checked = lastLogTimerEnabled, onCheckedChange = null)
-                    }
+                        checked = lastLogTimerEnabled,
+                        onToggle = { vm.setLastLogTimerEnabled(!lastLogTimerEnabled) }
+                    )
 
                     if (lastLogTimerEnabled) {
                         val fastBreakingCalories by vm.fastBreakingCalories.collectAsState(initial = 0)
@@ -557,11 +551,12 @@ fun SettingsScreen(
 
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f))
 
-                        SettingRow(
+                        ToggleRow(
                             icon = Icons.Rounded.Notifications,
                             title = stringResource(R.string.fasting_notifications),
                             subtitle = stringResource(R.string.fasting_notifications_summary),
-                            onClick = {
+                            checked = fastingNotificationsEnabled,
+                            onToggle = {
                                 if (!fastingNotificationsEnabled) {
                                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                                         permissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
@@ -572,9 +567,7 @@ fun SettingsScreen(
                                     vm.setFastingNotificationsEnabled(false)
                                 }
                             }
-                        ) {
-                            Switch(checked = fastingNotificationsEnabled, onCheckedChange = null)
-                        }
+                        )
                     }
                 }
             }
@@ -694,6 +687,34 @@ private fun SettingRow(
             Spacer(Modifier.size(16.dp))
             content()
         }
+    }
+}
+
+/**
+ * A [SettingRow] with a switch. Tapping anywhere on the row flips it, with the system's toggle
+ * click (firmer on, softer off) so the change is felt as well as seen.
+ */
+@Composable
+private fun ToggleRow(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    checked: Boolean,
+    onToggle: () -> Unit,
+) {
+    val haptics = LocalHapticFeedback.current
+    SettingRow(
+        icon = icon,
+        title = title,
+        subtitle = subtitle,
+        onClick = {
+            haptics.performHapticFeedback(
+                if (checked) HapticFeedbackType.ToggleOff else HapticFeedbackType.ToggleOn
+            )
+            onToggle()
+        }
+    ) {
+        Switch(checked = checked, onCheckedChange = null)
     }
 }
 
