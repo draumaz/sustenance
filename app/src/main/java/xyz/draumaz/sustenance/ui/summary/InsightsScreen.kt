@@ -61,6 +61,27 @@ import android.view.HapticFeedbackConstants
 import xyz.draumaz.sustenance.R
 import xyz.draumaz.sustenance.data.GoalsRepository
 import xyz.draumaz.sustenance.data.HealthConnectManager
+import xyz.draumaz.sustenance.data.SettingsRepository
+import androidx.compose.animation.animateContentSize
+import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.material.icons.rounded.ExpandMore
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.withFrameNanos
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.AnnotatedString
+import xyz.draumaz.sustenance.ui.components.withBoldAmounts
+import xyz.draumaz.sustenance.ui.theme.GoogleSansFlexRoundedFontFamily
+import xyz.draumaz.sustenance.util.DaySummaryText
 import xyz.draumaz.sustenance.data.Metric
 import xyz.draumaz.sustenance.data.WeeklyStat
 import xyz.draumaz.sustenance.data.formatValue
@@ -72,12 +93,29 @@ import kotlin.math.roundToInt
 fun InsightsScreen(
     manager: HealthConnectManager,
     goalsRepo: GoalsRepository,
+    settingsRepo: SettingsRepository,
     bottomInset: androidx.compose.ui.unit.Dp,
     onOpenMetric: (Metric) -> Unit,
     onBack: () -> Unit = {},
 ) {
-    val vm: InsightsViewModel = viewModel(factory = InsightsViewModel.factory(manager, goalsRepo))
+    val vm: InsightsViewModel = viewModel(factory = InsightsViewModel.factory(manager, goalsRepo, settingsRepo))
     val state by vm.state.collectAsStateWithLifecycle()
+    val summary by vm.summary.collectAsStateWithLifecycle()
+    val listState = rememberLazyListState()
+    val density = LocalDensity.current
+    var statCardHeight by remember { mutableIntStateOf(0) }
+    val summaryVisible = summary != DaySummaryState.Hidden
+    // The ViewModel shows the card (spinning) before the stats load, but if it does arrive later
+    // (e.g. the first food of the day is logged while Insights is open), LazyColumn keeps the old
+    // first card in place and the new one lands above the top edge. If the user was at the top,
+    // the old first card is now item 1 at offset 0: scroll back up to reveal the summary.
+    LaunchedEffect(summaryVisible) {
+        if (!summaryVisible) return@LaunchedEffect
+        withFrameNanos { } // let the list lay the new card out first
+        if (listState.firstVisibleItemIndex == 1 && listState.firstVisibleItemScrollOffset == 0) {
+            listState.scrollToItem(0)
+        }
+    }
     val refreshing by vm.refreshing.collectAsStateWithLifecycle()
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
     var editing by remember { mutableStateOf<WeeklyStat?>(null) }
@@ -149,6 +187,7 @@ fun InsightsScreen(
             modifier = Modifier.fillMaxSize(),
         ) {
             LazyColumn(
+                state = listState,
                 modifier = Modifier.fillMaxSize().nestedScroll(scrollBehavior.nestedScrollConnection),
                 contentPadding = PaddingValues(
                     start = 16.dp,
@@ -158,13 +197,27 @@ fun InsightsScreen(
                 ),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
+                if (summary != DaySummaryState.Hidden) {
+                    item(key = "ai_summary") {
+                        DaySummaryCard(
+                            state = summary,
+                            collapsedHeight = with(density) { statCardHeight.toDp() },
+                            onRetry = vm::retrySummary,
+                            modifier = Modifier.animateItem(),
+                        )
+                    }
+                }
                 if (!state.loading && state.stats.isEmpty()) {
                     item { EmptyState() }
                 }
                 items(state.stats, key = { it.metric.key }) { stat ->
                     AnimatedVisibility(
                         visible = true,
-                        enter = fadeIn() + slideInVertically { it / 4 }
+                        enter = fadeIn() + slideInVertically { it / 4 },
+                        // The summary card's collapsed height follows the first stat card.
+                        modifier = if (stat == state.stats.first()) {
+                            Modifier.onSizeChanged { statCardHeight = it.height }
+                        } else Modifier,
                     ) {
                         InsightCard(
                             stat = stat,
@@ -184,6 +237,138 @@ fun InsightsScreen(
             onDismiss = { editing = null },
             onSave = { value -> vm.setGoal(stat.metric, value); editing = null },
         )
+    }
+}
+
+/**
+ * Gemini's take on the day. Collapsed it matches the stat cards' height ([collapsedHeight], 0
+ * until one has been measured) and shows just the headline; tapping expands the full summary.
+ * Shows a spinner until Gemini answers, and a tap retries if it couldn't.
+ */
+@Composable
+private fun DaySummaryCard(
+    state: DaySummaryState,
+    collapsedHeight: Dp,
+    onRetry: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val view = LocalView.current
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    val ready = state is DaySummaryState.Ready
+    val open = expanded && ready
+    Card(
+        onClick = {
+            view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+            if (ready) expanded = !expanded else onRetry()
+        },
+        enabled = ready || state is DaySummaryState.Failed,
+        modifier = modifier
+            .fillMaxWidth()
+            // Before the height so the expand/collapse animates instead of snapping.
+            .animateContentSize()
+            .then(if (!open && collapsedHeight > 0.dp) Modifier.height(collapsedHeight) else Modifier),
+        shape = MaterialTheme.shapes.extraLarge,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer,
+            disabledContainerColor = MaterialTheme.colorScheme.primaryContainer,
+            disabledContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        ),
+    ) {
+        Column(Modifier.padding(horizontal = 24.dp, vertical = 18.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Rounded.AutoAwesome, contentDescription = null, modifier = Modifier.size(20.dp))
+                Spacer(Modifier.size(10.dp))
+                Text(
+                    stringResource(R.string.insights_summary_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Black,
+                    modifier = Modifier.weight(1f),
+                )
+                if (ready) {
+                    val rotation by animateFloatAsState(if (open) 180f else 0f, label = "summary_chevron")
+                    Icon(
+                        Icons.Rounded.ExpandMore,
+                        contentDescription = stringResource(
+                            if (open) R.string.insights_summary_collapse else R.string.insights_summary_expand
+                        ),
+                        modifier = Modifier.size(24.dp).rotate(rotation),
+                    )
+                }
+            }
+            Spacer(Modifier.height(if (open) 12.dp else 8.dp))
+            when (state) {
+                DaySummaryState.Loading -> Row(verticalAlignment = Alignment.CenterVertically) {
+                    CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                    Spacer(Modifier.size(12.dp))
+                    Text(stringResource(R.string.insights_summary_loading), style = summaryBodyStyle())
+                }
+                is DaySummaryState.Ready -> SummaryBody(state.summary, expanded = open)
+                is DaySummaryState.Failed -> Text(stringResource(state.messageRes), style = summaryBodyStyle())
+                DaySummaryState.Hidden -> Unit
+            }
+        }
+    }
+}
+
+/** Rounded Google Sans Flex, as for the goal setup blurbs: soft, explanatory copy. */
+@Composable
+private fun summaryBodyStyle(): TextStyle = MaterialTheme.typography.bodyMedium.copy(
+    fontFamily = GoogleSansFlexRoundedFontFamily,
+    fontWeight = FontWeight.Normal,
+    // The theme's feature settings pin ROND to 0, which would undo the rounded family.
+    fontFeatureSettings = null,
+    lineHeight = 22.sp,
+)
+
+@Composable
+private fun ColumnScope.SummaryBody(summary: DaySummaryText, expanded: Boolean) {
+    val body = summaryBodyStyle()
+    if (!expanded) {
+        // Collapsed: just the gist. weight(fill = false) caps it at the space the card's fixed
+        // height leaves, so a long headline ends in an ellipsis instead of being sliced mid-line
+        // (Text ellipsises against a height limit, but maxLines alone ignores it).
+        Text(
+            summary.headline.ifEmpty { summary.points.firstOrNull().orEmpty() }.withBoldAmounts(),
+            style = body.copy(fontSize = 16.sp, lineHeight = 22.sp, fontWeight = FontWeight.Bold),
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f, fill = false),
+        )
+        return
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (summary.headline.isNotEmpty()) {
+            Text(
+                summary.headline.withBoldAmounts(),
+                style = body.copy(fontSize = 17.sp, lineHeight = 24.sp, fontWeight = FontWeight.Bold),
+            )
+        }
+        summary.points.forEach { SummaryBullet(it.withBoldAmounts(), body) }
+        if (summary.tomorrow.isNotEmpty()) {
+            Spacer(Modifier.height(4.dp))
+            Text(
+                stringResource(R.string.insights_summary_tomorrow),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            summary.tomorrow.forEach { SummaryBullet(it.withBoldAmounts(), body) }
+        }
+    }
+}
+
+@Composable
+private fun SummaryBullet(text: AnnotatedString, style: TextStyle) {
+    Row {
+        // Centred on the first line: (lineHeight 22sp - dot 6dp) / 2.
+        Spacer(
+            Modifier
+                .padding(top = 8.dp)
+                .size(6.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.primary)
+        )
+        Spacer(Modifier.size(12.dp))
+        Text(text, style = style)
     }
 }
 

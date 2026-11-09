@@ -10,8 +10,15 @@ import xyz.draumaz.sustenance.data.GoalsRepository
 import xyz.draumaz.sustenance.data.HealthConnectManager
 import xyz.draumaz.sustenance.data.Metric
 import xyz.draumaz.sustenance.data.SeriesPoint
+import xyz.draumaz.sustenance.data.SettingsRepository
 import xyz.draumaz.sustenance.data.WeeklyStat
 import xyz.draumaz.sustenance.data.formatValue
+import xyz.draumaz.sustenance.util.GeminiManager
+import xyz.draumaz.sustenance.util.GeminiQuotaException
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
+import java.util.Locale
 import androidx.health.connect.client.records.NutritionRecord
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -33,6 +40,7 @@ data class InsightsState(
 class InsightsViewModel(
     private val manager: HealthConnectManager,
     private val goalsRepo: GoalsRepository,
+    private val settings: SettingsRepository,
 ) : ViewModel() {
 
     // Raw daily series per metric (null until first load completes).
@@ -119,7 +127,59 @@ class InsightsViewModel(
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), InsightsState())
 
-    init { refresh(showIndicator = false) }
+    private val _summary = MutableStateFlow<DaySummaryState>(DaySummaryState.Hidden)
+    val summary = _summary.asStateFlow()
+
+    /** Bumped by [retrySummary]; failures aren't cached, so this re-runs the same report. */
+    private val summaryRetries = MutableStateFlow(0)
+
+    /** Key and model when AI features are on with a key set; null hides the summary. */
+    private val gemini = combine(settings.apiKeyEnabled, settings.apiKey, settings.geminiModel) { enabled, key, model ->
+        if (enabled && key.isNotBlank()) key.trim() to GeminiManager.modelName(model) else null
+    }.distinctUntilChanged()
+
+    init {
+        refresh(showIndicator = false)
+        viewModelScope.launch {
+            combine(state, todayLogs, gemini, summaryRetries) { s, logs, g, _ -> Triple(s, logs, g) }
+                .collectLatest { (s, logs, g) -> updateSummary(s, logs, g) }
+        }
+    }
+
+    private suspend fun updateSummary(s: InsightsState, logs: List<NutritionRecord>, g: Pair<String, String>?) {
+        if (g == null) { _summary.value = DaySummaryState.Hidden; return }
+        // Show the spinner card before the stats arrive, so it's never inserted above cards that
+        // are already on screen (LazyColumn keeps the old first item put, pushing the new card
+        // off the top). If nothing turns out to be logged, it's removed below, which is harmless.
+        if (s.loading) { _summary.value = DaySummaryState.Loading; return }
+        val deficitGoal = (goalsRepo.goals.first()[Metric.CALORIC_BALANCE] ?: 0f) > 0f
+        val report = buildDayReport(s.stats, logs, deficitGoal)
+            ?: run { _summary.value = DaySummaryState.Hidden; return }
+        val (key, model) = g
+        val language = manager.context.resources.configuration.locales[0].getDisplayLanguage(Locale.ENGLISH)
+        DaySummaryCache.lookup(report, model, language, System.currentTimeMillis())?.let {
+            _summary.value = DaySummaryState.Ready(it)
+            return
+        }
+        _summary.value = DaySummaryState.Loading
+        // A refresh sets the series and today's logs one after the other; wait for both so one
+        // refresh costs one request, not two (collectLatest cancels this on the next emission).
+        delay(SUMMARY_DEBOUNCE)
+        val now = java.time.LocalTime.now().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm", Locale.US))
+        GeminiManager(key, model)
+            .summarizeDay("Local time now: $now (the day may not be over).\n\n${report.report}", language)
+            .onSuccess { summary ->
+                DaySummaryCache.store(report, model, language, summary, System.currentTimeMillis())
+                _summary.value = DaySummaryState.Ready(summary)
+            }
+            .onFailure { error ->
+                _summary.value = DaySummaryState.Failed(
+                    if (error is GeminiQuotaException) R.string.gemini_quota_reached else R.string.insights_summary_failed
+                )
+            }
+    }
+
+    fun retrySummary() { summaryRetries.value++ }
 
     fun refresh(showIndicator: Boolean = true) {
         viewModelScope.launch {
@@ -131,11 +191,12 @@ class InsightsViewModel(
                     async { metric to runCatching { manager.readDailySeries(metric, 7) }.getOrDefault(emptyList()) }
                 }.awaitAll().toMap()
             }
-            series.value = seriesMap
-            
+            // Logs before the series: the first state with stats then already has today's food,
+            // so the AI summary card doesn't blink out and back in on the first load.
             if (granted.contains(manager.permissionFor(Metric.FOOD))) {
                 todayLogs.value = runCatching { manager.readTodayNutrition() }.getOrDefault(emptyList())
             }
+            series.value = seriesMap
 
             if (showIndicator) delay(500.milliseconds)
             _refreshing.value = false
@@ -147,8 +208,10 @@ class InsightsViewModel(
     }
 
     companion object {
-        fun factory(manager: HealthConnectManager, goalsRepo: GoalsRepository) = viewModelFactory {
-            initializer { InsightsViewModel(manager, goalsRepo) }
+        private val SUMMARY_DEBOUNCE = 1_000.milliseconds
+
+        fun factory(manager: HealthConnectManager, goalsRepo: GoalsRepository, settings: SettingsRepository) = viewModelFactory {
+            initializer { InsightsViewModel(manager, goalsRepo, settings) }
         }
     }
 }

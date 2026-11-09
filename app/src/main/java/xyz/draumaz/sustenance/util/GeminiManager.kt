@@ -32,8 +32,8 @@ data class FoodNutrients(
 )
 
 class GeminiManager(
-    apiKey: String,
-    modelName: String = modelName(DEFAULT_MODEL)
+    private val apiKey: String,
+    private val modelName: String = modelName(DEFAULT_MODEL)
 ) {
     companion object {
         /** Default model setting, without the "gemini-" prefix (that's how it's entered in Settings). */
@@ -45,6 +45,14 @@ class GeminiManager(
             return if (trimmed.startsWith("gemini-")) trimmed else "gemini-$trimmed"
         }
     }
+
+    // Food logging talks about bodies and portions, which the default filters sometimes trip on.
+    private val safetySettings = listOf(
+        SafetySetting(HarmCategory.HARASSMENT, BlockThreshold.NONE),
+        SafetySetting(HarmCategory.HATE_SPEECH, BlockThreshold.NONE),
+        SafetySetting(HarmCategory.SEXUALLY_EXPLICIT, BlockThreshold.NONE),
+        SafetySetting(HarmCategory.DANGEROUS_CONTENT, BlockThreshold.NONE)
+    )
 
     private val model = GenerativeModel(
         modelName = modelName,
@@ -68,13 +76,29 @@ class GeminiManager(
                 Schema.arr("explanation", "One point per estimated value", Schema.str("point", "One brief sentence")),
             )
         },
-        safetySettings = listOf(
-            SafetySetting(HarmCategory.HARASSMENT, BlockThreshold.NONE),
-            SafetySetting(HarmCategory.HATE_SPEECH, BlockThreshold.NONE),
-            SafetySetting(HarmCategory.SEXUALLY_EXPLICIT, BlockThreshold.NONE),
-            SafetySetting(HarmCategory.DANGEROUS_CONTENT, BlockThreshold.NONE)
-        )
+        safetySettings = safetySettings,
     )
+
+    // The food model is locked to the nutrient JSON schema, so the day summary needs its own
+    // model and schema. Lazy: most instances only ever analyse photos.
+    private val summaryModel by lazy {
+        GenerativeModel(
+            modelName = modelName,
+            apiKey = apiKey,
+            generationConfig = generationConfig {
+                responseMimeType = "application/json"
+                // Split into parts so the card can lay them out, rather than one wall of text.
+                responseSchema = Schema.obj(
+                    "summary",
+                    "A kind summary of the user's day",
+                    Schema.str("headline", "One short, warm sentence summing up the day"),
+                    Schema.arr("points", "One per goal that is over or short, naming the foods that caused it", Schema.str("point", "One brief sentence")),
+                    Schema.arr("tomorrow", "One or two gentle, concrete suggestions for tomorrow", Schema.str("tip", "One brief sentence")),
+                )
+            },
+            safetySettings = safetySettings,
+        )
+    }
 
     suspend fun verifyModel(): Result<Unit> = withContext(Dispatchers.IO) {
         try {
@@ -183,8 +207,61 @@ class GeminiManager(
             .filter { it.isNotEmpty() }
     }
 
+    /**
+     * Writes the short, kind day summary shown at the top of Insights. [dayReport] is the plain
+     * text facts (goals, totals, food logs) built by the Insights screen; [language] is the
+     * English name of the language to answer in.
+     */
+    suspend fun summarizeDay(dayReport: String, language: String): Result<DaySummaryText> = withContext(Dispatchers.IO) {
+        try {
+            val prompt = """
+                You are a warm, encouraging nutrition coach inside a food tracking app. Using only the facts below about the user's day so far, summarise it as JSON.
+
+                headline: one short sentence (under 15 words) capturing the day overall.
+                points: one sentence per goal they went over or fell short of, naming the logged foods that caused it and roughly how much each contributed. Skip goals that are fine. Empty if every goal is on track.
+                tomorrow: one or two concrete, gentle suggestions for doing better tomorrow. If everything went well, one suggestion to keep it up.
+
+                Tone: kind, reassuring and never judgemental or alarming. One day doesn't define progress, so frame misses as easy to adjust, not as failures. Talk to the user directly ("you"). Never give medical advice or mention weight loss unless the facts do.
+
+                Plain text in every field: no markdown, no emoji. Give amounts as a number and unit, e.g. "300 kcal" or "12 g". Write in $language.
+
+                Facts:
+                $dayReport
+            """.trimIndent()
+            val text = summaryModel.generateContent(prompt).text
+                ?: return@withContext Result.failure(Exception("No response from Gemini"))
+            val json = JSONObject(text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1))
+            fun list(name: String) = json.optJSONArray(name)
+                ?.let { arr -> List(arr.length()) { arr.optString(it).replace("**", "").trim() } }
+                ?.filter { it.isNotEmpty() }
+                .orEmpty()
+            val summary = DaySummaryText(
+                headline = json.optString("headline").replace("**", "").trim(),
+                points = list("points"),
+                tomorrow = list("tomorrow"),
+            )
+            if (summary.headline.isEmpty() && summary.points.isEmpty() && summary.tomorrow.isEmpty()) {
+                Result.failure(Exception("No response from Gemini"))
+            } else Result.success(summary)
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.e("GeminiManager", "Day summary failed", e)
+            Result.failure(if (e.isQuotaExceeded()) GeminiQuotaException() else e)
+        }
+    }
+
     suspend fun analyzeFoodImage(bitmap: Bitmap, additionalInfo: String? = null): Result<FoodNutrients> = analyzeFoodImages(listOf(bitmap), additionalInfo)
 }
+
+/** Gemini's day summary for Insights, in the parts the card lays out. */
+data class DaySummaryText(
+    val headline: String,
+    /** One per goal that's over or short, with what caused it. */
+    val points: List<String>,
+    /** Suggestions for tomorrow. */
+    val tomorrow: List<String>,
+)
 
 /**
  * The key has run out of Gemini quota (HTTP 429 / RESOURCE_EXHAUSTED), almost always the free

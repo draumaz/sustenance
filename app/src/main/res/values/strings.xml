@@ -63,6 +63,12 @@
     <string name="summary_title">Insights</string>
     <string name="insight_over_goal">Over your goal. %1$s added the most: %2$s.</string>
     <string name="insight_good_job">Within your goal today.</string>
+    <string name="insights_summary_title">Your day so far</string>
+    <string name="insights_summary_loading">Writing your summary…</string>
+    <string name="insights_summary_failed">Couldn\'t write today\'s summary. Tap to try again.</string>
+    <string name="insights_summary_tomorrow">Tomorrow</string>
+    <string name="insights_summary_expand">Show the full summary</string>
+    <string name="insights_summary_collapse">Show less</string>
     <string name="new_label">New</string>
     <string name="steady_label">Steady</string>
     <string name="vs_yesterday">%d%% vs yesterday</string>

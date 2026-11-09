@@ -63,6 +63,12 @@
     <string name="summary_title">Аналитика</string>
     <string name="insight_over_goal">Цель превышена. Больше всего добавил продукт «%1$s»: %2$s.</string>
     <string name="insight_good_job">Сегодня вы в рамках цели.</string>
+    <string name="insights_summary_title">Ваш день</string>
+    <string name="insights_summary_loading">Готовим сводку…</string>
+    <string name="insights_summary_failed">Не удалось составить сводку за сегодня. Нажмите, чтобы повторить.</string>
+    <string name="insights_summary_tomorrow">Завтра</string>
+    <string name="insights_summary_expand">Показать сводку полностью</string>
+    <string name="insights_summary_collapse">Свернуть</string>
     <string name="new_label">Новое</string>
     <string name="steady_label">Стабильно</string>
     <string name="vs_yesterday">%d%% по сравнению со вчера</string>

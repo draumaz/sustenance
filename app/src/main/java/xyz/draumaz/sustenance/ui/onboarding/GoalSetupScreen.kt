@@ -42,10 +42,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -55,6 +52,7 @@ import xyz.draumaz.sustenance.R
 import xyz.draumaz.sustenance.data.Metric
 import xyz.draumaz.sustenance.data.parseDecimal
 import xyz.draumaz.sustenance.ui.theme.GoogleSansFlexRoundedFontFamily
+import xyz.draumaz.sustenance.ui.components.withBoldAmounts
 
 private val energyMetrics = listOf(Metric.FOOD)
 private val macroMetrics = listOf(Metric.PROTEIN, Metric.CARBS, Metric.FAT)
@@ -261,19 +259,6 @@ private fun GoalSection(
             }
         }
     }
-}
-
-// An amount with its unit, e.g. "25 g", "1,500 mg", "6%" (and the Russian г/мг).
-private val amountPattern = Regex("""\d[\d.,]*\s?(?:mg|g|%|мг|г)(?!\p{L})""")
-
-private fun String.withBoldAmounts() = buildAnnotatedString {
-    var last = 0
-    amountPattern.findAll(this@withBoldAmounts).forEach { m ->
-        append(substring(last, m.range.first))
-        withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append(m.value) }
-        last = m.range.last + 1
-    }
-    append(substring(last))
 }
 
 private fun Float.toInputText() = if (this % 1f == 0f) toInt().toString() else toString()

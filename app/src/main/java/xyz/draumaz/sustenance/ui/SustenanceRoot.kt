@@ -698,6 +698,7 @@ private fun MainNav(
                         InsightsScreen(
                             manager = manager,
                             goalsRepo = goalsRepo,
+                            settingsRepo = settingsRepo,
                             bottomInset = inner.calculateBottomPadding(),
                             // Insights always reflects today, so pin the detail view to today
                             // rather than whichever day the Dashboard was last showing.
