@@ -1,5 +1,22 @@
 package xyz.draumaz.sustenance.ui.detail
 
+import kotlinx.coroutines.delay
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.runtime.key
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.VisibilityThreshold
+import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -161,6 +178,13 @@ fun DetailScreen(
         )
     }
 
+    // Rows whose delete is in flight. They animate out at once, so the Health Connect write and
+    // re-read play out under the animation instead of as a pause; a failed delete brings them back.
+    var pendingDeletes by remember { mutableStateOf(emptySet<String>()) }
+    // Ids already on screen; anything else in a refresh is a fresh log and unfolds in. Null until
+    // the first load, so opening the screen doesn't animate every row.
+    var knownIds by remember { mutableStateOf<Set<String>?>(null) }
+
     recordToDelete?.let { record ->
         AlertDialog(
             onDismissRequest = { recordToDelete = null },
@@ -170,7 +194,9 @@ fun DetailScreen(
                 TextButton(
                     onClick = {
                         record.id?.let { id ->
+                            pendingDeletes = pendingDeletes + id
                             vm.deleteRecord(id) { error ->
+                                pendingDeletes = pendingDeletes - id
                                 reportHealthWriteFailure(
                                     context, error, R.string.failed_to_delete_log, onManagePermissions
                                 )
@@ -228,6 +254,14 @@ fun DetailScreen(
                 }
                 return@Scaffold
             }
+            val currentIds = remember(d) {
+                d.todaySections.flatMap { it.second }.mapNotNull { it.id }.toSet()
+            }
+            LaunchedEffect(currentIds) {
+                knownIds = currentIds
+                // Once a deleted row is gone from the data, stop tracking it.
+                pendingDeletes = pendingDeletes intersect currentIds
+            }
             PullToRefreshBox(
                 state = pullToRefreshState,
                 isRefreshing = refreshing,
@@ -256,9 +290,12 @@ fun DetailScreen(
                     item { HeaderCard(d, onEditGoal = { showGoalDialog = true }) }
                     item { ChartCard(d, selectedChartPoint) { selectedChartPoint = it } }
                     if (d.todaySections.isNotEmpty()) {
-                        item {
+                        item(key = "food_items") {
                             FoodItemsCard(
                                 sections = d.todaySections,
+                                pendingDeletes = pendingDeletes,
+                                isNew = { id -> knownIds?.let { id !in it } ?: false },
+                                modifier = Modifier.animateItem(),
                                 onReLog = onReLog,
                                 onDelete = { id ->
                                     val row = d.todaySections.asSequence().flatMap { it.second }.find { it.id == id }
@@ -290,11 +327,17 @@ fun DetailScreen(
 @Composable
 private fun FoodItemsCard(
     sections: List<Pair<String, List<RecordRow>>>,
+    pendingDeletes: Set<String>,
+    isNew: (String) -> Boolean,
     onReLog: (FoodNutrients) -> Unit,
-    onDelete: (String) -> Unit
+    onDelete: (String) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
+    fun RecordRow.leaving() = id != null && id in pendingDeletes
+    fun RecordRow.fresh() = id?.let(isNew) ?: false
+    fun RecordRow.rowKey(): Any = id ?: "$primary@$startTime"
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.extraLarge,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
     ) {
@@ -305,7 +348,8 @@ private fun FoodItemsCard(
                 fontWeight = FontWeight.Black,
                 modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
             )
-            sections.forEach { (section, items) ->
+            sections.forEach { (section, items) -> key(section) {
+              AnimatedEntry(visible = !items.all { it.leaving() }, isNew = items.all { it.fresh() }) {
                 Column(
                     modifier = Modifier
                         .padding(horizontal = 12.dp, vertical = 8.dp)
@@ -335,8 +379,10 @@ private fun FoodItemsCard(
                         }
                     }
 
-                    groupedItems.forEach { group ->
-                        val isCluster = group.size > 1
+                    groupedItems.forEach { group -> key(group.first().rowKey()) {
+                      AnimatedEntry(visible = !group.all { it.leaving() }, isNew = group.all { it.fresh() }) {
+                        // Only rows still staying count, so a cluster losing a row turns plain.
+                        val isCluster = group.count { !it.leaving() } > 1
                         Column(
                             modifier = if (isCluster) {
                                 Modifier
@@ -346,16 +392,25 @@ private fun FoodItemsCard(
                                     .padding(vertical = 4.dp)
                             } else Modifier
                         ) {
-                            group.forEachIndexed { i, item ->
-                                FoodRecordRow(item, onReLog, onDelete)
-                                if (i < group.lastIndex) {
-                                    HorizontalDivider(Modifier.padding(horizontal = 16.dp).alpha(0.3f))
+                            group.forEachIndexed { i, item -> key(item.rowKey()) {
+                                AnimatedEntry(
+                                    visible = !item.leaving(),
+                                    isNew = item.fresh(),
+                                    glow = item.accentColor ?: MaterialTheme.colorScheme.primary,
+                                ) { glowAlpha ->
+                                    // The divider rides above its row, so it leaves with it.
+                                    if (i > 0) {
+                                        HorizontalDivider(Modifier.padding(horizontal = 16.dp).alpha(0.3f))
+                                    }
+                                    FoodRecordRow(item, onReLog, onDelete, glowAlpha)
                                 }
-                            }
+                            } }
                         }
-                    }
+                      }
+                    } }
                 }
-            }
+              }
+            } }
         }
     }
 }
@@ -365,7 +420,8 @@ private fun FoodItemsCard(
 private fun FoodRecordRow(
     item: RecordRow,
     onReLog: (FoodNutrients) -> Unit,
-    onDelete: (String) -> Unit
+    onDelete: (String) -> Unit,
+    glowAlpha: () -> Float = { 0f },
 ) {
     val secondaryParts = item.secondary.split(" • ")
     val kcal = secondaryParts.getOrNull(0) ?: ""
@@ -393,10 +449,15 @@ private fun FoodRecordRow(
             )
     ) {
         Column(
-            modifier = Modifier.padding(
-                horizontal = if (item.accentColor != null) 12.dp else 16.dp,
-                vertical = if (item.accentColor != null) 8.dp else 6.dp
-            )
+            modifier = Modifier
+                .drawBehind {
+                    val a = glowAlpha()
+                    if (a > 0f) drawRect(kcalColor.copy(alpha = a))
+                }
+                .padding(
+                    horizontal = if (item.accentColor != null) 12.dp else 16.dp,
+                    vertical = if (item.accentColor != null) 8.dp else 6.dp
+                )
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -637,5 +698,50 @@ private fun RecordItem(row: RecordRow) {
                 }
             }
         }
+    }
+}
+
+/** M3 Expressive spatial spring: a little overshoot, for things changing size or place. */
+private fun <T> spatialSpring(visibilityThreshold: T? = null) =
+    spring(dampingRatio = 0.8f, stiffness = 380f, visibilityThreshold = visibilityThreshold)
+
+/** M3 Expressive fast effects spring: no bounce, for fades. */
+private fun <T> effectsSpring() = spring<T>(dampingRatio = 1f, stiffness = 1600f)
+
+/**
+ * A food log entry (or a section or cluster of them) coming and going. A fresh log unfolds from
+ * the top on the spatial spring, scaling up from 92% as it fades in, then a soft [glow] wash in
+ * its accent (handed to [content] to draw within its own shape) fades off so the eye finds it. Leaving folds away without bounce, shrinking and
+ * fading together, and the rows below glide up into the space.
+ */
+@Composable
+private fun AnimatedEntry(
+    visible: Boolean,
+    isNew: Boolean,
+    glow: Color? = null,
+    content: @Composable (glowAlpha: () -> Float) -> Unit,
+) {
+    val state = remember { MutableTransitionState(!isNew) }
+    state.targetState = visible
+    val glowAlpha = remember { Animatable(if (isNew && glow != null) 0.28f else 0f) }
+    LaunchedEffect(Unit) {
+        if (glowAlpha.value > 0f) {
+            delay(250)
+            glowAlpha.animateTo(0f, tween(1100, easing = LinearOutSlowInEasing))
+        }
+    }
+    AnimatedVisibility(
+        visibleState = state,
+        enter = expandVertically(spatialSpring(IntSize.VisibilityThreshold), expandFrom = Alignment.Top) +
+            scaleIn(spatialSpring(), initialScale = 0.92f) +
+            fadeIn(effectsSpring()),
+        exit = shrinkVertically(
+            spring(dampingRatio = 1f, stiffness = 800f, visibilityThreshold = IntSize.VisibilityThreshold),
+            shrinkTowards = Alignment.Top
+        ) + scaleOut(effectsSpring(), targetScale = 0.92f) + fadeOut(effectsSpring()),
+    ) {
+        // The wash itself is drawn by the row, inside its own clipped shape, so it can't spill
+        // over the divider or past the row's rounded edge.
+        Column { content { glowAlpha.value } }
     }
 }
