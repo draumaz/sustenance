@@ -185,6 +185,7 @@
 
     <string name="api_key_missing">Сначала добавьте API-ключ Gemini.</string>
     <string name="api_key_invalid">Не удалось проверить этот API-ключ.</string>
+    <string name="gemini_quota_reached">Дневной бесплатный лимит Gemini исчерпан. Попробуйте завтра или выберите другую модель в настройках.</string>
     <string name="analysis_failed">Ошибка анализа: %s</string>
     <string name="no_response_from_gemini">Нет ответа от Gemini</string>
     <string name="write_permission_required">Разрешите Sustenance записывать данные о питании в Health Connect.</string>

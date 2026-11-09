@@ -1,5 +1,6 @@
 package xyz.draumaz.sustenance.util
 
+import com.google.ai.client.generativeai.type.QuotaExceededException
 import android.graphics.Bitmap
 import android.util.Log
 import androidx.core.graphics.scale
@@ -165,6 +166,7 @@ class GeminiManager(
             throw e
         } catch (e: Exception) {
             Log.e("GeminiManager", "Analysis failed", e)
+            if (e.isQuotaExceeded()) return@withContext Result.failure(GeminiQuotaException())
             val msg = e.localizedMessage ?: e.message
             val displayError = if (!msg.isNullOrBlank() && !msg.contains("Unexpected Response", ignoreCase = true)) msg else "No response from Gemini"
             Result.failure(Exception(displayError))
@@ -182,4 +184,18 @@ class GeminiManager(
     }
 
     suspend fun analyzeFoodImage(bitmap: Bitmap, additionalInfo: String? = null): Result<FoodNutrients> = analyzeFoodImages(listOf(bitmap), additionalInfo)
+}
+
+/**
+ * The key has run out of Gemini quota (HTTP 429 / RESOURCE_EXHAUSTED), almost always the free
+ * tier's daily cap. Kept apart from other failures so the UI can explain it instead of echoing
+ * the raw error.
+ */
+class GeminiQuotaException : Exception("Gemini quota exceeded")
+
+/** The SDK usually throws [QuotaExceededException], but some paths only carry the status text. */
+private fun Throwable.isQuotaExceeded(): Boolean {
+    if (this is QuotaExceededException) return true
+    val msg = message.orEmpty()
+    return msg.contains("RESOURCE_EXHAUSTED") || msg.contains("429")
 }

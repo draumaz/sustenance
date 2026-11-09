@@ -102,6 +102,7 @@ import xyz.draumaz.sustenance.ui.summary.InsightsScreen
 import xyz.draumaz.sustenance.ui.components.FoodReviewDialog
 import xyz.draumaz.sustenance.ui.history.HistoryScreen
 import xyz.draumaz.sustenance.util.FoodNutrients
+import xyz.draumaz.sustenance.util.GeminiQuotaException
 import xyz.draumaz.sustenance.util.GeminiManager
 import xyz.draumaz.sustenance.widget.WidgetUpdateWorker
 
@@ -477,7 +478,9 @@ private fun MainNav(
             }
             .onFailure { error ->
                 val message = error.localizedMessage.orEmpty()
-                val toastMsg = if (message.isBlank() || message.contains("No response", ignoreCase = true)) {
+                val toastMsg = if (error is GeminiQuotaException) {
+                    appContext.getString(R.string.gemini_quota_reached)
+                } else if (message.isBlank() || message.contains("No response", ignoreCase = true)) {
                     appContext.getString(R.string.no_response_from_gemini)
                 } else {
                     appContext.getString(R.string.analysis_failed, message)
