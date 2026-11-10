@@ -126,7 +126,7 @@ fun SettingsScreen(
     val appContext = context.applicationContext as xyz.draumaz.sustenance.SustenanceApp
     val scope = rememberCoroutineScope()
     val vm: SettingsViewModel = viewModel(factory = SettingsViewModel.factory(settingsRepo))
-    val dynamicColor by vm.dynamicColor.collectAsState(initial = false)
+    val dynamicColor by vm.dynamicColor.collectAsState()
     val goalSetupDeferred by settingsRepo.goalSetupDeferred.collectAsState(initial = false)
 
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
@@ -233,18 +233,18 @@ fun SettingsScreen(
             item { SectionLabel(stringResource(R.string.section_ai)) }
             item {
                 SettingsCard {
-                    val apiKeyEnabled by vm.apiKeyEnabled.collectAsState(initial = false)
-                    val apiKey by vm.apiKey.collectAsState(initial = "")
+                    val apiKeyEnabled by vm.apiKeyEnabled.collectAsState()
+                    val apiKey by vm.apiKey.collectAsState()
                     // Local edits win over the stored values, so a save landing mid-typing can't reset the field.
                     var editedApiKey by remember { mutableStateOf<String?>(null) }
                     val tempApiKey = editedApiKey ?: apiKey
-                    val apiKeyVerificationStatus by vm.apiKeyVerificationStatus.collectAsState(initial = VerificationStatus.IDLE)
+                    val apiKeyVerificationStatus by vm.apiKeyVerificationStatus.collectAsState()
                     var isApiKeyVerifying by remember { mutableStateOf(false) }
 
-                    val geminiModel by vm.geminiModel.collectAsState(initial = GeminiManager.DEFAULT_MODEL)
+                    val geminiModel by vm.geminiModel.collectAsState()
                     var editedGeminiModel by remember { mutableStateOf<String?>(null) }
                     val tempGeminiModel = editedGeminiModel ?: geminiModel.removePrefix("gemini-")
-                    val geminiModelVerificationStatus by vm.geminiModelVerificationStatus.collectAsState(initial = VerificationStatus.IDLE)
+                    val geminiModelVerificationStatus by vm.geminiModelVerificationStatus.collectAsState()
                     var isModelVerifying by remember { mutableStateOf(false) }
 
                     // Both verify buttons make the same test call with the current key + model;
@@ -375,7 +375,7 @@ fun SettingsScreen(
                             Spacer(Modifier.size(8.dp))
                         }
 
-                        val alwaysBatch by vm.alwaysBatch.collectAsState(initial = true)
+                        val alwaysBatch by vm.alwaysBatch.collectAsState()
                         ToggleRow(
                             icon = Icons.Rounded.BurstMode,
                             title = stringResource(R.string.always_batch),
@@ -386,8 +386,8 @@ fun SettingsScreen(
 
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f))
 
-                        val gramIncrementEnabled by vm.gramIncrementEnabled.collectAsState(initial = false)
-                        val gramIncrement by vm.gramIncrement.collectAsState(initial = 1)
+                        val gramIncrementEnabled by vm.gramIncrementEnabled.collectAsState()
+                        val gramIncrement by vm.gramIncrement.collectAsState()
                         var tempIncrement by remember { mutableStateOf<String?>(null) }
 
                         ToggleRow(
@@ -426,7 +426,7 @@ fun SettingsScreen(
 
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f))
 
-                        val judgementalMode by vm.judgementalMode.collectAsState(initial = false)
+                        val judgementalMode by vm.judgementalMode.collectAsState()
                         ToggleRow(
                             icon = Icons.Rounded.Psychology,
                             title = stringResource(R.string.judgemental_mode),
@@ -437,7 +437,7 @@ fun SettingsScreen(
 
                         HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f))
 
-                        val bingeCheckEnabled by vm.bingeCheckEnabled.collectAsState(initial = true)
+                        val bingeCheckEnabled by vm.bingeCheckEnabled.collectAsState()
                         ToggleRow(
                             icon = Icons.Rounded.Spa,
                             title = stringResource(R.string.binge_check),
@@ -472,7 +472,7 @@ fun SettingsScreen(
 
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f))
 
-                    val ketoMode by vm.ketoMode.collectAsState(initial = false)
+                    val ketoMode by vm.ketoMode.collectAsState()
                     ToggleRow(
                         icon = Icons.Rounded.Whatshot,
                         title = stringResource(R.string.keto_mode),
@@ -483,7 +483,7 @@ fun SettingsScreen(
 
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f))
 
-                    val lastLogTimerEnabled by vm.lastLogTimerEnabled.collectAsState(initial = false)
+                    val lastLogTimerEnabled by vm.lastLogTimerEnabled.collectAsState()
                     ToggleRow(
                         icon = Icons.Rounded.History,
                         title = stringResource(R.string.show_last_log_timer),
@@ -493,7 +493,7 @@ fun SettingsScreen(
                     )
 
                     RevealedRows(visible = lastLogTimerEnabled) {
-                        val fastBreakingCalories by vm.fastBreakingCalories.collectAsState(initial = 0)
+                        val fastBreakingCalories by vm.fastBreakingCalories.collectAsState()
                         // Local edits win over the stored value, so a save landing mid-typing can't reset the field.
                         var tempCalories by remember { mutableStateOf<String?>(null) }
 
@@ -522,7 +522,7 @@ fun SettingsScreen(
                             Spacer(Modifier.size(8.dp))
                         }
 
-                        val fastingGoalHours by vm.fastingGoalHours.collectAsState(initial = 16f)
+                        val fastingGoalHours by vm.fastingGoalHours.collectAsState()
                         var tempGoal by remember { mutableStateOf<String?>(null) }
 
                         Row(
@@ -551,7 +551,7 @@ fun SettingsScreen(
                             Spacer(Modifier.size(8.dp))
                         }
 
-                        val fastingNotificationsEnabled by vm.fastingNotificationsEnabled.collectAsState(initial = false)
+                        val fastingNotificationsEnabled by vm.fastingNotificationsEnabled.collectAsState()
                         val permissionLauncher = rememberLauncherForActivityResult(
                             ActivityResultContracts.RequestPermission()
                         ) { isGranted ->

@@ -13,6 +13,7 @@ import xyz.draumaz.sustenance.data.MetricSummary
 import xyz.draumaz.sustenance.data.SettingsRepository
 import xyz.draumaz.sustenance.data.VerificationStatus
 import xyz.draumaz.sustenance.notifications.FastingNotificationScheduler
+import xyz.draumaz.sustenance.util.GeminiManager
 import xyz.draumaz.sustenance.widget.WidgetUpdateWorker
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -251,22 +252,26 @@ class DetailViewModel(
 class SettingsViewModel(
     private val repository: SettingsRepository
 ) : ViewModel() {
-    val dynamicColor = repository.dynamicColor
-    val ketoMode = repository.ketoMode
-    val lastLogTimerEnabled = repository.lastLogTimerEnabled
-    val judgementalMode = repository.judgementalMode
-    val bingeCheckEnabled = repository.bingeCheckEnabled
-    val alwaysBatch = repository.alwaysBatch
-    val gramIncrementEnabled = repository.gramIncrementEnabled
-    val gramIncrement = repository.gramIncrement
-    val fastBreakingCalories = repository.fastBreakingCalories
-    val fastingGoalHours = repository.fastingGoalHours
-    val fastingNotificationsEnabled = repository.fastingNotificationsEnabled
-    val apiKeyEnabled = repository.apiKeyEnabled
-    val apiKey = repository.apiKey
-    val apiKeyVerificationStatus = repository.apiKeyVerificationStatus
-    val geminiModel = repository.geminiModel
-    val geminiModelVerificationStatus = repository.geminiModelVerificationStatus
+    // Held as StateFlows for the screen's lifetime: LazyColumn disposes cards scrolled off-screen,
+    // and re-collecting a cold DataStore flow would restart each card from its default and then
+    // flip to the stored value, replaying every toggle's reveal animation on the way back in.
+    // Started eagerly, so the reveals play once when the screen opens and DataStore first answers.
+    val dynamicColor = repository.dynamicColor.stateIn(viewModelScope, SharingStarted.Eagerly, false)
+    val ketoMode = repository.ketoMode.stateIn(viewModelScope, SharingStarted.Eagerly, false)
+    val lastLogTimerEnabled = repository.lastLogTimerEnabled.stateIn(viewModelScope, SharingStarted.Eagerly, false)
+    val judgementalMode = repository.judgementalMode.stateIn(viewModelScope, SharingStarted.Eagerly, false)
+    val bingeCheckEnabled = repository.bingeCheckEnabled.stateIn(viewModelScope, SharingStarted.Eagerly, true)
+    val alwaysBatch = repository.alwaysBatch.stateIn(viewModelScope, SharingStarted.Eagerly, true)
+    val gramIncrementEnabled = repository.gramIncrementEnabled.stateIn(viewModelScope, SharingStarted.Eagerly, false)
+    val gramIncrement = repository.gramIncrement.stateIn(viewModelScope, SharingStarted.Eagerly, 1)
+    val fastBreakingCalories = repository.fastBreakingCalories.stateIn(viewModelScope, SharingStarted.Eagerly, 0)
+    val fastingGoalHours = repository.fastingGoalHours.stateIn(viewModelScope, SharingStarted.Eagerly, 16f)
+    val fastingNotificationsEnabled = repository.fastingNotificationsEnabled.stateIn(viewModelScope, SharingStarted.Eagerly, false)
+    val apiKeyEnabled = repository.apiKeyEnabled.stateIn(viewModelScope, SharingStarted.Eagerly, false)
+    val apiKey = repository.apiKey.stateIn(viewModelScope, SharingStarted.Eagerly, "")
+    val apiKeyVerificationStatus = repository.apiKeyVerificationStatus.stateIn(viewModelScope, SharingStarted.Eagerly, VerificationStatus.IDLE)
+    val geminiModel = repository.geminiModel.stateIn(viewModelScope, SharingStarted.Eagerly, GeminiManager.DEFAULT_MODEL)
+    val geminiModelVerificationStatus = repository.geminiModelVerificationStatus.stateIn(viewModelScope, SharingStarted.Eagerly, VerificationStatus.IDLE)
 
     fun setDynamicColor(enabled: Boolean) {
         viewModelScope.launch { repository.setDynamicColor(enabled) }
