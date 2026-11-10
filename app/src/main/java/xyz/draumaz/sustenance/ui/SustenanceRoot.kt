@@ -22,6 +22,7 @@ import xyz.draumaz.sustenance.ui.components.pushEnterCard
 import xyz.draumaz.sustenance.ui.components.pushExitUnder
 import xyz.draumaz.sustenance.ui.components.popEnterBack
 import xyz.draumaz.sustenance.ui.components.popExitBack
+import androidx.compose.animation.EnterExitState
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.animateDpAsState
@@ -800,6 +801,13 @@ private fun MainNav(
                         slideOutVertically(spring(stiffness = Spring.StiffnessMediumLow)) { (it * 0.4f).toInt() } +
                         scaleOut(spring(stiffness = Spring.StiffnessMediumLow), targetScale = 0f, transformOrigin = TransformOrigin(0.5f, 0.9f))
             ) {
+                // resetCamera() drops batch mode the moment the camera closes, while this overlay
+                // is still animating out. Hold the last open value so the gallery scallop leaves
+                // with the flashlight instead of vanishing before the exit plays.
+                val exiting = transition.targetState == EnterExitState.PostExit
+                var heldBatchMode by remember { mutableStateOf(isBatchMode) }
+                SideEffect { if (!exiting) heldBatchMode = isBatchMode }
+                val showGallery = if (exiting) heldBatchMode else isBatchMode
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -858,7 +866,7 @@ private fun MainNav(
                                     onToggleTorch = { isTorchOn = !isTorchOn },
                                     // Batch mode's toolbar slot went to History; the gallery
                                     // moved into the viewfinder, beside the flashlight.
-                                    showGallery = isBatchMode,
+                                    showGallery = showGallery,
                                     onSelectGallery = { galleryLauncher.launch("image/*") },
                                     onImageCaptured = { imageProxy ->
                                         // Snapshot the mode: closing the camera while this shot
