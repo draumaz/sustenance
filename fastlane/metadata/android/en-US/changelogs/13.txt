@@ -1,0 +1,5 @@
+* Search your food history
+* Logging from text alone looks the food up on the web for its published nutrition facts
+* History is reachable from batch mode, and back closes the camera in one step
+* Logging a food from History takes you back to Today
+* Smoother camera close and Settings animations
