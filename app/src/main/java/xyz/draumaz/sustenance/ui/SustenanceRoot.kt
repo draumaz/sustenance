@@ -336,6 +336,7 @@ private fun MainNav(
     var isHistoryActive by remember { mutableStateOf(false) }
     var capturedBitmaps by remember { mutableStateOf<List<Bitmap>>(emptyList()) }
     var batchInfoText by remember { mutableStateOf("") }
+    var historyQuery by remember { mutableStateOf("") }
     var pendingNutrients by remember { mutableStateOf<FoodNutrients?>(null) }
 
     val goals by goalsRepo.goals.collectAsState(initial = emptyMap())
@@ -387,6 +388,7 @@ private fun MainNav(
     /** Closes the camera and history overlays and returns to Today, discarding any capture. */
     fun clearCapture() {
         isHistoryActive = false
+        historyQuery = ""
         resetCamera()
         pendingNutrients = null
         navController.popBackStack(Dest.TODAY.route, inclusive = false)
@@ -602,6 +604,8 @@ private fun MainNav(
                             cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
                         },
                         isHistorySelected = isHistoryActive,
+                        historyQuery = historyQuery,
+                        onHistoryQueryChange = { historyQuery = it },
                         onHistoryClick = {
                             isHistoryActive = !isHistoryActive
                         },
@@ -927,6 +931,7 @@ private fun MainNav(
                     manager = manager,
                     settingsRepo = settingsRepo,
                     bottomInset = inner.calculateBottomPadding(),
+                    query = historyQuery,
                     predictiveBackProgress = if (isHistoryActive) pbState.progress else 0f,
                     onItemSelected = { item ->
                         pendingNutrients = item.nutrients

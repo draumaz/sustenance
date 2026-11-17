@@ -189,6 +189,8 @@
     <string name="add_label">Добавить</string>
     <string name="history">История</string>
     <string name="no_history">Истории пока нет</string>
+    <string name="no_history_matches">Ничего не найдено</string>
+    <string name="search_history">Поиск по истории</string>
     <string name="log">Запись</string>
 
     <string name="api_key_missing">Сначала добавьте API-ключ Gemini.</string>

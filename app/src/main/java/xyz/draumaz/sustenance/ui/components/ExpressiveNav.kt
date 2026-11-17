@@ -3,6 +3,7 @@ package xyz.draumaz.sustenance.ui.components
 import android.graphics.Bitmap
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.core.Animatable
@@ -119,6 +120,8 @@ fun ExpressiveNavigationBar(
     onFinishBatch: () -> Unit = {},
     isHistorySelected: Boolean = false,
     onHistoryClick: () -> Unit = {},
+    historyQuery: String = "",
+    onHistoryQueryChange: (String) -> Unit = {},
     onNavigate: (xyz.draumaz.sustenance.ui.Dest) -> Unit,
     onLogClick: () -> Unit = {},
 ) {
@@ -190,52 +193,27 @@ fun ExpressiveNavigationBar(
             }
         }
 
-        // Grows up out of the toolbar so it reads as part of it.
-        AnimatedVisibility(
-            visible = isCameraMode && isBatchMode && !isHistorySelected,
-            enter = expandVertically(ExpressiveSprings.defaultSpatial(), expandFrom = Alignment.Bottom) +
-                scaleIn(ExpressiveSprings.defaultSpatial(), initialScale = 0.8f, transformOrigin = TransformOrigin(0.5f, 1f)) +
-                fadeIn(ExpressiveSprings.defaultEffects()),
-            exit = shrinkVertically(ExpressiveSprings.defaultSpatial(), shrinkTowards = Alignment.Bottom) +
-                scaleOut(ExpressiveSprings.defaultSpatial(), targetScale = 0.8f, transformOrigin = TransformOrigin(0.5f, 1f)) +
-                fadeOut(ExpressiveSprings.defaultEffects()),
-            label = "batch_info_box"
-        ) {
-            Surface(
-                modifier = Modifier
-                    .padding(bottom = 8.dp)
-                    .width(320.dp),
-                shape = MaterialTheme.shapes.extraLarge,
-                color = MaterialTheme.colorScheme.surfaceContainer,
-                shadowElevation = ToolbarElevation
-            ) {
-                Box(
-                    modifier = Modifier
-                        .heightIn(min = 56.dp, max = 160.dp)
-                        .padding(horizontal = 20.dp, vertical = 16.dp),
-                    contentAlignment = Alignment.CenterStart
-                ) {
-                    if (batchInfoText.isEmpty()) {
-                        Text(
-                            text = stringResource(R.string.optional_info),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    BasicTextField(
-                        value = batchInfoText,
-                        onValueChange = onBatchInfoTextChange,
-                        modifier = Modifier.fillMaxWidth(),
-                        textStyle = MaterialTheme.typography.bodyLarge.copy(
-                            color = MaterialTheme.colorScheme.onSurface
-                        ),
-                        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                        singleLine = false,
-                        maxLines = 5
-                    )
-                }
-            }
-        }
+        // One box serves both: switching between the viewfinder and History keeps it in place
+        // and crossfades its contents, instead of shrinking one into the pill and growing another.
+        ToolbarTextBox(
+            field = when {
+                isHistorySelected -> ToolbarField(
+                    key = "history_search",
+                    value = historyQuery,
+                    onValueChange = onHistoryQueryChange,
+                    placeholder = stringResource(R.string.search_history),
+                    singleLine = true,
+                )
+                isCameraMode && isBatchMode -> ToolbarField(
+                    key = "batch_info",
+                    value = batchInfoText,
+                    onValueChange = onBatchInfoTextChange,
+                    placeholder = stringResource(R.string.optional_info),
+                    singleLine = false,
+                )
+                else -> null
+            },
+        )
 
         // Always expanded: the bar holds top-level navigation, so it never collapses on scroll.
         // Shape, colors, height and padding are the component's spec defaults.
@@ -526,6 +504,84 @@ private fun rememberLongHoldClick(
         } else {
             haptic.performHapticFeedback(HapticFeedbackType.KeyboardTap)
             onClick()
+        }
+    }
+}
+
+/** What [ToolbarTextBox] edits; [key] tells the fields apart so only a swap crossfades. */
+private class ToolbarField(
+    val key: String,
+    val value: String,
+    val onValueChange: (String) -> Unit,
+    val placeholder: String,
+    val singleLine: Boolean,
+)
+
+/**
+ * A text box that grows up out of the toolbar so it reads as part of it. Batch mode's
+ * "Add details" box and History's search box share it, so they stay identical; [field] null
+ * hides it.
+ */
+@Composable
+private fun ToolbarTextBox(field: ToolbarField?) {
+    // Keeps the last field on screen while the box animates out.
+    val lastField = remember { arrayOfNulls<ToolbarField>(1) }
+    if (field != null) lastField[0] = field
+
+    AnimatedVisibility(
+        visible = field != null,
+        enter = expandVertically(ExpressiveSprings.defaultSpatial(), expandFrom = Alignment.Bottom) +
+            scaleIn(ExpressiveSprings.defaultSpatial(), initialScale = 0.8f, transformOrigin = TransformOrigin(0.5f, 1f)) +
+            fadeIn(ExpressiveSprings.defaultEffects()),
+        exit = shrinkVertically(ExpressiveSprings.defaultSpatial(), shrinkTowards = Alignment.Bottom) +
+            scaleOut(ExpressiveSprings.defaultSpatial(), targetScale = 0.8f, transformOrigin = TransformOrigin(0.5f, 1f)) +
+            fadeOut(ExpressiveSprings.defaultEffects()),
+        label = "toolbar_text_box"
+    ) {
+        Surface(
+            modifier = Modifier
+                .padding(bottom = 8.dp)
+                .width(320.dp),
+            shape = MaterialTheme.shapes.extraLarge,
+            color = MaterialTheme.colorScheme.surfaceContainer,
+            shadowElevation = ToolbarElevation
+        ) {
+            AnimatedContent(
+                targetState = field ?: lastField[0] ?: return@Surface,
+                contentKey = { it.key },
+                transitionSpec = {
+                    (fadeIn(ExpressiveSprings.defaultEffects()) togetherWith
+                        fadeOut(ExpressiveSprings.defaultEffects()))
+                        .using(SizeTransform { _, _ -> ExpressiveSprings.defaultSpatial() })
+                },
+                label = "toolbar_text_box_content"
+            ) { shown ->
+                Box(
+                    modifier = Modifier
+                        .heightIn(min = 56.dp, max = 160.dp)
+                        .padding(horizontal = 20.dp, vertical = 16.dp),
+                    contentAlignment = Alignment.CenterStart
+                ) {
+                    if (shown.value.isEmpty()) {
+                        Text(
+                            text = shown.placeholder,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    BasicTextField(
+                        value = shown.value,
+                        onValueChange = shown.onValueChange,
+                        modifier = Modifier.fillMaxWidth(),
+                        textStyle = MaterialTheme.typography.bodyLarge.copy(
+                            color = MaterialTheme.colorScheme.onSurface
+                        ),
+                        cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                        singleLine = shown.singleLine,
+                        maxLines = if (shown.singleLine) 1 else 5
+                    )
+                }
+            }
         }
     }
 }

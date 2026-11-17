@@ -185,6 +185,8 @@
     <string name="add_label">Add</string>
     <string name="history">History</string>
     <string name="no_history">No history yet</string>
+    <string name="no_history_matches">No matching foods</string>
+    <string name="search_history">Search history</string>
     <string name="log">Log</string>
 
     <string name="api_key_missing">Add a Gemini API key first.</string>

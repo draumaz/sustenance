@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.PushPin
+import androidx.compose.material.icons.rounded.SearchOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -41,6 +42,7 @@ fun HistoryScreen(
     manager: HealthConnectManager,
     settingsRepo: SettingsRepository,
     bottomInset: androidx.compose.ui.unit.Dp = 0.dp,
+    query: String = "",
     predictiveBackProgress: Float = 0f,
     onItemSelected: (HistoryItem) -> Unit,
     onBack: () -> Unit,
@@ -52,8 +54,11 @@ fun HistoryScreen(
     
     val pinnedNames by settingsRepo.pinnedHistoryItems.collectAsStateWithLifecycle(initialValue = emptySet())
 
-    val history = remember(rawHistory, pinnedNames) {
-        rawHistory.asSequence().map { item ->
+    val history = remember(rawHistory, pinnedNames, query) {
+        val needle = query.trim()
+        rawHistory.asSequence().filter { item ->
+            needle.isEmpty() || item.nutrients.foodItem.contains(needle, ignoreCase = true)
+        }.map { item ->
             item.copy(isPinned = pinnedNames.contains(item.nutrients.foodItem))
         }.sortedWith(
             compareByDescending<HistoryItem> { it.isPinned }
@@ -99,19 +104,20 @@ fun HistoryScreen(
             if (isLoading) {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
             } else if (history.isEmpty()) {
+                val searching = query.isNotBlank() && rawHistory.isNotEmpty()
                 Column(
                     modifier = Modifier.align(Alignment.Center),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Icon(
-                        Icons.Rounded.History,
+                        if (searching) Icons.Rounded.SearchOff else Icons.Rounded.History,
                         contentDescription = null,
                         modifier = Modifier.size(64.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
                     )
                     Spacer(Modifier.height(16.dp))
                     Text(
-                        stringResource(R.string.no_history),
+                        stringResource(if (searching) R.string.no_history_matches else R.string.no_history),
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
