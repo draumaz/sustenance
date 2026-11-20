@@ -101,7 +101,7 @@ private fun tileLayout(
     primaryLayout(
         titleSlot = { text(context.getString(R.string.today).layoutString) },
         mainSlot = {
-            val cells = TILE_METRICS.map { (key, emoji) -> cell(emoji, metrics.firstOrNull { it.key == key }) }
+            val cells = TILE_METRICS.map { (key, emoji) -> cell(key, emoji, metrics.firstOrNull { it.key == key }) }
             grid(cells.chunked(2))
         },
         onClick = openAppClickable(context),
@@ -123,7 +123,7 @@ private fun grid(rows: List<List<LayoutElement>>): LayoutElement {
 }
 
 /** One macro: a rounded cell whose left part fills with the metric's accent up to the goal. */
-private fun MaterialScope.cell(emoji: String, metric: WearMetric?): LayoutElement {
+private fun MaterialScope.cell(key: String, emoji: String, metric: WearMetric?): LayoutElement {
     val progress = metric?.progress?.coerceIn(0f, 1f) ?: 0f
     val fillColor = if (metric?.isOverLimit == true) OVER_LIMIT else metric?.accent ?: 0
     val cellShape = ModifiersBuilders.Corner.Builder().setRadius(dp(12f)).build()
@@ -134,6 +134,8 @@ private fun MaterialScope.cell(emoji: String, metric: WearMetric?): LayoutElemen
         .setHorizontalAlignment(LayoutElementBuilders.HORIZONTAL_ALIGN_START)
         .setModifiers(
             ModifiersBuilders.Modifiers.Builder()
+                // Opens the app scrolled to this metric (see MainActivity.EXTRA_METRIC).
+                .setClickable(openAppClickable(context, key))
                 .setBackground(
                     ModifiersBuilders.Background.Builder()
                         .setColor(argb(colorScheme.surfaceContainer.staticArgb))
@@ -192,18 +194,18 @@ private fun MaterialScope.cell(emoji: String, metric: WearMetric?): LayoutElemen
 private fun withAlpha(argb: Int, alpha: Float): Int =
     (argb and 0x00FFFFFF) or ((alpha * 255).toInt() shl 24)
 
-private fun openAppClickable(context: Context): ModifiersBuilders.Clickable =
-    ModifiersBuilders.Clickable.Builder()
-        .setId("open_app")
-        .setOnClick(
-            ActionBuilders.LaunchAction.Builder()
-                .setAndroidActivity(
-                    ActionBuilders.AndroidActivity.Builder()
-                        .setPackageName(context.packageName)
-                        .setClassName(MainActivity::class.java.name)
-                        .build(),
-                )
-                .build(),
-        )
+/** Launches the app; with [metricKey], scrolled to that metric's row. */
+private fun openAppClickable(context: Context, metricKey: String? = null): ModifiersBuilders.Clickable {
+    val activity = ActionBuilders.AndroidActivity.Builder()
+        .setPackageName(context.packageName)
+        .setClassName(MainActivity::class.java.name)
+    if (metricKey != null) {
+        activity.addKeyToExtraMapping(MainActivity.EXTRA_METRIC, ActionBuilders.stringExtra(metricKey))
+    }
+    return ModifiersBuilders.Clickable.Builder()
+        // Ids must be unique per clickable, or the renderer can't tell the cells apart.
+        .setId(if (metricKey != null) "open_$metricKey" else "open_app")
+        .setOnClick(ActionBuilders.LaunchAction.Builder().setAndroidActivity(activity.build()).build())
         .build()
+}
 

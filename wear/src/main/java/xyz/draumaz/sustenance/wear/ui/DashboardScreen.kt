@@ -17,6 +17,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -45,13 +46,20 @@ import java.text.NumberFormat
 /** The phone widget's over-limit red, so "over" reads the same on both devices. */
 private val OverLimit = Color(0xFFAB6161)
 
+/**
+ * A request to bring one metric's row into view. Identity matters: each tap is a new request.
+ * [animate] is false on a cold start, where the rows have only just been composed: an animated
+ * scroll then works from estimated item heights and stops short, so it jumps instead.
+ */
+class MetricFocus(val key: String, val animate: Boolean)
+
 private sealed interface LoadState {
     data object Loading : LoadState
     data class Loaded(val dashboard: WearDashboard?) : LoadState
 }
 
 @Composable
-fun DashboardScreen() {
+fun DashboardScreen(focus: MetricFocus? = null, onFocusHandled: () -> Unit = {}) {
     val context = LocalContext.current
     val state by produceState<LoadState>(LoadState.Loading) {
         DashboardStore.observe(context).collect { value = LoadState.Loaded(it) }
@@ -64,9 +72,26 @@ fun DashboardScreen() {
         if (loaded != null && loaded.dashboard?.isToday != true) DashboardStore.requestRefresh(context)
     }
 
+    val listState = rememberTransformingLazyColumnState()
+    // Waits for the snapshot, since the row doesn't exist until it loads. The header is item 0,
+    // so a metric's item index is its position + 1; scrollToItem centres it on the round screen.
+    val metricKeys = loaded?.dashboard?.metrics?.map { it.key }
+    LaunchedEffect(focus, metricKeys) {
+        if (focus == null || loaded == null) return@LaunchedEffect
+        val index = metricKeys?.indexOf(focus.key) ?: -1
+        if (index >= 0) {
+            if (focus.animate) {
+                listState.animateScrollToItem(index + 1)
+            } else {
+                withFrameNanos { } // let the freshly loaded rows be measured first
+                listState.scrollToItem(index + 1)
+            }
+        }
+        onFocusHandled()
+    }
+
     MaterialTheme {
         AppScaffold {
-            val listState = rememberTransformingLazyColumnState()
             ScreenScaffold(scrollState = listState) { contentPadding ->
                 TransformingLazyColumn(
                     state = listState,
