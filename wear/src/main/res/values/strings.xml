@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Sustenance</string>
+    <string name="tile_label">Sustenance macros</string>
+    <string name="tile_description">Today\'s six main macros at a glance.</string>
+    <string name="today">Today</string>
+    <string name="waiting_for_phone">Open Sustenance on your phone to sync today\'s totals.</string>
+    <string name="no_access">No access</string>
+    <!-- e.g. "Goal 2,000 kcal" -->
+    <string name="goal">Goal %1$s %2$s</string>
+    <!-- e.g. "Updated 5 minutes ago" -->
+    <string name="updated">Updated %1$s</string>
+    <string name="updated_just_now">Updated just now</string>
+</resources>

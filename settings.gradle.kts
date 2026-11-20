@@ -21,4 +21,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "Sustenance"
-include(":app")
+include(":app", ":wear")

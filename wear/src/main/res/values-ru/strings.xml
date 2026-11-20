@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Sustenance</string>
+    <string name="tile_label">Макросы Sustenance</string>
+    <string name="tile_description">Шесть основных показателей питания за сегодня.</string>
+    <string name="today">Сегодня</string>
+    <string name="waiting_for_phone">Откройте Sustenance на телефоне, чтобы синхронизировать данные за сегодня.</string>
+    <string name="no_access">Нет доступа</string>
+    <string name="goal">Цель %1$s %2$s</string>
+    <string name="updated">Обновлено %1$s</string>
+    <string name="updated_just_now">Обновлено только что</string>
+</resources>

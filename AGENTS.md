@@ -19,9 +19,9 @@ Forked from GuyOnWifi/heartwood. GPL-3.0-or-later.
 ## Commands and verification
 
 ```bash
-./gradlew :app:assembleDebug :app:lintDebug   # build + lint: run locally before every push
+./gradlew :app:assembleDebug :app:lintDebug :wear:assembleDebug :wear:lintDebug   # run before every push
 ./gradlew :app:assembleRelease                # unsigned unless signing is configured
-./gradlew :app:dependencies --write-locks     # after any dependency change
+./gradlew :app:dependencies :wear:dependencies --write-locks   # after any dependency change
 ```
 
 - JDK 17, Gradle 9.8.2, AGP 9.5.0, compileSdk 37 (Compose 1.12 requires it), targetSdk 36, minSdk 30.
@@ -113,6 +113,25 @@ Single activity (`MainActivity`), Compose-only, dependencies constructed by hand
   `FastingNotificationScheduler.apply()`, fed by `DashboardViewModel.init` while the app runs
   and by `syncWithHealthConnect()` from the widget worker in the background. An unknown
   (null) last log leaves pending work untouched.
+
+### Wear OS companion (`:wear`)
+
+- Health Connect keeps a separate store per device and never syncs, so the watch can't read the
+  phone's nutrition. The phone publishes today's dashboard as a Data Layer item (`/dashboard`,
+  JSON in `payload`) from `wear/WearSync.kt`, called at the end of `WidgetUpdateWorker`. That
+  makes the app depend on Play services (`play-services-wearable`); F-Droid is intentionally not
+  a target. The payload contract is duplicated in `:wear`'s `data/WearDashboard.kt`: change both.
+- `WearSync` skips publishing when no metric has data (a background read without the background
+  permission looks like that), and the watch zeroes a snapshot from a previous day itself.
+- `:wear` uses the **same `applicationId`** (and must use the same signing key) as `:app`: the
+  Data Layer only connects installs of one package. Debug builds of both share `.debug`.
+- The watch app sends `/refresh` to the phone when it opens with no or stale data;
+  `WearRefreshListenerService` enqueues the widget worker. The watch's
+  `DashboardListenerService` asks `MacroTileService` (ProtoLayout Material3 tile, the phone
+  widget's six metrics) to re-render on every new item.
+- Demo the tile without taps: `adb -s <watch> shell am broadcast -a
+  com.google.android.wearable.app.DEBUG_SURFACE --es operation add-tile --ecn component
+  xyz.draumaz.sustenance.debug/xyz.draumaz.sustenance.wear.tile.MacroTileService`.
 
 ### Gemini food logging (`util/GeminiManager.kt`)
 

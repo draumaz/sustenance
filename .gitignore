@@ -1,6 +1,7 @@
 # Built output
 /build/
 /app/build/
+/wear/build/
 app/release
 *.apk
 *.aab
