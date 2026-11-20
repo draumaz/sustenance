@@ -9,8 +9,9 @@ import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import kotlinx.coroutines.CancellationException
 import xyz.draumaz.sustenance.notifications.FastingNotificationScheduler
+import xyz.draumaz.sustenance.wear.WearSync
 
-/** Periodically re-renders the home-screen widget(s) with fresh Health Connect data. */
+/** Periodically re-renders the home-screen widget(s) and the watch's copy with fresh Health Connect data. */
 class WidgetUpdateWorker(
     appContext: Context,
     params: WorkerParameters,
@@ -22,6 +23,9 @@ class WidgetUpdateWorker(
             // The dashboard's ViewModel isn't alive here, so nothing else keeps fasting
             // notifications honest with food logged by other apps while we're in the background.
             FastingNotificationScheduler.syncWithHealthConnect(applicationContext)
+            // This worker runs after every dashboard refresh and food log, and every 30 minutes,
+            // which is exactly when the watch's copy of today can go stale.
+            WearSync.pushToday(applicationContext)
             Result.success()
         } catch (e: CancellationException) {
             // WorkManager stopping us (e.g. REPLACE by a newer refresh) isn't a failure to retry.

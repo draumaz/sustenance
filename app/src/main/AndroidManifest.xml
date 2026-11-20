@@ -109,5 +109,18 @@
                 android:resource="@xml/vitals_widget_info" />
         </receiver>
 
+        <!-- The Wear OS companion asks for a fresh snapshot when it opens with stale data -->
+        <service
+            android:name=".wear.WearRefreshListenerService"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.google.android.gms.wearable.MESSAGE_RECEIVED" />
+                <data
+                    android:host="*"
+                    android:pathPrefix="/refresh"
+                    android:scheme="wear" />
+            </intent-filter>
+        </service>
+
     </application>
 </manifest>

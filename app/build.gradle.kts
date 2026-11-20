@@ -122,4 +122,8 @@ dependencies {
     implementation(libs.androidx.camera.lifecycle)
     implementation(libs.androidx.camera.view)
     implementation(libs.google.generativeai)
+
+    // Pushes today's summary to the Wear OS companion (`:wear`) over the Data Layer.
+    implementation(libs.play.services.wearable)
+    implementation(libs.kotlinx.coroutines.play.services)
 }
