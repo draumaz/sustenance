@@ -43,7 +43,7 @@ Forked from GuyOnWifi/heartwood. GPL-3.0-or-later.
 
 - `release.yml` fires only on **`v`-prefixed** tags (`git tag v1.9.1 && git push --tags`).
   Older tags (`1.4`–`1.7`) are bare and never triggered it.
-- Bump `versionCode`/`versionName` in `app/build.gradle.kts` and add
+- Bump `versionCode`/`versionName` in `app/build.gradle.kts` (and the same in `wear/build.gradle.kts`) and add
   `fastlane/metadata/android/en-US/changelogs/<versionCode>.txt` (≤500 chars, the Play Store limit).
 - Signing is optional. Gradle reads `keystore.properties` (see `keystore.properties.template`) or
   `SUSTENANCE_*` env vars; without either, release APKs are unsigned by design. In CI those env
