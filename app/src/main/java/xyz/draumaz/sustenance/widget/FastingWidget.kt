@@ -92,6 +92,9 @@ class FastingWidget : GlanceAppWidget() {
     }
 }
 
+/** Width of the fill's animated leading edge; matches the 12dp vector in widget_fasting_wave. */
+private val WAVE_EDGE_WIDTH = 12.dp
+
 @Composable
 private fun FastingContent(state: FastState) {
     val context = LocalContext.current
@@ -114,7 +117,26 @@ private fun FastingContent(state: FastState) {
             ),
     ) {
         val fillWidth = size.width * state.progress
-        if (fillWidth > 0.dp) {
+        if (state.lastLog != null && state.progress < 1f) {
+            // A fast in progress: solid fill, then the animated wavy edge (see widget_fasting_wave).
+            // The edge's flat resting line sits mid-strip, so the box stops half a strip short.
+            Row(GlanceModifier.fillMaxHeight()) {
+                val boxWidth = fillWidth - WAVE_EDGE_WIDTH / 2
+                if (boxWidth > 0.dp) {
+                    Box(
+                        GlanceModifier
+                            .width(boxWidth)
+                            .fillMaxHeight()
+                            .background(context.dayNight(R.color.widget_fasting_fill)),
+                    ) {}
+                }
+                AndroidRemoteViews(
+                    RemoteViews(context.packageName, R.layout.widget_fasting_wave_edge),
+                    GlanceModifier.width(WAVE_EDGE_WIDTH).fillMaxHeight(),
+                )
+            }
+        } else if (fillWidth > 0.dp) {
+            // Goal reached: a full, still fill.
             Box(
                 GlanceModifier
                     .width(fillWidth)
