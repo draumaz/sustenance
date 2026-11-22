@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Embedded in FastingWidget through AndroidRemoteViews: Glance has no live-ticking text, and
+     the widget only re-renders every ~30 minutes. A TextClock ticks once a minute on its own, and
+     FastingWidget shifts its time zone so the "time" it shows is the time since the last meal.
+     Format, zone and size are set at runtime. -->
+<TextClock xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/fasting_clock"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:fontFamily="sans-serif-medium"
+    android:includeFontPadding="false"
+    android:maxLines="1"
+    android:textColor="@color/widget_fasting_text"
+    android:textSize="22sp"
+    android:textStyle="bold" />

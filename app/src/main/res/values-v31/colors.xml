@@ -4,4 +4,9 @@
     <color name="widget_preview_background">@android:color/system_accent2_50</color>
     <color name="widget_preview_tile">@android:color/system_accent2_100</color>
     <color name="widget_preview_on_tile">@android:color/system_accent2_900</color>
+
+    <!-- Fasting widget: tone-90 track, tone-80 primary fill, tone-10 text -->
+    <color name="widget_fasting_track">@android:color/system_accent2_100</color>
+    <color name="widget_fasting_fill">@android:color/system_accent1_200</color>
+    <color name="widget_fasting_text">@android:color/system_accent1_900</color>
 </resources>

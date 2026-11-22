@@ -109,6 +109,19 @@
                 android:resource="@xml/vitals_widget_info" />
         </receiver>
 
+        <!-- Fasting timer widget -->
+        <receiver
+            android:name=".widget.FastingWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_fasting_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/fasting_widget_info" />
+        </receiver>
+
         <!-- The Wear OS companion asks for a fresh snapshot when it opens with stale data -->
         <service
             android:name=".wear.WearRefreshListenerService"

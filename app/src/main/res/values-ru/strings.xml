@@ -2,6 +2,15 @@
 <resources>
     <string name="app_name">Sustenance</string>
     <string name="widget_dashboard_name">Панель Sustenance</string>
+    <string name="widget_fasting_name">Таймер голодания</string>
+    <string name="widget_fasting_description">Текущее голодание, заполняющееся по пути к цели.</string>
+    <string name="widget_fasting_goal">Цель %1$s ч</string>
+    <string name="widget_fasting_since">с %1$s</string>
+    <string name="widget_fasting_goal_reached">Цель достигнута</string>
+    <string name="widget_fasting_no_data">Пока нет записей о еде</string>
+    <string name="widget_fasting_clock">H\'ч\' m\'м\'</string>
+    <string name="widget_fasting_clock_days">%1$d\'д\' H\'ч\' m\'м\'</string>
+    <string name="widget_fasting_preview_time">9ч 36м</string>
     <string name="widget_description">Питание за сегодня — с одного взгляда.</string>
 
     <string name="cancel">Отмена</string>

@@ -1,6 +1,7 @@
 package xyz.draumaz.sustenance.ui
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
@@ -250,7 +251,8 @@ class DetailViewModel(
 }
 
 class SettingsViewModel(
-    private val repository: SettingsRepository
+    private val repository: SettingsRepository,
+    private val app: Application,
 ) : ViewModel() {
     // Held as StateFlows for the screen's lifetime: LazyColumn disposes cards scrolled off-screen,
     // and re-collecting a cold DataStore flow would restart each card from its default and then
@@ -310,7 +312,12 @@ class SettingsViewModel(
     }
 
     fun setFastingGoalHours(hours: Float) {
-        viewModelScope.launch { repository.setFastingGoalHours(hours) }
+        viewModelScope.launch {
+            repository.setFastingGoalHours(hours)
+            // The fasting widget's fill is relative to the goal; re-render it only after the
+            // write lands so the worker can't read the old value.
+            WidgetUpdateWorker.enqueue(app)
+        }
     }
 
     fun setFastingNotificationsEnabled(enabled: Boolean) {
@@ -339,7 +346,9 @@ class SettingsViewModel(
 
     companion object {
         fun factory(repository: SettingsRepository) = viewModelFactory {
-            initializer { SettingsViewModel(repository) }
+            initializer {
+                SettingsViewModel(repository, checkNotNull(this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY]))
+            }
         }
     }
 }

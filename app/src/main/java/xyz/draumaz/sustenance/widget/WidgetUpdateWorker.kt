@@ -11,7 +11,7 @@ import kotlinx.coroutines.CancellationException
 import xyz.draumaz.sustenance.notifications.FastingNotificationScheduler
 import xyz.draumaz.sustenance.wear.WearSync
 
-/** Periodically re-renders the home-screen widget(s) and the watch's copy with fresh Health Connect data. */
+/** Periodically re-renders the home-screen widgets and the watch's copy with fresh Health Connect data. */
 class WidgetUpdateWorker(
     appContext: Context,
     params: WorkerParameters,
@@ -20,6 +20,8 @@ class WidgetUpdateWorker(
     override suspend fun doWork(): Result {
         return try {
             SustenanceWidget().updateAll(applicationContext)
+            // Re-rendering is what moves the fasting widget's fill (its clock ticks by itself).
+            FastingWidget().updateAll(applicationContext)
             // The dashboard's ViewModel isn't alive here, so nothing else keeps fasting
             // notifications honest with food logged by other apps while we're in the background.
             FastingNotificationScheduler.syncWithHealthConnect(applicationContext)

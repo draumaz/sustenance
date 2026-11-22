@@ -2,6 +2,17 @@
 <resources>
     <string name="app_name">Sustenance</string>
     <string name="widget_dashboard_name">Sustenance dashboard</string>
+    <string name="widget_fasting_name">Fasting timer</string>
+    <string name="widget_fasting_description">Your current fast, filling in towards your goal.</string>
+    <string name="widget_fasting_goal">Goal %1$sh</string>
+    <string name="widget_fasting_since">since %1$s</string>
+    <string name="widget_fasting_goal_reached">Goal reached</string>
+    <string name="widget_fasting_no_data">No meals logged yet</string>
+    <!-- TextClock patterns (android.text.format.DateFormat): H = hours, m = minutes, literal text
+         in single quotes. Keep them matching hour_minute_format. -->
+    <string name="widget_fasting_clock">H\'h\' m\'m\'</string>
+    <string name="widget_fasting_clock_days">%1$d\'d\' H\'h\' m\'m\'</string>
+    <string name="widget_fasting_preview_time">9h 36m</string>
     <string name="widget_description">Today\'s nutrition at a glance.</string>
 
     <string name="cancel">Cancel</string>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Fasting widget in dark mode on API 30 (API 31+ uses values-night-v31) -->
+    <color name="widget_fasting_track">#191C1B</color>
+    <color name="widget_fasting_fill">#1F5245</color>
+    <color name="widget_fasting_text">#CDE8E0</color>
+</resources>

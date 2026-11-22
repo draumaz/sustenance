@@ -7,4 +7,11 @@
     <color name="widget_preview_background">#F4FBF8</color>
     <color name="widget_preview_tile">#CDE8E0</color>
     <color name="widget_preview_on_tile">#06201A</color>
+
+    <!-- Fasting widget (and its preview). The fill creeps across the track as the fast goes on,
+         and the text sits over both, so each pair is picked to keep it readable on either.
+         Overridden with dynamic colors on API 31+; values-night covers dark mode on API 30. -->
+    <color name="widget_fasting_track">#CDE8E0</color>
+    <color name="widget_fasting_fill">#8FD0BE</color>
+    <color name="widget_fasting_text">#06201A</color>
 </resources>
