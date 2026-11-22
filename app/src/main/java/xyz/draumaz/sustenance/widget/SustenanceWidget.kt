@@ -93,8 +93,13 @@ class SustenanceWidget : GlanceAppWidget() {
 private fun WidgetContent(tiles: List<MetricSummary>) {
     val context = LocalContext.current
     val size = LocalSize.current
-    val padding = 8.dp
-    val spacing = 6.dp
+    // Large hosts (the lock-screen hub, 4x2+ home-screen placements) give each tile ~70dp of
+    // height; there the tiles get a title line, bigger numbers and more breathing room instead
+    // of a small row floating in a big block of color.
+    val large = (size.height - 8.dp * 2 - 6.dp * 2) / 3 >= 60.dp &&
+        (size.width - 8.dp * 2 - 6.dp) / 2 >= 130.dp
+    val padding = if (large) 10.dp else 8.dp
+    val spacing = if (large) 8.dp else 6.dp
     val tileWidth = (size.width - padding * 2 - spacing) / 2
 
     // Always show all 6 available metrics, using a horizontal row layout per tile to fit any height.
@@ -108,6 +113,7 @@ private fun WidgetContent(tiles: List<MetricSummary>) {
     } ?: 0
 
     val uniformFontSize = when {
+        large -> if (maxDisplayLen >= 6) 18.sp else 22.sp
         effectiveTileWidth < 75.dp || effectiveTileHeight < 30.dp || maxDisplayLen >= 5 -> 11.sp
         effectiveTileWidth < 90.dp || effectiveTileHeight < 40.dp || maxDisplayLen >= 4 -> 12.sp
         else -> 15.sp
@@ -117,14 +123,14 @@ private fun WidgetContent(tiles: List<MetricSummary>) {
         modifier = GlanceModifier
             .fillMaxSize()
             .background(GlanceTheme.colors.widgetBackground)
-            .cornerRadius(20.dp)
+            .cornerRadius(if (large) 24.dp else 20.dp)
             .padding(padding),
     ) {
         val rows = displayTiles.chunked(2)
         rows.forEachIndexed { i, rowTiles ->
             Row(modifier = GlanceModifier.fillMaxWidth().defaultWeight()) {
                 rowTiles.forEachIndexed { j, tile ->
-                    Tile(tile, GlanceModifier.defaultWeight().fillMaxHeight(), tileWidth, uniformFontSize, effectiveTileHeight)
+                    Tile(tile, GlanceModifier.defaultWeight().fillMaxHeight(), tileWidth, uniformFontSize, effectiveTileHeight, large)
                     if (j == 0 && rowTiles.size > 1) Spacer(GlanceModifier.width(spacing))
                 }
                 if (rowTiles.size == 1) Spacer(GlanceModifier.defaultWeight())
@@ -141,6 +147,7 @@ private fun Tile(
     tileWidth: Dp,
     fontSize: androidx.compose.ui.unit.TextUnit,
     tileHeight: Dp,
+    large: Boolean,
 ) {
     val context = LocalContext.current
     val unit = context.getString(tile.metric.unitRes)
@@ -178,7 +185,7 @@ private fun Tile(
     Box(
         modifier = modifier
             .background(GlanceTheme.colors.secondaryContainer)
-            .cornerRadius(12.dp)
+            .cornerRadius(if (large) 16.dp else 12.dp)
             .clickable(
                 actionStartActivity(
                     Intent(context, MainActivity::class.java)
@@ -195,26 +202,57 @@ private fun Tile(
                     .background(fillColor.copy(alpha = 0.5f))
             ) {}
         }
-        Row(
-            modifier = GlanceModifier
-                .fillMaxSize()
-                .padding(horizontal = horizontalPadding, vertical = verticalPadding),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = emoji,
-                style = TextStyle(fontSize = if (isVeryShort) 10.sp else 12.sp),
-            )
-            Spacer(GlanceModifier.width(4.dp))
-            Text(
-                text = displayValue,
-                maxLines = 1,
-                style = TextStyle(
-                    color = GlanceTheme.colors.onSecondaryContainer,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = fontSize,
-                ),
-            )
+        if (large) {
+            Column(
+                modifier = GlanceModifier.fillMaxSize().padding(horizontal = 14.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(text = emoji, style = TextStyle(fontSize = 13.sp))
+                    Spacer(GlanceModifier.width(6.dp))
+                    Text(
+                        text = context.getString(tile.metric.titleResFor(context.resources.configuration.locales)),
+                        maxLines = 1,
+                        style = TextStyle(
+                            color = GlanceTheme.colors.onSecondaryContainer,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                        ),
+                    )
+                }
+                Spacer(GlanceModifier.height(2.dp))
+                Text(
+                    text = displayValue,
+                    maxLines = 1,
+                    style = TextStyle(
+                        color = GlanceTheme.colors.onSecondaryContainer,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = fontSize,
+                    ),
+                )
+            }
+        } else {
+            Row(
+                modifier = GlanceModifier
+                    .fillMaxSize()
+                    .padding(horizontal = horizontalPadding, vertical = verticalPadding),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = emoji,
+                    style = TextStyle(fontSize = if (isVeryShort) 10.sp else 12.sp),
+                )
+                Spacer(GlanceModifier.width(4.dp))
+                Text(
+                    text = displayValue,
+                    maxLines = 1,
+                    style = TextStyle(
+                        color = GlanceTheme.colors.onSecondaryContainer,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = fontSize,
+                    ),
+                )
+            }
         }
     }
 }

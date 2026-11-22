@@ -98,12 +98,15 @@ private fun FastingContent(state: FastState) {
     val size = LocalSize.current
     val textColor = context.dayNight(R.color.widget_fasting_text)
     val compact = size.height < 72.dp
+    // The lock-screen hub (and 4x2+ home-screen placements) hand us roughly 400x250dp: there the
+    // medium layout is a small block lost in the middle, so spread it out and scale the clock.
+    val large = size.height >= 140.dp && size.width >= 220.dp
 
     Box(
         modifier = GlanceModifier
             .fillMaxSize()
             .background(context.dayNight(R.color.widget_fasting_track))
-            .cornerRadius(20.dp)
+            .cornerRadius(if (large) 24.dp else 20.dp)
             .clickable(
                 actionStartActivity(
                     Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),
@@ -136,6 +139,35 @@ private fun FastingContent(state: FastState) {
                         style = TextStyle(color = textColor, fontSize = 11.sp, fontWeight = FontWeight.Medium),
                     )
                 }
+            }
+        } else if (large) {
+            Column(modifier = GlanceModifier.fillMaxSize().padding(horizontal = 22.dp, vertical = 20.dp)) {
+                Row(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = context.getString(R.string.time_since_last_ate),
+                        maxLines = 1,
+                        style = TextStyle(color = textColor, fontSize = 15.sp, fontWeight = FontWeight.Medium),
+                    )
+                    Spacer(GlanceModifier.defaultWeight())
+                    if (state.lastLog != null) {
+                        Text(
+                            text = context.getString(R.string.widget_fasting_percent, (state.progress * 100).toInt()),
+                            maxLines = 1,
+                            style = TextStyle(color = textColor, fontSize = 15.sp, fontWeight = FontWeight.Bold),
+                        )
+                    }
+                }
+                Spacer(GlanceModifier.defaultWeight())
+                // Sized so the widest reading ("1d 23h 59m") still fits on one line.
+                val clockSp = minOf(size.height.value * 0.22f, size.width.value * 0.13f).coerceIn(28f, 56f)
+                Elapsed(state, fontSize = clockSp.sp)
+                Spacer(GlanceModifier.defaultWeight())
+                Text(
+                    text = footer,
+                    maxLines = 1,
+                    modifier = GlanceModifier.fillMaxWidth(),
+                    style = TextStyle(color = textColor, fontSize = 14.sp),
+                )
             }
         } else {
             Column(

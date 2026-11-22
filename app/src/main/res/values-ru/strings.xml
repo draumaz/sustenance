@@ -11,6 +11,7 @@
     <string name="widget_fasting_clock">H\'ч\' m\'м\'</string>
     <string name="widget_fasting_clock_days">%1$d\'д\' H\'ч\' m\'м\'</string>
     <string name="widget_fasting_preview_time">9ч 36м</string>
+    <string name="widget_fasting_percent">%1$d %%</string>
     <string name="widget_description">Питание за сегодня — с одного взгляда.</string>
 
     <string name="cancel">Отмена</string>
