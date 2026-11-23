@@ -1,0 +1,2 @@
+* Tablets and foldables: Today and Insights show the dashboard and a metric's details side by side, splitting at the fold on foldables
+* Settings, goals and History keep to a comfortable width on large screens

@@ -29,8 +29,8 @@ android {
         minSdk = 30
         targetSdk = 36
         // Keep in step with :app's version when releasing.
-        versionCode = 14
-        versionName = "1.9.4"
+        versionCode = 15
+        versionName = "1.9.5"
     }
 
     androidResources {
