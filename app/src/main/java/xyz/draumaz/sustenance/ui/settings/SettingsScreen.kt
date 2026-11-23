@@ -159,6 +159,11 @@ fun SettingsScreen(
             // prompt is shown.
             listState.animateScrollToItem(if (goalSetupDeferred) 3 else 2)
         }
+        // A scroll from code skips nested scrolling, so the header wouldn't collapse and the rows
+        // above would show through its transparent bar: collapse it as a finger's scroll would.
+        // (The limit stays at -Float.MAX_VALUE until the bar has measured itself.)
+        val bar = scrollBehavior.state
+        if (bar.heightOffsetLimit != -Float.MAX_VALUE) bar.heightOffset = bar.heightOffsetLimit
     }
 
     // Each section is its label and card, so the same sections fill one column on a phone or two
