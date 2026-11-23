@@ -19,6 +19,8 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -28,6 +30,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
@@ -101,6 +105,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.annotation.StringRes
 import xyz.draumaz.sustenance.R
 import xyz.draumaz.sustenance.ui.components.ReadableGutter
+import xyz.draumaz.sustenance.ui.components.isExpandedWindow
+import xyz.draumaz.sustenance.ui.components.PaneMargin
+import xyz.draumaz.sustenance.ui.components.rememberPaneSplit
 import xyz.draumaz.sustenance.data.VerificationStatus
 import xyz.draumaz.sustenance.BuildConfig
 import xyz.draumaz.sustenance.data.SettingsRepository
@@ -132,519 +139,577 @@ fun SettingsScreen(
 
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior(rememberTopAppBarState())
     val listState = rememberLazyListState()
+    val twoColumns = isExpandedWindow()
+    val split = rememberPaneSplit()
 
-    LaunchedEffect(scrollTo, goalSetupDeferred) {
-        if (scrollTo == "fasting") {
-            // The diet card follows the AI section (label + card), one item lower again while the
-            // goal setup prompt is shown.
-            listState.animateScrollToItem(if (goalSetupDeferred) 5 else 4)
+    LaunchedEffect(scrollTo, goalSetupDeferred, twoColumns) {
+        // Two columns open with the diet card already at the top of the second.
+        if (scrollTo == "fasting" && !twoColumns) {
+            // The diet section follows AI and appearance, one item lower again while the goal
+            // setup prompt is shown.
+            listState.animateScrollToItem(if (goalSetupDeferred) 3 else 2)
         }
+    }
+
+    // Each section is its label and card, so the same sections fill one column on a phone or two
+    // on a tablet, where a single column would leave a wide window mostly empty margin.
+    val goalPrompt: @Composable () -> Unit = {
+        if (goalSetupDeferred) {
+            // Highlighted until the user finishes the goal step they skipped during setup.
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.extraLarge,
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                ),
+            ) {
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable(onClick = onEditGoals)
+                        .padding(horizontal = 16.dp, vertical = 18.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        Icons.Rounded.TrackChanges, null,
+                        tint = MaterialTheme.colorScheme.onPrimary,
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primary)
+                            .padding(9.dp),
+                    )
+                    Spacer(Modifier.size(16.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            stringResource(R.string.goal_setup_title),
+                            style = MaterialTheme.typography.bodyLarge,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        Text(
+                            stringResource(R.string.goal_setup_reminder),
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+                    Spacer(Modifier.size(16.dp))
+                    Icon(Icons.AutoMirrored.Rounded.ArrowForward, null)
+                }
+            }
+        }
+    }
+
+    val aiSection: @Composable () -> Unit = {
+        SectionLabel(stringResource(R.string.section_ai))
+        SettingsCard {
+            val apiKeyEnabled by vm.apiKeyEnabled.collectAsState()
+            val apiKey by vm.apiKey.collectAsState()
+            // Local edits win over the stored values, so a save landing mid-typing can't reset the field.
+            var editedApiKey by remember { mutableStateOf<String?>(null) }
+            val tempApiKey = editedApiKey ?: apiKey
+            val apiKeyVerificationStatus by vm.apiKeyVerificationStatus.collectAsState()
+            var isApiKeyVerifying by remember { mutableStateOf(false) }
+
+            val geminiModel by vm.geminiModel.collectAsState()
+            var editedGeminiModel by remember { mutableStateOf<String?>(null) }
+            val tempGeminiModel = editedGeminiModel ?: geminiModel.removePrefix("gemini-")
+            val geminiModelVerificationStatus by vm.geminiModelVerificationStatus.collectAsState()
+            var isModelVerifying by remember { mutableStateOf(false) }
+
+            // Both verify buttons make the same test call with the current key + model;
+            // they differ only in which status they update and the failure message.
+            fun verifyGemini(
+                @StringRes failureMessage: Int,
+                setStatus: (VerificationStatus) -> Unit,
+                setVerifying: (Boolean) -> Unit,
+            ) {
+                val key = tempApiKey.trim()
+                if (key.isBlank()) {
+                    Toast.makeText(context, R.string.api_key_missing, Toast.LENGTH_SHORT).show()
+                    setStatus(VerificationStatus.ERROR)
+                    return
+                }
+                setVerifying(true)
+                scope.launch {
+                    val result = GeminiManager(key, GeminiManager.modelName(tempGeminiModel)).verifyModel()
+                    setVerifying(false)
+                    if (result.isSuccess) {
+                        setStatus(VerificationStatus.SUCCESS)
+                    } else {
+                        setStatus(VerificationStatus.ERROR)
+                        val base = appContext.getString(failureMessage)
+                        val details = result.exceptionOrNull()?.localizedMessage
+                        val msg = if (details.isNullOrBlank()) base else "$base ($details)"
+                        Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
+
+            ToggleRow(
+                icon = Icons.Rounded.Key,
+                title = stringResource(R.string.enable_food_logging),
+                subtitle = stringResource(R.string.food_logging_summary),
+                checked = apiKeyEnabled,
+                onToggle = { vm.setApiKeyEnabled(!apiKeyEnabled) }
+            )
+
+            RevealedRows(visible = apiKeyEnabled) {
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f))
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = tempGeminiModel,
+                        onValueChange = { newValue ->
+                            val cleaned = if (newValue.startsWith("gemini-")) newValue.removePrefix("gemini-") else newValue
+                            editedGeminiModel = cleaned
+                            vm.setGeminiModel(cleaned)
+                            if (geminiModelVerificationStatus != VerificationStatus.IDLE) {
+                                vm.setGeminiModelVerificationStatus(VerificationStatus.IDLE)
+                            }
+                        },
+                        modifier = Modifier.weight(1f),
+                        prefix = { Text("gemini-") },
+                        placeholder = { Text(GeminiManager.DEFAULT_MODEL, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)) },
+                        singleLine = true,
+                        label = { Text(stringResource(R.string.gemini_model)) },
+                        colors = verificationFieldColors(geminiModelVerificationStatus),
+                        trailingIcon = {
+                            VerifyButton(
+                                status = geminiModelVerificationStatus,
+                                isVerifying = isModelVerifying,
+                                contentDescription = stringResource(R.string.verify_model),
+                                onClick = {
+                                    verifyGemini(
+                                        R.string.invalid_model_name,
+                                        vm::setGeminiModelVerificationStatus,
+                                    ) { isModelVerifying = it }
+                                },
+                            )
+                        }
+                    )
+                    Spacer(Modifier.size(8.dp))
+                }
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    var apiKeyVisible by remember { mutableStateOf(false) }
+                    OutlinedTextField(
+                        value = tempApiKey,
+                        onValueChange = {
+                            editedApiKey = it
+                            vm.setApiKey(it)
+                            if (apiKeyVerificationStatus != VerificationStatus.IDLE) {
+                                vm.setApiKeyVerificationStatus(VerificationStatus.IDLE)
+                            }
+                        },
+                        modifier = Modifier.weight(1f),
+                        placeholder = { Text("AQ.", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)) },
+                        singleLine = true,
+                        label = { Text(stringResource(R.string.api_key)) },
+                        // Photos are the most personal thing the app sends anywhere, so say
+                        // plainly where they can end up.
+                        supportingText = { Text(stringResource(R.string.api_key_privacy_note)) },
+                        visualTransformation = if (apiKeyVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        colors = verificationFieldColors(apiKeyVerificationStatus),
+                        trailingIcon = {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                IconButton(onClick = { apiKeyVisible = !apiKeyVisible }) {
+                                    Icon(
+                                        imageVector = if (apiKeyVisible) Icons.Rounded.VisibilityOff else Icons.Rounded.Visibility,
+                                        contentDescription = if (apiKeyVisible) stringResource(R.string.hide_api_key) else stringResource(R.string.show_api_key)
+                                    )
+                                }
+                                VerifyButton(
+                                    status = apiKeyVerificationStatus,
+                                    isVerifying = isApiKeyVerifying,
+                                    contentDescription = stringResource(R.string.verify_api_key),
+                                    onClick = {
+                                        verifyGemini(
+                                            R.string.api_key_invalid,
+                                            vm::setApiKeyVerificationStatus,
+                                        ) { isApiKeyVerifying = it }
+                                    },
+                                )
+                            }
+                        }
+                    )
+                    Spacer(Modifier.size(8.dp))
+                }
+
+                val alwaysBatch by vm.alwaysBatch.collectAsState()
+                ToggleRow(
+                    icon = Icons.Rounded.BurstMode,
+                    title = stringResource(R.string.always_batch),
+                    subtitle = stringResource(R.string.always_batch_summary),
+                    checked = alwaysBatch,
+                    onToggle = { vm.setAlwaysBatch(!alwaysBatch) }
+                )
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f))
+
+                val gramIncrementEnabled by vm.gramIncrementEnabled.collectAsState()
+                val gramIncrement by vm.gramIncrement.collectAsState()
+                var tempIncrement by remember { mutableStateOf<String?>(null) }
+
+                ToggleRow(
+                    icon = Icons.Rounded.Scale,
+                    title = stringResource(R.string.gram_increment),
+                    subtitle = stringResource(R.string.gram_increment_summary),
+                    checked = gramIncrementEnabled,
+                    onToggle = { vm.setGramIncrementEnabled(!gramIncrementEnabled) }
+                )
+
+                RevealedRows(visible = gramIncrementEnabled) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        OutlinedTextField(
+                            value = tempIncrement ?: gramIncrement.toString(),
+                            onValueChange = { newValue ->
+                                if (newValue.isEmpty() || newValue.all { it.isDigit() }) {
+                                    tempIncrement = newValue
+                                    newValue.toIntOrNull()?.takeIf { it > 0 }?.let { vm.setGramIncrement(it) }
+                                }
+                            },
+                            modifier = Modifier.weight(1f),
+                            singleLine = true,
+                            label = { Text(stringResource(R.string.gram_increment_amount)) },
+                            placeholder = { Text("1") },
+                            suffix = { Text(stringResource(R.string.unit_g)) },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                        )
+                        Spacer(Modifier.size(8.dp))
+                    }
+                }
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f))
+
+                val judgementalMode by vm.judgementalMode.collectAsState()
+                ToggleRow(
+                    icon = Icons.Rounded.Psychology,
+                    title = stringResource(R.string.judgemental_mode),
+                    subtitle = stringResource(R.string.judgemental_mode_summary),
+                    checked = judgementalMode,
+                    onToggle = { vm.setJudgementalMode(!judgementalMode) }
+                )
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f))
+
+                val bingeCheckEnabled by vm.bingeCheckEnabled.collectAsState()
+                ToggleRow(
+                    icon = Icons.Rounded.Spa,
+                    title = stringResource(R.string.binge_check),
+                    subtitle = stringResource(R.string.binge_check_summary),
+                    checked = bingeCheckEnabled,
+                    onToggle = { vm.setBingeCheckEnabled(!bingeCheckEnabled) }
+                )
+            }
+        }
+    }
+
+    val appearanceSection: @Composable () -> Unit = {
+        SectionLabel(stringResource(R.string.section_appearance))
+        SettingsCard {
+            ToggleRow(
+                icon = Icons.Rounded.Palette,
+                title = stringResource(R.string.dynamic_color),
+                subtitle = stringResource(R.string.dynamic_color_summary),
+                checked = dynamicColor,
+                onToggle = { vm.setDynamicColor(!dynamicColor) }
+            )
+        }
+    }
+
+    val dietSection: @Composable () -> Unit = {
+        SectionLabel(stringResource(R.string.section_diet))
+        SettingsCard {
+            SettingRow(
+                icon = Icons.Rounded.TrackChanges,
+                title = stringResource(R.string.daily_goals),
+                subtitle = stringResource(R.string.daily_goals_summary),
+                onClick = onEditGoals,
+            )
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f))
+
+            val ketoMode by vm.ketoMode.collectAsState()
+            ToggleRow(
+                icon = Icons.Rounded.Whatshot,
+                title = stringResource(R.string.keto_mode),
+                subtitle = stringResource(R.string.keto_mode_summary),
+                checked = ketoMode,
+                onToggle = { vm.setKetoMode(!ketoMode) }
+            )
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f))
+
+            val lastLogTimerEnabled by vm.lastLogTimerEnabled.collectAsState()
+            ToggleRow(
+                icon = Icons.Rounded.History,
+                title = stringResource(R.string.show_last_log_timer),
+                subtitle = stringResource(R.string.show_last_log_timer_summary),
+                checked = lastLogTimerEnabled,
+                onToggle = { vm.setLastLogTimerEnabled(!lastLogTimerEnabled) }
+            )
+
+            RevealedRows(visible = lastLogTimerEnabled) {
+                val fastBreakingCalories by vm.fastBreakingCalories.collectAsState()
+                // Local edits win over the stored value, so a save landing mid-typing can't reset the field.
+                var tempCalories by remember { mutableStateOf<String?>(null) }
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = tempCalories ?: fastBreakingCalories.toString(),
+                        onValueChange = { newValue ->
+                            if (newValue.isEmpty() || newValue.all { it.isDigit() }) {
+                                tempCalories = newValue
+                                newValue.toIntOrNull()?.let { vm.setFastBreakingCalories(it) }
+                            }
+                        },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true,
+                        label = { Text(stringResource(R.string.fast_breaking_calories)) },
+                        placeholder = { Text("0") },
+                        suffix = { Text(stringResource(R.string.unit_kcal)) },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        supportingText = { Text(stringResource(R.string.fast_breaking_calories_summary)) }
+                    )
+                    Spacer(Modifier.size(8.dp))
+                }
+
+                val fastingGoalHours by vm.fastingGoalHours.collectAsState()
+                var tempGoal by remember { mutableStateOf<String?>(null) }
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = tempGoal ?: if (fastingGoalHours % 1f == 0f) fastingGoalHours.toInt().toString() else fastingGoalHours.toString(),
+                        onValueChange = { newValue ->
+                            val parsed = parseDecimal(newValue)
+                            if (newValue.isEmpty() || parsed != null || newValue == "." || newValue == ",") {
+                                tempGoal = newValue
+                                parsed?.let { vm.setFastingGoalHours(it.toFloat()) }
+                            }
+                        },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true,
+                        label = { Text(stringResource(R.string.fasting_goal)) },
+                        placeholder = { Text("16") },
+                        suffix = { Text(stringResource(R.string.unit_hr)) },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        supportingText = { Text(stringResource(R.string.fasting_goal_summary)) }
+                    )
+                    Spacer(Modifier.size(8.dp))
+                }
+
+                val fastingNotificationsEnabled by vm.fastingNotificationsEnabled.collectAsState()
+                val permissionLauncher = rememberLauncherForActivityResult(
+                    ActivityResultContracts.RequestPermission()
+                ) { isGranted ->
+                    if (isGranted) {
+                        vm.setFastingNotificationsEnabled(true)
+                    }
+                }
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f))
+
+                ToggleRow(
+                    icon = Icons.Rounded.Notifications,
+                    title = stringResource(R.string.fasting_notifications),
+                    subtitle = stringResource(R.string.fasting_notifications_summary),
+                    checked = fastingNotificationsEnabled,
+                    onToggle = {
+                        if (!fastingNotificationsEnabled) {
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                permissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+                            } else {
+                                vm.setFastingNotificationsEnabled(true)
+                            }
+                        } else {
+                            vm.setFastingNotificationsEnabled(false)
+                        }
+                    }
+                )
+            }
+        }
+    }
+
+    val dataSection: @Composable () -> Unit = {
+        SectionLabel(stringResource(R.string.section_data))
+        SettingsCard {
+            SettingRow(
+                icon = Icons.Rounded.HealthAndSafety,
+                title = stringResource(R.string.launch_hc),
+                subtitle = stringResource(R.string.launch_hc_summary),
+                onClick = {
+                    runCatching {
+                        val intent = Intent(HealthConnectClient.ACTION_HEALTH_CONNECT_SETTINGS)
+                        context.startActivity(intent)
+                    }
+                }
+            )
+        }
+    }
+
+    val aboutSection: @Composable () -> Unit = {
+        SectionLabel(stringResource(R.string.section_about))
+        SettingsCard {
+            SettingRow(
+                painter = painterResource(R.drawable.draumaz),
+                title = "draumaz",
+                subtitle = stringResource(R.string.about_author),
+                onClick = {
+                    runCatching {
+                        context.startActivity(Intent(Intent.ACTION_VIEW, AUTHOR_URL.toUri()))
+                    }
+                }
+            )
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f))
+
+            SettingRow(
+                icon = Icons.AutoMirrored.Rounded.OpenInNew,
+                title = "Sustenance ${BuildConfig.VERSION_NAME}",
+                subtitle = stringResource(R.string.about_summary),
+                onClick = {
+                    runCatching {
+                        context.startActivity(Intent(Intent.ACTION_VIEW, REPO_URL.toUri()))
+                    }
+                }
+            )
+        }
+        Text(
+            text = buildAnnotatedString {
+                append(stringResource(R.string.about_credit_prefix))
+                withLink(LinkAnnotation.Url("https://github.com/GuyOnWifi/heartwood")) {
+                    append(stringResource(R.string.about_credit_heartwood))
+                }
+                append(stringResource(R.string.about_credit_suffix))
+            },
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp),
+        )
     }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = stringResource(R.string.settings_subtitle),
-                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 15.sp),
-                            color = MaterialTheme.colorScheme.primary,
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                        )
-                        Text(
-                            text = stringResource(R.string.settings_title),
-                            style = MaterialTheme.typography.titleLarge.copy(fontSize = 25.sp),
-                            fontWeight = FontWeight.Bold,
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                        )
-                    }
-                },
-                scrollBehavior = scrollBehavior,
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
-                    scrolledContainerColor = Color.Transparent
+            // Where Today's and Insights' headers sit on a split window, so switching tabs doesn't
+            // make it jump: over the start pane, inside the same margins (see SplitWithDetail).
+            Box(
+                when {
+                    split == null -> Modifier
+                    split.stacked -> Modifier.padding(start = PaneMargin, top = PaneMargin, end = PaneMargin)
+                    else -> Modifier.padding(start = PaneMargin, top = PaneMargin).width(split.start - PaneMargin)
+                }
+            ) {
+                CenterAlignedTopAppBar(
+                    title = {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = stringResource(R.string.settings_subtitle),
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 15.sp),
+                                color = MaterialTheme.colorScheme.primary,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            )
+                            Text(
+                                text = stringResource(R.string.settings_title),
+                                style = MaterialTheme.typography.titleLarge.copy(fontSize = 25.sp),
+                                fontWeight = FontWeight.Bold,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            )
+                        }
+                    },
+                    scrollBehavior = scrollBehavior,
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Transparent,
+                        scrolledContainerColor = Color.Transparent
+                    )
                 )
-            )
+            }
         },
     ) { inner ->
-      ReadableGutter { gutter ->
-        LazyColumn(
-            state = listState,
-            modifier = Modifier
-                .fillMaxSize()
-                // Shrink above the keyboard so focused fields can scroll into view (adjustResize).
-                .imePadding()
-                .nestedScroll(scrollBehavior.nestedScrollConnection),
-            contentPadding = PaddingValues(
-                start = 16.dp + gutter,
-                end = 16.dp + gutter,
-                top = inner.calculateTopPadding() + 16.dp,
-                bottom = bottomInset + 100.dp
-            ),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            if (goalSetupDeferred) {
-                item {
-                    // Highlighted until the user finishes the goal step they skipped during setup.
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = MaterialTheme.shapes.extraLarge,
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.primaryContainer,
-                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                        ),
-                    ) {
-                        Row(
-                            Modifier
-                                .fillMaxWidth()
-                                .clickable(onClick = onEditGoals)
-                                .padding(horizontal = 16.dp, vertical = 18.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Icon(
-                                Icons.Rounded.TrackChanges, null,
-                                tint = MaterialTheme.colorScheme.onPrimary,
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.primary)
-                                    .padding(9.dp),
-                            )
-                            Spacer(Modifier.size(16.dp))
-                            Column(Modifier.weight(1f)) {
-                                Text(
-                                    stringResource(R.string.goal_setup_title),
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    fontWeight = FontWeight.SemiBold,
-                                )
-                                Text(
-                                    stringResource(R.string.goal_setup_reminder),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                )
-                            }
-                            Spacer(Modifier.size(16.dp))
-                            Icon(Icons.AutoMirrored.Rounded.ArrowForward, null)
-                        }
+        val top = inner.calculateTopPadding() + 16.dp
+        val bottom = bottomInset + 100.dp
+        if (twoColumns) {
+            // Both columns ride one scroll, so the page reads and pulls down as a whole; capped so
+            // a very wide window doesn't stretch the rows' switches away from their labels.
+            ReadableGutter(max = TwoColumnWidth) { gutter ->
+                Row(
+                    Modifier
+                        .fillMaxSize()
+                        // Shrink above the keyboard so focused fields can scroll into view (adjustResize).
+                        .imePadding()
+                        .nestedScroll(scrollBehavior.nestedScrollConnection)
+                        .verticalScroll(rememberScrollState())
+                        .padding(start = 16.dp + gutter, end = 16.dp + gutter, top = top, bottom = bottom),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    SettingsColumn(Modifier.weight(1f)) {
+                        goalPrompt()
+                        aiSection()
+                        appearanceSection()
+                    }
+                    SettingsColumn(Modifier.weight(1f)) {
+                        dietSection()
+                        dataSection()
+                        aboutSection()
                     }
                 }
             }
-            item { SectionLabel(stringResource(R.string.section_ai)) }
-            item {
-                SettingsCard {
-                    val apiKeyEnabled by vm.apiKeyEnabled.collectAsState()
-                    val apiKey by vm.apiKey.collectAsState()
-                    // Local edits win over the stored values, so a save landing mid-typing can't reset the field.
-                    var editedApiKey by remember { mutableStateOf<String?>(null) }
-                    val tempApiKey = editedApiKey ?: apiKey
-                    val apiKeyVerificationStatus by vm.apiKeyVerificationStatus.collectAsState()
-                    var isApiKeyVerifying by remember { mutableStateOf(false) }
-
-                    val geminiModel by vm.geminiModel.collectAsState()
-                    var editedGeminiModel by remember { mutableStateOf<String?>(null) }
-                    val tempGeminiModel = editedGeminiModel ?: geminiModel.removePrefix("gemini-")
-                    val geminiModelVerificationStatus by vm.geminiModelVerificationStatus.collectAsState()
-                    var isModelVerifying by remember { mutableStateOf(false) }
-
-                    // Both verify buttons make the same test call with the current key + model;
-                    // they differ only in which status they update and the failure message.
-                    fun verifyGemini(
-                        @StringRes failureMessage: Int,
-                        setStatus: (VerificationStatus) -> Unit,
-                        setVerifying: (Boolean) -> Unit,
-                    ) {
-                        val key = tempApiKey.trim()
-                        if (key.isBlank()) {
-                            Toast.makeText(context, R.string.api_key_missing, Toast.LENGTH_SHORT).show()
-                            setStatus(VerificationStatus.ERROR)
-                            return
-                        }
-                        setVerifying(true)
-                        scope.launch {
-                            val result = GeminiManager(key, GeminiManager.modelName(tempGeminiModel)).verifyModel()
-                            setVerifying(false)
-                            if (result.isSuccess) {
-                                setStatus(VerificationStatus.SUCCESS)
-                            } else {
-                                setStatus(VerificationStatus.ERROR)
-                                val base = appContext.getString(failureMessage)
-                                val details = result.exceptionOrNull()?.localizedMessage
-                                val msg = if (details.isNullOrBlank()) base else "$base ($details)"
-                                Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
-                            }
-                        }
-                    }
-
-                    ToggleRow(
-                        icon = Icons.Rounded.Key,
-                        title = stringResource(R.string.enable_food_logging),
-                        subtitle = stringResource(R.string.food_logging_summary),
-                        checked = apiKeyEnabled,
-                        onToggle = { vm.setApiKeyEnabled(!apiKeyEnabled) }
-                    )
-
-                    RevealedRows(visible = apiKeyEnabled) {
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f))
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            OutlinedTextField(
-                                value = tempGeminiModel,
-                                onValueChange = { newValue ->
-                                    val cleaned = if (newValue.startsWith("gemini-")) newValue.removePrefix("gemini-") else newValue
-                                    editedGeminiModel = cleaned
-                                    vm.setGeminiModel(cleaned)
-                                    if (geminiModelVerificationStatus != VerificationStatus.IDLE) {
-                                        vm.setGeminiModelVerificationStatus(VerificationStatus.IDLE)
-                                    }
-                                },
-                                modifier = Modifier.weight(1f),
-                                prefix = { Text("gemini-") },
-                                placeholder = { Text(GeminiManager.DEFAULT_MODEL, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)) },
-                                singleLine = true,
-                                label = { Text(stringResource(R.string.gemini_model)) },
-                                colors = verificationFieldColors(geminiModelVerificationStatus),
-                                trailingIcon = {
-                                    VerifyButton(
-                                        status = geminiModelVerificationStatus,
-                                        isVerifying = isModelVerifying,
-                                        contentDescription = stringResource(R.string.verify_model),
-                                        onClick = {
-                                            verifyGemini(
-                                                R.string.invalid_model_name,
-                                                vm::setGeminiModelVerificationStatus,
-                                            ) { isModelVerifying = it }
-                                        },
-                                    )
-                                }
-                            )
-                            Spacer(Modifier.size(8.dp))
-                        }
-
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            var apiKeyVisible by remember { mutableStateOf(false) }
-                            OutlinedTextField(
-                                value = tempApiKey,
-                                onValueChange = {
-                                    editedApiKey = it
-                                    vm.setApiKey(it)
-                                    if (apiKeyVerificationStatus != VerificationStatus.IDLE) {
-                                        vm.setApiKeyVerificationStatus(VerificationStatus.IDLE)
-                                    }
-                                },
-                                modifier = Modifier.weight(1f),
-                                placeholder = { Text("AQ.", color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)) },
-                                singleLine = true,
-                                label = { Text(stringResource(R.string.api_key)) },
-                                // Photos are the most personal thing the app sends anywhere, so say
-                                // plainly where they can end up.
-                                supportingText = { Text(stringResource(R.string.api_key_privacy_note)) },
-                                visualTransformation = if (apiKeyVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                                colors = verificationFieldColors(apiKeyVerificationStatus),
-                                trailingIcon = {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        IconButton(onClick = { apiKeyVisible = !apiKeyVisible }) {
-                                            Icon(
-                                                imageVector = if (apiKeyVisible) Icons.Rounded.VisibilityOff else Icons.Rounded.Visibility,
-                                                contentDescription = if (apiKeyVisible) stringResource(R.string.hide_api_key) else stringResource(R.string.show_api_key)
-                                            )
-                                        }
-                                        VerifyButton(
-                                            status = apiKeyVerificationStatus,
-                                            isVerifying = isApiKeyVerifying,
-                                            contentDescription = stringResource(R.string.verify_api_key),
-                                            onClick = {
-                                                verifyGemini(
-                                                    R.string.api_key_invalid,
-                                                    vm::setApiKeyVerificationStatus,
-                                                ) { isApiKeyVerifying = it }
-                                            },
-                                        )
-                                    }
-                                }
-                            )
-                            Spacer(Modifier.size(8.dp))
-                        }
-
-                        val alwaysBatch by vm.alwaysBatch.collectAsState()
-                        ToggleRow(
-                            icon = Icons.Rounded.BurstMode,
-                            title = stringResource(R.string.always_batch),
-                            subtitle = stringResource(R.string.always_batch_summary),
-                            checked = alwaysBatch,
-                            onToggle = { vm.setAlwaysBatch(!alwaysBatch) }
-                        )
-
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f))
-
-                        val gramIncrementEnabled by vm.gramIncrementEnabled.collectAsState()
-                        val gramIncrement by vm.gramIncrement.collectAsState()
-                        var tempIncrement by remember { mutableStateOf<String?>(null) }
-
-                        ToggleRow(
-                            icon = Icons.Rounded.Scale,
-                            title = stringResource(R.string.gram_increment),
-                            subtitle = stringResource(R.string.gram_increment_summary),
-                            checked = gramIncrementEnabled,
-                            onToggle = { vm.setGramIncrementEnabled(!gramIncrementEnabled) }
-                        )
-
-                        RevealedRows(visible = gramIncrementEnabled) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                OutlinedTextField(
-                                    value = tempIncrement ?: gramIncrement.toString(),
-                                    onValueChange = { newValue ->
-                                        if (newValue.isEmpty() || newValue.all { it.isDigit() }) {
-                                            tempIncrement = newValue
-                                            newValue.toIntOrNull()?.takeIf { it > 0 }?.let { vm.setGramIncrement(it) }
-                                        }
-                                    },
-                                    modifier = Modifier.weight(1f),
-                                    singleLine = true,
-                                    label = { Text(stringResource(R.string.gram_increment_amount)) },
-                                    placeholder = { Text("1") },
-                                    suffix = { Text(stringResource(R.string.unit_g)) },
-                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-                                )
-                                Spacer(Modifier.size(8.dp))
-                            }
-                        }
-
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f))
-
-                        val judgementalMode by vm.judgementalMode.collectAsState()
-                        ToggleRow(
-                            icon = Icons.Rounded.Psychology,
-                            title = stringResource(R.string.judgemental_mode),
-                            subtitle = stringResource(R.string.judgemental_mode_summary),
-                            checked = judgementalMode,
-                            onToggle = { vm.setJudgementalMode(!judgementalMode) }
-                        )
-
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f))
-
-                        val bingeCheckEnabled by vm.bingeCheckEnabled.collectAsState()
-                        ToggleRow(
-                            icon = Icons.Rounded.Spa,
-                            title = stringResource(R.string.binge_check),
-                            subtitle = stringResource(R.string.binge_check_summary),
-                            checked = bingeCheckEnabled,
-                            onToggle = { vm.setBingeCheckEnabled(!bingeCheckEnabled) }
-                        )
-                    }
+        } else {
+            ReadableGutter { gutter ->
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .imePadding()
+                        .nestedScroll(scrollBehavior.nestedScrollConnection),
+                    contentPadding = PaddingValues(start = 16.dp + gutter, end = 16.dp + gutter, top = top, bottom = bottom),
+                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                ) {
+                    if (goalSetupDeferred) item { goalPrompt() }
+                    item { SettingsColumn { aiSection() } }
+                    item { SettingsColumn { appearanceSection() } }
+                    item { SettingsColumn { dietSection() } }
+                    item { SettingsColumn { dataSection() } }
+                    item { SettingsColumn { aboutSection() } }
                 }
-            }
-            item { SectionLabel(stringResource(R.string.section_appearance)) }
-            item {
-                SettingsCard {
-                    ToggleRow(
-                        icon = Icons.Rounded.Palette,
-                        title = stringResource(R.string.dynamic_color),
-                        subtitle = stringResource(R.string.dynamic_color_summary),
-                        checked = dynamicColor,
-                        onToggle = { vm.setDynamicColor(!dynamicColor) }
-                    )
-                }
-            }
-            item { SectionLabel(stringResource(R.string.section_diet)) }
-            item {
-                SettingsCard {
-                    SettingRow(
-                        icon = Icons.Rounded.TrackChanges,
-                        title = stringResource(R.string.daily_goals),
-                        subtitle = stringResource(R.string.daily_goals_summary),
-                        onClick = onEditGoals,
-                    )
-
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f))
-
-                    val ketoMode by vm.ketoMode.collectAsState()
-                    ToggleRow(
-                        icon = Icons.Rounded.Whatshot,
-                        title = stringResource(R.string.keto_mode),
-                        subtitle = stringResource(R.string.keto_mode_summary),
-                        checked = ketoMode,
-                        onToggle = { vm.setKetoMode(!ketoMode) }
-                    )
-
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f))
-
-                    val lastLogTimerEnabled by vm.lastLogTimerEnabled.collectAsState()
-                    ToggleRow(
-                        icon = Icons.Rounded.History,
-                        title = stringResource(R.string.show_last_log_timer),
-                        subtitle = stringResource(R.string.show_last_log_timer_summary),
-                        checked = lastLogTimerEnabled,
-                        onToggle = { vm.setLastLogTimerEnabled(!lastLogTimerEnabled) }
-                    )
-
-                    RevealedRows(visible = lastLogTimerEnabled) {
-                        val fastBreakingCalories by vm.fastBreakingCalories.collectAsState()
-                        // Local edits win over the stored value, so a save landing mid-typing can't reset the field.
-                        var tempCalories by remember { mutableStateOf<String?>(null) }
-
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            OutlinedTextField(
-                                value = tempCalories ?: fastBreakingCalories.toString(),
-                                onValueChange = { newValue ->
-                                    if (newValue.isEmpty() || newValue.all { it.isDigit() }) {
-                                        tempCalories = newValue
-                                        newValue.toIntOrNull()?.let { vm.setFastBreakingCalories(it) }
-                                    }
-                                },
-                                modifier = Modifier.weight(1f),
-                                singleLine = true,
-                                label = { Text(stringResource(R.string.fast_breaking_calories)) },
-                                placeholder = { Text("0") },
-                                suffix = { Text(stringResource(R.string.unit_kcal)) },
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                supportingText = { Text(stringResource(R.string.fast_breaking_calories_summary)) }
-                            )
-                            Spacer(Modifier.size(8.dp))
-                        }
-
-                        val fastingGoalHours by vm.fastingGoalHours.collectAsState()
-                        var tempGoal by remember { mutableStateOf<String?>(null) }
-
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            OutlinedTextField(
-                                value = tempGoal ?: if (fastingGoalHours % 1f == 0f) fastingGoalHours.toInt().toString() else fastingGoalHours.toString(),
-                                onValueChange = { newValue ->
-                                    val parsed = parseDecimal(newValue)
-                                    if (newValue.isEmpty() || parsed != null || newValue == "." || newValue == ",") {
-                                        tempGoal = newValue
-                                        parsed?.let { vm.setFastingGoalHours(it.toFloat()) }
-                                    }
-                                },
-                                modifier = Modifier.weight(1f),
-                                singleLine = true,
-                                label = { Text(stringResource(R.string.fasting_goal)) },
-                                placeholder = { Text("16") },
-                                suffix = { Text(stringResource(R.string.unit_hr)) },
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                                supportingText = { Text(stringResource(R.string.fasting_goal_summary)) }
-                            )
-                            Spacer(Modifier.size(8.dp))
-                        }
-
-                        val fastingNotificationsEnabled by vm.fastingNotificationsEnabled.collectAsState()
-                        val permissionLauncher = rememberLauncherForActivityResult(
-                            ActivityResultContracts.RequestPermission()
-                        ) { isGranted ->
-                            if (isGranted) {
-                                vm.setFastingNotificationsEnabled(true)
-                            }
-                        }
-
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f))
-
-                        ToggleRow(
-                            icon = Icons.Rounded.Notifications,
-                            title = stringResource(R.string.fasting_notifications),
-                            subtitle = stringResource(R.string.fasting_notifications_summary),
-                            checked = fastingNotificationsEnabled,
-                            onToggle = {
-                                if (!fastingNotificationsEnabled) {
-                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                        permissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
-                                    } else {
-                                        vm.setFastingNotificationsEnabled(true)
-                                    }
-                                } else {
-                                    vm.setFastingNotificationsEnabled(false)
-                                }
-                            }
-                        )
-                    }
-                }
-            }
-            item { SectionLabel(stringResource(R.string.section_data)) }
-            item {
-                SettingsCard {
-                    SettingRow(
-                        icon = Icons.Rounded.HealthAndSafety,
-                        title = stringResource(R.string.launch_hc),
-                        subtitle = stringResource(R.string.launch_hc_summary),
-                        onClick = {
-                            runCatching {
-                                val intent = Intent(HealthConnectClient.ACTION_HEALTH_CONNECT_SETTINGS)
-                                context.startActivity(intent)
-                            }
-                        }
-                    )
-                }
-            }
-            item { SectionLabel(stringResource(R.string.section_about)) }
-            item {
-                SettingsCard {
-                    SettingRow(
-                        painter = painterResource(R.drawable.draumaz),
-                        title = "draumaz",
-                        subtitle = stringResource(R.string.about_author),
-                        onClick = {
-                            runCatching {
-                                context.startActivity(Intent(Intent.ACTION_VIEW, AUTHOR_URL.toUri()))
-                            }
-                        }
-                    )
-
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.8f))
-
-                    SettingRow(
-                        icon = Icons.AutoMirrored.Rounded.OpenInNew,
-                        title = "Sustenance ${BuildConfig.VERSION_NAME}",
-                        subtitle = stringResource(R.string.about_summary),
-                        onClick = {
-                            runCatching {
-                                context.startActivity(Intent(Intent.ACTION_VIEW, REPO_URL.toUri()))
-                            }
-                        }
-                    )
-                }
-            }
-            item {
-                Text(
-                    text = buildAnnotatedString {
-                        append(stringResource(R.string.about_credit_prefix))
-                        withLink(LinkAnnotation.Url("https://github.com/GuyOnWifi/heartwood")) {
-                            append(stringResource(R.string.about_credit_heartwood))
-                        }
-                        append(stringResource(R.string.about_credit_suffix))
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 4.dp),
-                )
             }
         }
-      }
     }
+}
+
+/** Two columns stop growing here: each then runs about as wide as the phone list's cap. */
+private val TwoColumnWidth = 1280.dp
+
+/** Sections stacked with the list's spacing between each label and card. */
+@Composable
+private fun SettingsColumn(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(14.dp)) { content() }
 }
 
 @Composable
