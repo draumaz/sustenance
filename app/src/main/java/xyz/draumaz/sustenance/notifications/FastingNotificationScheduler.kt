@@ -9,6 +9,7 @@ import androidx.work.WorkManager
 import kotlinx.coroutines.flow.first
 import xyz.draumaz.sustenance.SustenanceApp
 import xyz.draumaz.sustenance.data.HealthConnectManager
+import xyz.draumaz.sustenance.util.runCatchingCancellable
 import java.time.Instant
 import java.util.concurrent.TimeUnit
 
@@ -53,7 +54,7 @@ object FastingNotificationScheduler {
             return
         }
 
-        val granted = runCatching { app.healthConnect.grantedPermissions() }.getOrDefault(emptySet())
+        val granted = runCatchingCancellable { app.healthConnect.grantedPermissions() }.getOrDefault(emptySet())
         if (HealthConnectManager.PERMISSION_READ_IN_BACKGROUND !in granted) return
 
         // readLastFoodLogTime returns null on read failures too, so null can't be told apart from

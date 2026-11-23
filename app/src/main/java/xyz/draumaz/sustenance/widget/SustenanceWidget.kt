@@ -36,6 +36,7 @@ import xyz.draumaz.sustenance.SustenanceApp
 import xyz.draumaz.sustenance.MainActivity
 import xyz.draumaz.sustenance.data.Metric
 import xyz.draumaz.sustenance.data.MetricSummary
+import xyz.draumaz.sustenance.util.runCatchingCancellable
 import kotlinx.coroutines.flow.first
 
 /** Preferred metrics to surface on the home screen, in priority order. */
@@ -54,7 +55,7 @@ class SustenanceWidget : GlanceAppWidget() {
         val isKeto = app.settings.ketoMode.first()
 
         val summaries = if (manager.isAvailable) {
-            runCatching {
+            runCatchingCancellable {
                 // Same food goal the dashboard shows when a caloric-balance goal is set.
                 val foodGoal = manager.foodGoalForBalance(goals[Metric.CALORIC_BALANCE] ?: 0f, 0)
                 val finalGoals = if (foodGoal != null) goals + (Metric.FOOD to foodGoal) else goals

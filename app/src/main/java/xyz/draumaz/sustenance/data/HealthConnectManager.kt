@@ -18,6 +18,7 @@ import androidx.health.connect.client.units.Energy
 import androidx.health.connect.client.units.Mass
 import xyz.draumaz.sustenance.util.FoodNutrients
 import xyz.draumaz.sustenance.R
+import xyz.draumaz.sustenance.util.runCatchingCancellable
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -103,7 +104,7 @@ class HealthConnectManager(internal val context: Context) {
         HealthPermission.getReadPermission(recordClass(metric))
 
     suspend fun isGranted(metric: Metric): Boolean {
-        val granted = runCatching { grantedPermissions() }.getOrDefault(emptySet())
+        val granted = runCatchingCancellable { grantedPermissions() }.getOrDefault(emptySet())
         return if (metric == Metric.CALORIC_BALANCE) {
             (HealthPermission.getReadPermission(TotalCaloriesBurnedRecord::class) in granted) &&
                     (HealthPermission.getReadPermission(NutritionRecord::class) in granted)
@@ -233,7 +234,7 @@ class HealthConnectManager(internal val context: Context) {
         isKeto: Boolean = false,
         dateOffset: Int = 0
     ): List<MetricSummary> = coroutineScope {
-        val granted = runCatching { grantedPermissions() }.getOrDefault(emptySet())
+        val granted = runCatchingCancellable { grantedPermissions() }.getOrDefault(emptySet())
         val deferredSummaries = Metric.entries.map { metric ->
             async {
                 val has = granted.isEmpty() || granted.contains(permissionFor(metric))
@@ -241,9 +242,8 @@ class HealthConnectManager(internal val context: Context) {
                 if (!has) {
                     MetricSummary(metric, "-", null, hasData = false, granted = false, goal = goal)
                 } else {
-                    runCatching { summarize(metric, goal, dateOffset) }
+                    runCatchingCancellable { summarize(metric, goal, dateOffset) }
                         .getOrElse { e ->
-                            if (e is CancellationException) throw e
                             // Lock the tile only when the permission is verifiably gone right now;
                             // anything else (IPC hiccup, one failed record type) stays "no data"
                             // so a transient error never looks like a revoked grant. HC's own
@@ -371,7 +371,7 @@ class HealthConnectManager(internal val context: Context) {
     }
 
     suspend fun readHistory(): List<HistoryItem> {
-        return runCatching {
+        return runCatchingCancellable {
             val end = Instant.now()
             val start = end - java.time.Duration.ofDays(30)
             val records = read(NutritionRecord::class, start, end).filterIsInstance<NutritionRecord>()
@@ -415,7 +415,7 @@ class HealthConnectManager(internal val context: Context) {
      */
     suspend fun countLogsOf(foodName: String, around: Instant, window: Duration): Int {
         val target = cleanFoodName(foodName)
-        return runCatching {
+        return runCatchingCancellable {
             read(NutritionRecord::class, around - window, around + window)
                 .filterIsInstance<NutritionRecord>()
                 .filter { it.metadata.dataOrigin.packageName == context.packageName }
@@ -424,7 +424,7 @@ class HealthConnectManager(internal val context: Context) {
     }
 
     suspend fun readLastFoodLogTime(threshold: Double = 0.0): Instant? {
-        return runCatching {
+        return runCatchingCancellable {
             val end = Instant.now()
             val start = end.minus(java.time.Duration.ofDays(30))
             val records = client.readRecords(
@@ -446,7 +446,7 @@ class HealthConnectManager(internal val context: Context) {
 
     suspend fun readLongestFastingStretch(dateOffset: Int, threshold: Double = 0.0): FastingStretch? {
         if (dateOffset <= 0) return null
-        return runCatching {
+        return runCatchingCancellable {
             val zone = ZoneId.systemDefault()
             val targetDate = LocalDate.now().minusDays(dateOffset.toLong())
             val dayStart = targetDate.atStartOfDay(zone).toInstant()
@@ -468,7 +468,7 @@ class HealthConnectManager(internal val context: Context) {
                 .sorted()
 
             val dayMealTimes = mealTimes.filter { it >= dayStart && it < effectiveDayEnd }
-            if (dayMealTimes.isEmpty()) return@runCatching null
+            if (dayMealTimes.isEmpty()) return@runCatchingCancellable null
 
             val firstMeal = dayMealTimes.first()
             val intervals = mutableListOf<FastingStretch>()
@@ -513,7 +513,7 @@ class HealthConnectManager(internal val context: Context) {
         dateOffset: Int = 0
     ): MetricDetail {
         val isGoalEditable = !(metric == Metric.FOOD && isCaloricBalanceActive)
-        return runCatching {
+        return runCatchingCancellable {
             val days = if (metric.kind == MetricKind.DAILY_TOTAL) 7 else 90
             val points = series(metric, days, dateOffset)
             val unit = context.getString(metric.unitRes)

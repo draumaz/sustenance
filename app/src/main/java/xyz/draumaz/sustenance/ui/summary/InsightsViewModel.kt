@@ -15,6 +15,7 @@ import xyz.draumaz.sustenance.data.WeeklyStat
 import xyz.draumaz.sustenance.data.formatValue
 import xyz.draumaz.sustenance.util.GeminiManager
 import xyz.draumaz.sustenance.util.GeminiQuotaException
+import xyz.draumaz.sustenance.util.runCatchingCancellable
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
@@ -207,17 +208,17 @@ class InsightsViewModel(
     fun refresh(showIndicator: Boolean = true) {
         viewModelScope.launch {
             if (showIndicator) _refreshing.value = true
-            val granted = runCatching { manager.grantedPermissions() }.getOrDefault(emptySet())
+            val granted = runCatchingCancellable { manager.grantedPermissions() }.getOrDefault(emptySet())
             val metrics = GoalCatalog.metrics.filter { manager.permissionFor(it) in granted }
             val seriesMap = coroutineScope {
                 metrics.map { metric ->
-                    async { metric to runCatching { manager.readDailySeries(metric, 7) }.getOrDefault(emptyList()) }
+                    async { metric to runCatchingCancellable { manager.readDailySeries(metric, 7) }.getOrDefault(emptyList()) }
                 }.awaitAll().toMap()
             }
             // Logs before the series: the first state with stats then already has today's food,
             // so the AI summary card doesn't blink out and back in on the first load.
             if (granted.contains(manager.permissionFor(Metric.FOOD))) {
-                val today = runCatching { manager.readTodayNutrition() }.getOrDefault(emptyList())
+                val today = runCatchingCancellable { manager.readTodayNutrition() }.getOrDefault(emptyList())
                 if (today.isEmpty()) {
                     yesterdayLogs.value = try {
                         manager.readNutritionOn(LocalDate.now().minusDays(1))
