@@ -92,6 +92,14 @@ class FastingWidget : GlanceAppWidget() {
     }
 }
 
+/**
+ * Aspect ratio and resting-edge offset of widget_fasting_bubbles (viewport 24x120, resting
+ * meniscus at x=8). Scaling the strip's width with widget height keeps the bubbles circular
+ * across compact, medium, and large placements.
+ */
+private const val BUBBLE_EDGE_ASPECT = 24f / 120f
+private const val BUBBLE_EDGE_FILL_FRACTION = 8f / 24f
+
 /** Internal so tests can render it at a given size without Health Connect. */
 @Composable
 internal fun FastingContent(state: FastState) {
@@ -115,7 +123,28 @@ internal fun FastingContent(state: FastState) {
             ),
     ) {
         val fillWidth = size.width * state.progress
-        if (fillWidth > 0.dp) {
+        if (state.lastLog != null && state.progress > 0f && state.progress < 1f) {
+            // A fast in progress: solid fill, then the constant bubbling liquid edge (see
+            // widget_fasting_bubbles). The resting meniscus sits a third of the way into the
+            // strip, so the solid box stops that far short of the progress point.
+            val edgeWidth = (size.height * BUBBLE_EDGE_ASPECT).coerceIn(10.dp, 48.dp)
+            Row(GlanceModifier.fillMaxHeight()) {
+                val boxWidth = fillWidth - edgeWidth * BUBBLE_EDGE_FILL_FRACTION
+                if (boxWidth > 0.dp) {
+                    Box(
+                        GlanceModifier
+                            .width(boxWidth)
+                            .fillMaxHeight()
+                            .background(context.dayNight(R.color.widget_fasting_fill)),
+                    ) {}
+                }
+                AndroidRemoteViews(
+                    RemoteViews(context.packageName, R.layout.widget_fasting_bubble_edge),
+                    GlanceModifier.width(edgeWidth).fillMaxHeight(),
+                )
+            }
+        } else if (fillWidth > 0.dp) {
+            // Goal reached: a full, still fill.
             Box(
                 GlanceModifier
                     .width(fillWidth)

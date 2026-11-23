@@ -1,0 +1,727 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Leading edge of FastingWidget's fill, hosted by a ProgressBar (widget_fasting_bubble_edge) so
+     the launcher runs it continuously on RenderThread. Two slow, out-of-phase liquid meniscus waves
+     (λ=60 at 5.2s and λ=40 at 6.8s) create a gentle, non-repeating surface swell while soft bubbles
+     continuously bud from the edge, drift upward and outward, and dissolve. All animations loop
+     seamlessly; with system animations off, bubbles stay invisible (fillAlpha=0) over the calm edge.
+     Viewport 24x120: x=0..8 continues the solid fill; x=8 is the resting edge; x=8..24 is the
+     bubbling zone. -->
+<animated-vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt">
+    <aapt:attr name="android:drawable">
+        <vector
+            android:width="24dp"
+            android:height="120dp"
+            android:viewportWidth="24"
+            android:viewportHeight="120">
+
+            <!-- Soft secondary liquid swell slightly ahead of the main meniscus -->
+            <group android:name="wave_soft">
+                <path
+                    android:fillAlpha="0.32"
+                    android:fillColor="@color/widget_fasting_fill"
+                    android:pathData="M -1,-40 L 10.85,-40 C 10.85,-32.72 7.75,-27.28 7.75,-20 C 7.75,-12.72 10.85,-7.28 10.85,0 C 10.85,7.28 7.75,12.72 7.75,20 C 7.75,27.28 10.85,32.72 10.85,40 C 10.85,47.28 7.75,52.72 7.75,60 C 7.75,67.28 10.85,72.72 10.85,80 C 10.85,87.28 7.75,92.72 7.75,100 C 7.75,107.28 10.85,112.72 10.85,120 C 10.85,127.28 7.75,132.72 7.75,140 C 7.75,147.28 10.85,152.72 10.85,160 L -1,160 Z" />
+            </group>
+
+            <!-- Primary liquid meniscus -->
+            <group android:name="wave_main">
+                <path
+                    android:fillColor="@color/widget_fasting_fill"
+                    android:pathData="M -1,-60 L 6.65,-60 C 6.65,-49.07 9.35,-40.93 9.35,-30 C 9.35,-19.07 6.65,-10.93 6.65,0 C 6.65,10.93 9.35,19.07 9.35,30 C 9.35,40.93 6.65,49.07 6.65,60 C 6.65,70.93 9.35,79.07 9.35,90 C 9.35,100.93 6.65,109.07 6.65,120 C 6.65,130.93 9.35,139.07 9.35,150 C 9.35,160.93 6.65,169.07 6.65,180 L -1,180 Z" />
+            </group>
+
+            <!-- Subtle inner shimmer bubbles rising just inside the liquid edge -->
+            <group android:name="i1_group">
+                <path
+                    android:name="i1_path"
+                    android:fillAlpha="0"
+                    android:fillColor="@color/widget_fasting_track"
+                    android:pathData="M -1.4,0 A 1.4,1.4 0 1,0 1.4,0 A 1.4,1.4 0 1,0 -1.4,0 Z" />
+            </group>
+            <group android:name="i2_group">
+                <path
+                    android:name="i2_path"
+                    android:fillAlpha="0"
+                    android:fillColor="@color/widget_fasting_track"
+                    android:pathData="M -1.1,0 A 1.1,1.1 0 1,0 1.1,0 A 1.1,1.1 0 1,0 -1.1,0 Z" />
+            </group>
+            <group android:name="i3_group">
+                <path
+                    android:name="i3_path"
+                    android:fillAlpha="0"
+                    android:fillColor="@color/widget_fasting_track"
+                    android:pathData="M -1.6,0 A 1.6,1.6 0 1,0 1.6,0 A 1.6,1.6 0 1,0 -1.6,0 Z" />
+            </group>
+
+            <!-- Outer liquid bubbles budding from the meniscus into the track -->
+            <group android:name="b1_group">
+                <path
+                    android:name="b1_path"
+                    android:fillAlpha="0"
+                    android:fillColor="@color/widget_fasting_fill"
+                    android:pathData="M -2.1,0 A 2.1,2.1 0 1,0 2.1,0 A 2.1,2.1 0 1,0 -2.1,0 Z" />
+            </group>
+            <group android:name="b2_group">
+                <path
+                    android:name="b2_path"
+                    android:fillAlpha="0"
+                    android:fillColor="@color/widget_fasting_fill"
+                    android:pathData="M -1.4,0 A 1.4,1.4 0 1,0 1.4,0 A 1.4,1.4 0 1,0 -1.4,0 Z" />
+            </group>
+            <group android:name="b3_group">
+                <path
+                    android:name="b3_path"
+                    android:fillAlpha="0"
+                    android:fillColor="@color/widget_fasting_fill"
+                    android:pathData="M -1.8,0 A 1.8,1.8 0 1,0 1.8,0 A 1.8,1.8 0 1,0 -1.8,0 Z" />
+            </group>
+            <group android:name="b4_group">
+                <path
+                    android:name="b4_path"
+                    android:fillAlpha="0"
+                    android:fillColor="@color/widget_fasting_fill"
+                    android:pathData="M -1.2,0 A 1.2,1.2 0 1,0 1.2,0 A 1.2,1.2 0 1,0 -1.2,0 Z" />
+            </group>
+            <group android:name="b5_group">
+                <path
+                    android:name="b5_path"
+                    android:fillAlpha="0"
+                    android:fillColor="@color/widget_fasting_fill"
+                    android:pathData="M -2.3,0 A 2.3,2.3 0 1,0 2.3,0 A 2.3,2.3 0 1,0 -2.3,0 Z" />
+            </group>
+            <group android:name="b6_group">
+                <path
+                    android:name="b6_path"
+                    android:fillAlpha="0"
+                    android:fillColor="@color/widget_fasting_fill"
+                    android:pathData="M -1.5,0 A 1.5,1.5 0 1,0 1.5,0 A 1.5,1.5 0 1,0 -1.5,0 Z" />
+            </group>
+            <group android:name="b7_group">
+                <path
+                    android:name="b7_path"
+                    android:fillAlpha="0"
+                    android:fillColor="@color/widget_fasting_fill"
+                    android:pathData="M -1.1,0 A 1.1,1.1 0 1,0 1.1,0 A 1.1,1.1 0 1,0 -1.1,0 Z" />
+            </group>
+        </vector>
+    </aapt:attr>
+
+    <!-- Meniscus drift animations (exact full wavelengths for seamless looping) -->
+    <target android:name="wave_main">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:duration="5200"
+                android:interpolator="@android:interpolator/linear"
+                android:propertyName="translateY"
+                android:repeatCount="infinite"
+                android:repeatMode="restart"
+                android:valueFrom="0"
+                android:valueTo="-60"
+                android:valueType="floatType" />
+        </aapt:attr>
+    </target>
+
+    <target android:name="wave_soft">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:duration="6800"
+                android:interpolator="@android:interpolator/linear"
+                android:propertyName="translateY"
+                android:repeatCount="infinite"
+                android:repeatMode="restart"
+                android:valueFrom="0"
+                android:valueTo="-40"
+                android:valueType="floatType" />
+        </aapt:attr>
+    </target>
+
+    <!-- Outer bubble 1 (4.3s, lower-mid) -->
+    <target android:name="b1_group">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:duration="4300"
+                android:interpolator="@android:interpolator/linear"
+                android:repeatCount="infinite"
+                android:repeatMode="restart">
+                <propertyValuesHolder android:propertyName="translateX" android:valueType="floatType">
+                    <keyframe android:fraction="0.00" android:value="8.6" />
+                    <keyframe android:fraction="0.28" android:value="12.6" />
+                    <keyframe android:fraction="0.58" android:value="15.2" />
+                    <keyframe android:fraction="0.82" android:value="14.4" />
+                    <keyframe android:fraction="1.00" android:value="8.6" />
+                </propertyValuesHolder>
+                <propertyValuesHolder android:propertyName="translateY" android:valueType="floatType">
+                    <keyframe android:fraction="0.00" android:value="114.0" />
+                    <keyframe android:fraction="0.40" android:value="88.0" />
+                    <keyframe android:fraction="0.82" android:value="58.0" />
+                    <keyframe android:fraction="1.00" android:value="114.0" />
+                </propertyValuesHolder>
+                <propertyValuesHolder android:propertyName="scaleX" android:valueType="floatType">
+                    <keyframe android:fraction="0.00" android:value="0.25" />
+                    <keyframe android:fraction="0.22" android:value="0.95" />
+                    <keyframe android:fraction="0.55" android:value="1.05" />
+                    <keyframe android:fraction="0.82" android:value="0.35" />
+                    <keyframe android:fraction="1.00" android:value="0.25" />
+                </propertyValuesHolder>
+                <propertyValuesHolder android:propertyName="scaleY" android:valueType="floatType">
+                    <keyframe android:fraction="0.00" android:value="0.25" />
+                    <keyframe android:fraction="0.22" android:value="0.95" />
+                    <keyframe android:fraction="0.55" android:value="1.05" />
+                    <keyframe android:fraction="0.82" android:value="0.35" />
+                    <keyframe android:fraction="1.00" android:value="0.25" />
+                </propertyValuesHolder>
+            </objectAnimator>
+        </aapt:attr>
+    </target>
+    <target android:name="b1_path">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:duration="4300"
+                android:interpolator="@android:interpolator/linear"
+                android:repeatCount="infinite"
+                android:repeatMode="restart">
+                <propertyValuesHolder android:propertyName="fillAlpha" android:valueType="floatType">
+                    <keyframe android:fraction="0.00" android:value="0.0" />
+                    <keyframe android:fraction="0.16" android:value="0.80" />
+                    <keyframe android:fraction="0.56" android:value="0.68" />
+                    <keyframe android:fraction="0.82" android:value="0.0" />
+                    <keyframe android:fraction="1.00" android:value="0.0" />
+                </propertyValuesHolder>
+            </objectAnimator>
+        </aapt:attr>
+    </target>
+
+    <!-- Outer bubble 2 (3.7s, mid) -->
+    <target android:name="b2_group">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:duration="3700"
+                android:interpolator="@android:interpolator/linear"
+                android:repeatCount="infinite"
+                android:repeatMode="restart">
+                <propertyValuesHolder android:propertyName="translateX" android:valueType="floatType">
+                    <keyframe android:fraction="0.00" android:value="9.0" />
+                    <keyframe android:fraction="0.15" android:value="9.0" />
+                    <keyframe android:fraction="0.45" android:value="14.2" />
+                    <keyframe android:fraction="0.72" android:value="17.6" />
+                    <keyframe android:fraction="0.92" android:value="16.8" />
+                    <keyframe android:fraction="1.00" android:value="9.0" />
+                </propertyValuesHolder>
+                <propertyValuesHolder android:propertyName="translateY" android:valueType="floatType">
+                    <keyframe android:fraction="0.00" android:value="92.0" />
+                    <keyframe android:fraction="0.15" android:value="92.0" />
+                    <keyframe android:fraction="0.54" android:value="68.0" />
+                    <keyframe android:fraction="0.92" android:value="44.0" />
+                    <keyframe android:fraction="1.00" android:value="92.0" />
+                </propertyValuesHolder>
+                <propertyValuesHolder android:propertyName="scaleX" android:valueType="floatType">
+                    <keyframe android:fraction="0.00" android:value="0.25" />
+                    <keyframe android:fraction="0.15" android:value="0.25" />
+                    <keyframe android:fraction="0.36" android:value="1.0" />
+                    <keyframe android:fraction="0.68" android:value="1.05" />
+                    <keyframe android:fraction="0.92" android:value="0.3" />
+                    <keyframe android:fraction="1.00" android:value="0.25" />
+                </propertyValuesHolder>
+                <propertyValuesHolder android:propertyName="scaleY" android:valueType="floatType">
+                    <keyframe android:fraction="0.00" android:value="0.25" />
+                    <keyframe android:fraction="0.15" android:value="0.25" />
+                    <keyframe android:fraction="0.36" android:value="1.0" />
+                    <keyframe android:fraction="0.68" android:value="1.05" />
+                    <keyframe android:fraction="0.92" android:value="0.3" />
+                    <keyframe android:fraction="1.00" android:value="0.25" />
+                </propertyValuesHolder>
+            </objectAnimator>
+        </aapt:attr>
+    </target>
+    <target android:name="b2_path">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:duration="3700"
+                android:interpolator="@android:interpolator/linear"
+                android:repeatCount="infinite"
+                android:repeatMode="restart">
+                <propertyValuesHolder android:propertyName="fillAlpha" android:valueType="floatType">
+                    <keyframe android:fraction="0.00" android:value="0.0" />
+                    <keyframe android:fraction="0.15" android:value="0.0" />
+                    <keyframe android:fraction="0.32" android:value="0.68" />
+                    <keyframe android:fraction="0.68" android:value="0.56" />
+                    <keyframe android:fraction="0.92" android:value="0.0" />
+                    <keyframe android:fraction="1.00" android:value="0.0" />
+                </propertyValuesHolder>
+            </objectAnimator>
+        </aapt:attr>
+    </target>
+
+    <!-- Outer bubble 3 (5.1s, mid-upper) -->
+    <target android:name="b3_group">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:duration="5100"
+                android:interpolator="@android:interpolator/linear"
+                android:repeatCount="infinite"
+                android:repeatMode="restart">
+                <propertyValuesHolder android:propertyName="translateX" android:valueType="floatType">
+                    <keyframe android:fraction="0.00" android:value="8.4" />
+                    <keyframe android:fraction="0.08" android:value="8.4" />
+                    <keyframe android:fraction="0.40" android:value="12.6" />
+                    <keyframe android:fraction="0.68" android:value="14.8" />
+                    <keyframe android:fraction="0.88" android:value="14.0" />
+                    <keyframe android:fraction="1.00" android:value="8.4" />
+                </propertyValuesHolder>
+                <propertyValuesHolder android:propertyName="translateY" android:valueType="floatType">
+                    <keyframe android:fraction="0.00" android:value="74.0" />
+                    <keyframe android:fraction="0.08" android:value="74.0" />
+                    <keyframe android:fraction="0.48" android:value="48.0" />
+                    <keyframe android:fraction="0.88" android:value="22.0" />
+                    <keyframe android:fraction="1.00" android:value="74.0" />
+                </propertyValuesHolder>
+                <propertyValuesHolder android:propertyName="scaleX" android:valueType="floatType">
+                    <keyframe android:fraction="0.00" android:value="0.25" />
+                    <keyframe android:fraction="0.08" android:value="0.25" />
+                    <keyframe android:fraction="0.30" android:value="0.98" />
+                    <keyframe android:fraction="0.64" android:value="1.06" />
+                    <keyframe android:fraction="0.88" android:value="0.35" />
+                    <keyframe android:fraction="1.00" android:value="0.25" />
+                </propertyValuesHolder>
+                <propertyValuesHolder android:propertyName="scaleY" android:valueType="floatType">
+                    <keyframe android:fraction="0.00" android:value="0.25" />
+                    <keyframe android:fraction="0.08" android:value="0.25" />
+                    <keyframe android:fraction="0.30" android:value="0.98" />
+                    <keyframe android:fraction="0.64" android:value="1.06" />
+                    <keyframe android:fraction="0.88" android:value="0.35" />
+                    <keyframe android:fraction="1.00" android:value="0.25" />
+                </propertyValuesHolder>
+            </objectAnimator>
+        </aapt:attr>
+    </target>
+    <target android:name="b3_path">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:duration="5100"
+                android:interpolator="@android:interpolator/linear"
+                android:repeatCount="infinite"
+                android:repeatMode="restart">
+                <propertyValuesHolder android:propertyName="fillAlpha" android:valueType="floatType">
+                    <keyframe android:fraction="0.00" android:value="0.0" />
+                    <keyframe android:fraction="0.08" android:value="0.0" />
+                    <keyframe android:fraction="0.25" android:value="0.78" />
+                    <keyframe android:fraction="0.62" android:value="0.66" />
+                    <keyframe android:fraction="0.88" android:value="0.0" />
+                    <keyframe android:fraction="1.00" android:value="0.0" />
+                </propertyValuesHolder>
+            </objectAnimator>
+        </aapt:attr>
+    </target>
+
+    <!-- Outer bubble 4 (3.3s, upper small fizz) -->
+    <target android:name="b4_group">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:duration="3300"
+                android:interpolator="@android:interpolator/linear"
+                android:repeatCount="infinite"
+                android:repeatMode="restart">
+                <propertyValuesHolder android:propertyName="translateX" android:valueType="floatType">
+                    <keyframe android:fraction="0.00" android:value="9.2" />
+                    <keyframe android:fraction="0.25" android:value="9.2" />
+                    <keyframe android:fraction="0.56" android:value="15.0" />
+                    <keyframe android:fraction="0.82" android:value="18.8" />
+                    <keyframe android:fraction="0.98" android:value="18.2" />
+                    <keyframe android:fraction="1.00" android:value="9.2" />
+                </propertyValuesHolder>
+                <propertyValuesHolder android:propertyName="translateY" android:valueType="floatType">
+                    <keyframe android:fraction="0.00" android:value="52.0" />
+                    <keyframe android:fraction="0.25" android:value="52.0" />
+                    <keyframe android:fraction="0.62" android:value="32.0" />
+                    <keyframe android:fraction="0.98" android:value="12.0" />
+                    <keyframe android:fraction="1.00" android:value="52.0" />
+                </propertyValuesHolder>
+                <propertyValuesHolder android:propertyName="scaleX" android:valueType="floatType">
+                    <keyframe android:fraction="0.00" android:value="0.3" />
+                    <keyframe android:fraction="0.25" android:value="0.3" />
+                    <keyframe android:fraction="0.46" android:value="1.0" />
+                    <keyframe android:fraction="0.76" android:value="0.95" />
+                    <keyframe android:fraction="0.98" android:value="0.25" />
+                    <keyframe android:fraction="1.00" android:value="0.3" />
+                </propertyValuesHolder>
+                <propertyValuesHolder android:propertyName="scaleY" android:valueType="floatType">
+                    <keyframe android:fraction="0.00" android:value="0.3" />
+                    <keyframe android:fraction="0.25" android:value="0.3" />
+                    <keyframe android:fraction="0.46" android:value="1.0" />
+                    <keyframe android:fraction="0.76" android:value="0.95" />
+                    <keyframe android:fraction="0.98" android:value="0.25" />
+                    <keyframe android:fraction="1.00" android:value="0.3" />
+                </propertyValuesHolder>
+            </objectAnimator>
+        </aapt:attr>
+    </target>
+    <target android:name="b4_path">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:duration="3300"
+                android:interpolator="@android:interpolator/linear"
+                android:repeatCount="infinite"
+                android:repeatMode="restart">
+                <propertyValuesHolder android:propertyName="fillAlpha" android:valueType="floatType">
+                    <keyframe android:fraction="0.00" android:value="0.0" />
+                    <keyframe android:fraction="0.25" android:value="0.0" />
+                    <keyframe android:fraction="0.42" android:value="0.62" />
+                    <keyframe android:fraction="0.74" android:value="0.50" />
+                    <keyframe android:fraction="0.98" android:value="0.0" />
+                    <keyframe android:fraction="1.00" android:value="0.0" />
+                </propertyValuesHolder>
+            </objectAnimator>
+        </aapt:attr>
+    </target>
+
+    <!-- Outer bubble 5 (5.7s, top gentle large bubble) -->
+    <target android:name="b5_group">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:duration="5700"
+                android:interpolator="@android:interpolator/linear"
+                android:repeatCount="infinite"
+                android:repeatMode="restart">
+                <propertyValuesHolder android:propertyName="translateX" android:valueType="floatType">
+                    <keyframe android:fraction="0.00" android:value="8.3" />
+                    <keyframe android:fraction="0.12" android:value="8.3" />
+                    <keyframe android:fraction="0.44" android:value="12.2" />
+                    <keyframe android:fraction="0.72" android:value="14.2" />
+                    <keyframe android:fraction="0.90" android:value="13.5" />
+                    <keyframe android:fraction="1.00" android:value="8.3" />
+                </propertyValuesHolder>
+                <propertyValuesHolder android:propertyName="translateY" android:valueType="floatType">
+                    <keyframe android:fraction="0.00" android:value="40.0" />
+                    <keyframe android:fraction="0.12" android:value="40.0" />
+                    <keyframe android:fraction="0.52" android:value="21.0" />
+                    <keyframe android:fraction="0.90" android:value="2.0" />
+                    <keyframe android:fraction="1.00" android:value="40.0" />
+                </propertyValuesHolder>
+                <propertyValuesHolder android:propertyName="scaleX" android:valueType="floatType">
+                    <keyframe android:fraction="0.00" android:value="0.25" />
+                    <keyframe android:fraction="0.12" android:value="0.25" />
+                    <keyframe android:fraction="0.34" android:value="0.95" />
+                    <keyframe android:fraction="0.66" android:value="1.05" />
+                    <keyframe android:fraction="0.90" android:value="0.35" />
+                    <keyframe android:fraction="1.00" android:value="0.25" />
+                </propertyValuesHolder>
+                <propertyValuesHolder android:propertyName="scaleY" android:valueType="floatType">
+                    <keyframe android:fraction="0.00" android:value="0.25" />
+                    <keyframe android:fraction="0.12" android:value="0.25" />
+                    <keyframe android:fraction="0.34" android:value="0.95" />
+                    <keyframe android:fraction="0.66" android:value="1.05" />
+                    <keyframe android:fraction="0.90" android:value="0.35" />
+                    <keyframe android:fraction="1.00" android:value="0.25" />
+                </propertyValuesHolder>
+            </objectAnimator>
+        </aapt:attr>
+    </target>
+    <target android:name="b5_path">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:duration="5700"
+                android:interpolator="@android:interpolator/linear"
+                android:repeatCount="infinite"
+                android:repeatMode="restart">
+                <propertyValuesHolder android:propertyName="fillAlpha" android:valueType="floatType">
+                    <keyframe android:fraction="0.00" android:value="0.0" />
+                    <keyframe android:fraction="0.12" android:value="0.0" />
+                    <keyframe android:fraction="0.28" android:value="0.75" />
+                    <keyframe android:fraction="0.64" android:value="0.64" />
+                    <keyframe android:fraction="0.90" android:value="0.0" />
+                    <keyframe android:fraction="1.00" android:value="0.0" />
+                </propertyValuesHolder>
+            </objectAnimator>
+        </aapt:attr>
+    </target>
+
+    <!-- Outer bubble 6 (4.6s, lower staggered) -->
+    <target android:name="b6_group">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:duration="4600"
+                android:interpolator="@android:interpolator/linear"
+                android:repeatCount="infinite"
+                android:repeatMode="restart">
+                <propertyValuesHolder android:propertyName="translateX" android:valueType="floatType">
+                    <keyframe android:fraction="0.00" android:value="8.8" />
+                    <keyframe android:fraction="0.30" android:value="8.8" />
+                    <keyframe android:fraction="0.58" android:value="13.8" />
+                    <keyframe android:fraction="0.82" android:value="16.6" />
+                    <keyframe android:fraction="0.98" android:value="15.8" />
+                    <keyframe android:fraction="1.00" android:value="8.8" />
+                </propertyValuesHolder>
+                <propertyValuesHolder android:propertyName="translateY" android:valueType="floatType">
+                    <keyframe android:fraction="0.00" android:value="102.0" />
+                    <keyframe android:fraction="0.30" android:value="102.0" />
+                    <keyframe android:fraction="0.64" android:value="76.0" />
+                    <keyframe android:fraction="0.98" android:value="50.0" />
+                    <keyframe android:fraction="1.00" android:value="102.0" />
+                </propertyValuesHolder>
+                <propertyValuesHolder android:propertyName="scaleX" android:valueType="floatType">
+                    <keyframe android:fraction="0.00" android:value="0.25" />
+                    <keyframe android:fraction="0.30" android:value="0.25" />
+                    <keyframe android:fraction="0.50" android:value="1.0" />
+                    <keyframe android:fraction="0.78" android:value="1.02" />
+                    <keyframe android:fraction="0.98" android:value="0.3" />
+                    <keyframe android:fraction="1.00" android:value="0.25" />
+                </propertyValuesHolder>
+                <propertyValuesHolder android:propertyName="scaleY" android:valueType="floatType">
+                    <keyframe android:fraction="0.00" android:value="0.25" />
+                    <keyframe android:fraction="0.30" android:value="0.25" />
+                    <keyframe android:fraction="0.50" android:value="1.0" />
+                    <keyframe android:fraction="0.78" android:value="1.02" />
+                    <keyframe android:fraction="0.98" android:value="0.3" />
+                    <keyframe android:fraction="1.00" android:value="0.25" />
+                </propertyValuesHolder>
+            </objectAnimator>
+        </aapt:attr>
+    </target>
+    <target android:name="b6_path">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:duration="4600"
+                android:interpolator="@android:interpolator/linear"
+                android:repeatCount="infinite"
+                android:repeatMode="restart">
+                <propertyValuesHolder android:propertyName="fillAlpha" android:valueType="floatType">
+                    <keyframe android:fraction="0.00" android:value="0.0" />
+                    <keyframe android:fraction="0.30" android:value="0.0" />
+                    <keyframe android:fraction="0.46" android:value="0.72" />
+                    <keyframe android:fraction="0.76" android:value="0.60" />
+                    <keyframe android:fraction="0.98" android:value="0.0" />
+                    <keyframe android:fraction="1.00" android:value="0.0" />
+                </propertyValuesHolder>
+            </objectAnimator>
+        </aapt:attr>
+    </target>
+
+    <!-- Outer bubble 7 (3.9s, mid-upper tiny fizz) -->
+    <target android:name="b7_group">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:duration="3900"
+                android:interpolator="@android:interpolator/linear"
+                android:repeatCount="infinite"
+                android:repeatMode="restart">
+                <propertyValuesHolder android:propertyName="translateX" android:valueType="floatType">
+                    <keyframe android:fraction="0.00" android:value="9.1" />
+                    <keyframe android:fraction="0.05" android:value="9.1" />
+                    <keyframe android:fraction="0.38" android:value="14.2" />
+                    <keyframe android:fraction="0.64" android:value="17.2" />
+                    <keyframe android:fraction="0.80" android:value="16.4" />
+                    <keyframe android:fraction="1.00" android:value="9.1" />
+                </propertyValuesHolder>
+                <propertyValuesHolder android:propertyName="translateY" android:valueType="floatType">
+                    <keyframe android:fraction="0.00" android:value="64.0" />
+                    <keyframe android:fraction="0.05" android:value="64.0" />
+                    <keyframe android:fraction="0.42" android:value="42.0" />
+                    <keyframe android:fraction="0.80" android:value="20.0" />
+                    <keyframe android:fraction="1.00" android:value="64.0" />
+                </propertyValuesHolder>
+                <propertyValuesHolder android:propertyName="scaleX" android:valueType="floatType">
+                    <keyframe android:fraction="0.00" android:value="0.3" />
+                    <keyframe android:fraction="0.05" android:value="0.3" />
+                    <keyframe android:fraction="0.26" android:value="1.0" />
+                    <keyframe android:fraction="0.58" android:value="0.96" />
+                    <keyframe android:fraction="0.80" android:value="0.25" />
+                    <keyframe android:fraction="1.00" android:value="0.3" />
+                </propertyValuesHolder>
+                <propertyValuesHolder android:propertyName="scaleY" android:valueType="floatType">
+                    <keyframe android:fraction="0.00" android:value="0.3" />
+                    <keyframe android:fraction="0.05" android:value="0.3" />
+                    <keyframe android:fraction="0.26" android:value="1.0" />
+                    <keyframe android:fraction="0.58" android:value="0.96" />
+                    <keyframe android:fraction="0.80" android:value="0.25" />
+                    <keyframe android:fraction="1.00" android:value="0.3" />
+                </propertyValuesHolder>
+            </objectAnimator>
+        </aapt:attr>
+    </target>
+    <target android:name="b7_path">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:duration="3900"
+                android:interpolator="@android:interpolator/linear"
+                android:repeatCount="infinite"
+                android:repeatMode="restart">
+                <propertyValuesHolder android:propertyName="fillAlpha" android:valueType="floatType">
+                    <keyframe android:fraction="0.00" android:value="0.0" />
+                    <keyframe android:fraction="0.05" android:value="0.0" />
+                    <keyframe android:fraction="0.22" android:value="0.60" />
+                    <keyframe android:fraction="0.56" android:value="0.48" />
+                    <keyframe android:fraction="0.80" android:value="0.0" />
+                    <keyframe android:fraction="1.00" android:value="0.0" />
+                </propertyValuesHolder>
+            </objectAnimator>
+        </aapt:attr>
+    </target>
+
+    <!-- Inner shimmer bubble 1 (4.9s, lower) -->
+    <target android:name="i1_group">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:duration="4900"
+                android:interpolator="@android:interpolator/linear"
+                android:repeatCount="infinite"
+                android:repeatMode="restart">
+                <propertyValuesHolder android:propertyName="translateX" android:valueType="floatType">
+                    <keyframe android:fraction="0.00" android:value="4.2" />
+                    <keyframe android:fraction="0.45" android:value="5.6" />
+                    <keyframe android:fraction="0.85" android:value="4.8" />
+                    <keyframe android:fraction="1.00" android:value="4.2" />
+                </propertyValuesHolder>
+                <propertyValuesHolder android:propertyName="translateY" android:valueType="floatType">
+                    <keyframe android:fraction="0.00" android:value="112.0" />
+                    <keyframe android:fraction="0.05" android:value="112.0" />
+                    <keyframe android:fraction="0.85" android:value="62.0" />
+                    <keyframe android:fraction="1.00" android:value="112.0" />
+                </propertyValuesHolder>
+                <propertyValuesHolder android:propertyName="scaleX" android:valueType="floatType">
+                    <keyframe android:fraction="0.00" android:value="0.4" />
+                    <keyframe android:fraction="0.30" android:value="1.0" />
+                    <keyframe android:fraction="0.85" android:value="0.5" />
+                    <keyframe android:fraction="1.00" android:value="0.4" />
+                </propertyValuesHolder>
+                <propertyValuesHolder android:propertyName="scaleY" android:valueType="floatType">
+                    <keyframe android:fraction="0.00" android:value="0.4" />
+                    <keyframe android:fraction="0.30" android:value="1.0" />
+                    <keyframe android:fraction="0.85" android:value="0.5" />
+                    <keyframe android:fraction="1.00" android:value="0.4" />
+                </propertyValuesHolder>
+            </objectAnimator>
+        </aapt:attr>
+    </target>
+    <target android:name="i1_path">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:duration="4900"
+                android:interpolator="@android:interpolator/linear"
+                android:repeatCount="infinite"
+                android:repeatMode="restart">
+                <propertyValuesHolder android:propertyName="fillAlpha" android:valueType="floatType">
+                    <keyframe android:fraction="0.00" android:value="0.0" />
+                    <keyframe android:fraction="0.05" android:value="0.0" />
+                    <keyframe android:fraction="0.28" android:value="0.26" />
+                    <keyframe android:fraction="0.62" android:value="0.20" />
+                    <keyframe android:fraction="0.85" android:value="0.0" />
+                    <keyframe android:fraction="1.00" android:value="0.0" />
+                </propertyValuesHolder>
+            </objectAnimator>
+        </aapt:attr>
+    </target>
+
+    <!-- Inner shimmer bubble 2 (4.1s, mid) -->
+    <target android:name="i2_group">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:duration="4100"
+                android:interpolator="@android:interpolator/linear"
+                android:repeatCount="infinite"
+                android:repeatMode="restart">
+                <propertyValuesHolder android:propertyName="translateX" android:valueType="floatType">
+                    <keyframe android:fraction="0.00" android:value="3.2" />
+                    <keyframe android:fraction="0.20" android:value="3.2" />
+                    <keyframe android:fraction="0.60" android:value="4.8" />
+                    <keyframe android:fraction="0.95" android:value="3.9" />
+                    <keyframe android:fraction="1.00" android:value="3.2" />
+                </propertyValuesHolder>
+                <propertyValuesHolder android:propertyName="translateY" android:valueType="floatType">
+                    <keyframe android:fraction="0.00" android:value="76.0" />
+                    <keyframe android:fraction="0.20" android:value="76.0" />
+                    <keyframe android:fraction="0.95" android:value="28.0" />
+                    <keyframe android:fraction="1.00" android:value="76.0" />
+                </propertyValuesHolder>
+                <propertyValuesHolder android:propertyName="scaleX" android:valueType="floatType">
+                    <keyframe android:fraction="0.00" android:value="0.4" />
+                    <keyframe android:fraction="0.20" android:value="0.4" />
+                    <keyframe android:fraction="0.48" android:value="1.0" />
+                    <keyframe android:fraction="0.95" android:value="0.45" />
+                    <keyframe android:fraction="1.00" android:value="0.4" />
+                </propertyValuesHolder>
+                <propertyValuesHolder android:propertyName="scaleY" android:valueType="floatType">
+                    <keyframe android:fraction="0.00" android:value="0.4" />
+                    <keyframe android:fraction="0.20" android:value="0.4" />
+                    <keyframe android:fraction="0.48" android:value="1.0" />
+                    <keyframe android:fraction="0.95" android:value="0.45" />
+                    <keyframe android:fraction="1.00" android:value="0.4" />
+                </propertyValuesHolder>
+            </objectAnimator>
+        </aapt:attr>
+    </target>
+    <target android:name="i2_path">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:duration="4100"
+                android:interpolator="@android:interpolator/linear"
+                android:repeatCount="infinite"
+                android:repeatMode="restart">
+                <propertyValuesHolder android:propertyName="fillAlpha" android:valueType="floatType">
+                    <keyframe android:fraction="0.00" android:value="0.0" />
+                    <keyframe android:fraction="0.20" android:value="0.0" />
+                    <keyframe android:fraction="0.42" android:value="0.22" />
+                    <keyframe android:fraction="0.74" android:value="0.18" />
+                    <keyframe android:fraction="0.95" android:value="0.0" />
+                    <keyframe android:fraction="1.00" android:value="0.0" />
+                </propertyValuesHolder>
+            </objectAnimator>
+        </aapt:attr>
+    </target>
+
+    <!-- Inner shimmer bubble 3 (5.5s, upper) -->
+    <target android:name="i3_group">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:duration="5500"
+                android:interpolator="@android:interpolator/linear"
+                android:repeatCount="infinite"
+                android:repeatMode="restart">
+                <propertyValuesHolder android:propertyName="translateX" android:valueType="floatType">
+                    <keyframe android:fraction="0.00" android:value="5.0" />
+                    <keyframe android:fraction="0.10" android:value="5.0" />
+                    <keyframe android:fraction="0.50" android:value="3.6" />
+                    <keyframe android:fraction="0.88" android:value="4.6" />
+                    <keyframe android:fraction="1.00" android:value="5.0" />
+                </propertyValuesHolder>
+                <propertyValuesHolder android:propertyName="translateY" android:valueType="floatType">
+                    <keyframe android:fraction="0.00" android:value="48.0" />
+                    <keyframe android:fraction="0.10" android:value="48.0" />
+                    <keyframe android:fraction="0.88" android:value="4.0" />
+                    <keyframe android:fraction="1.00" android:value="48.0" />
+                </propertyValuesHolder>
+                <propertyValuesHolder android:propertyName="scaleX" android:valueType="floatType">
+                    <keyframe android:fraction="0.00" android:value="0.4" />
+                    <keyframe android:fraction="0.10" android:value="0.4" />
+                    <keyframe android:fraction="0.38" android:value="1.0" />
+                    <keyframe android:fraction="0.88" android:value="0.45" />
+                    <keyframe android:fraction="1.00" android:value="0.4" />
+                </propertyValuesHolder>
+                <propertyValuesHolder android:propertyName="scaleY" android:valueType="floatType">
+                    <keyframe android:fraction="0.00" android:value="0.4" />
+                    <keyframe android:fraction="0.10" android:value="0.4" />
+                    <keyframe android:fraction="0.38" android:value="1.0" />
+                    <keyframe android:fraction="0.88" android:value="0.45" />
+                    <keyframe android:fraction="1.00" android:value="0.4" />
+                </propertyValuesHolder>
+            </objectAnimator>
+        </aapt:attr>
+    </target>
+    <target android:name="i3_path">
+        <aapt:attr name="android:animation">
+            <objectAnimator
+                android:duration="5500"
+                android:interpolator="@android:interpolator/linear"
+                android:repeatCount="infinite"
+                android:repeatMode="restart">
+                <propertyValuesHolder android:propertyName="fillAlpha" android:valueType="floatType">
+                    <keyframe android:fraction="0.00" android:value="0.0" />
+                    <keyframe android:fraction="0.10" android:value="0.0" />
+                    <keyframe android:fraction="0.32" android:value="0.24" />
+                    <keyframe android:fraction="0.66" android:value="0.18" />
+                    <keyframe android:fraction="0.88" android:value="0.0" />
+                    <keyframe android:fraction="1.00" android:value="0.0" />
+                </propertyValuesHolder>
+            </objectAnimator>
+        </aapt:attr>
+    </target>
+</animated-vector>

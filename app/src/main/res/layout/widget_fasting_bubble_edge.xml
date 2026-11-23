@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Hosts the fill's constant bubbling liquid edge in FastingWidget. A ProgressBar because it's
+     one of the few RemoteViews-safe views that automatically starts an Animatable drawable and
+     keeps it running while visible. The default ProgressBar style caps it at 48dp, so the size
+     limits are lifted to let it span the widget's height, and indeterminateOnly stays false so
+     the vector stretches to fill the strip rather than centring at its intrinsic 120dp height. -->
+<ProgressBar xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/fasting_bubble_edge"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:importantForAccessibility="no"
+    android:indeterminate="true"
+    android:indeterminateDrawable="@drawable/widget_fasting_bubbles"
+    android:indeterminateOnly="false"
+    android:maxWidth="2000dp"
+    android:maxHeight="2000dp"
+    android:minWidth="0dp"
+    android:minHeight="0dp" />
