@@ -24,8 +24,8 @@ Forked from GuyOnWifi/heartwood. GPL-3.0-or-later.
 ./gradlew :app:dependencies :wear:dependencies --write-locks   # after any dependency change
 ```
 
-- JDK 17, Gradle 9.9.2, AGP 9.5.2, compileSdk 37.2 (Compose 1.13 requires 37.1 or later), targetSdk 36,
-  minSdk 30.
+- JDK 17, Gradle 9.9.2, AGP 9.5.2, compileSdk 37.2 (Compose 1.13 requires 37.1 or later), targetSdk 37
+  (the watch: 36), minSdk 30.
 - **The only unit tests cover the widgets** (`app/src/test/.../widget/`): Glance's
   `glance-appwidget-testing` renders `FastingContent` / `WidgetContent` at given sizes under
   Robolectric (with a plain `Application`, since `SustenanceApp.onCreate` needs WorkManager) and
