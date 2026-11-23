@@ -43,6 +43,8 @@ import androidx.compose.material.icons.rounded.FileUpload
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FloatingToolbarDefaults
+import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.HorizontalFloatingToolbar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -97,6 +99,9 @@ private val ToolbarItemSpacing = 4.dp
 // level 0, which leaves the bar flat against the cards scrolling under it.
 private val ToolbarElevation = 6.dp
 private val ToolbarScreenOffset = 16.dp
+// The glass bar's wash of its container colour: Lexeme's scallop strength, enough to draw the
+// pill's edge over tiles of the same grey without hiding the blurred colour beneath.
+private const val ToolbarGlassTint = 0.5f
 
 // How far a toolbar item squishes while held. Released, the fast spatial spring overshoots back.
 private const val PressedScale = 0.88f
@@ -216,11 +221,30 @@ fun ExpressiveNavigationBar(
         )
 
         // Always expanded: the bar holds top-level navigation, so it never collapses on scroll.
-        // Shape, colors, height and padding are the component's spec defaults.
+        // Shape, height and padding are the component's spec defaults.
+        val toolbarContainer = FloatingToolbarDefaults.standardFloatingToolbarColors().toolbarContainerColor
         HorizontalFloatingToolbar(
             expanded = true,
-            expandedShadowElevation = ToolbarElevation,
-            modifier = Modifier.animateContentSize(ExpressiveSprings.defaultSpatial()),
+            // Frosted glass on Android 17 QPR2, as Nickel's and Lexeme's scallops are: the cards
+            // scrolling under the bar blur through a wash of its usual container colour. The
+            // shadow goes with it, since it would smudge through a see-through surface. Older
+            // devices keep the solid, raised bar.
+            colors = FloatingToolbarDefaults.standardFloatingToolbarColors(
+                toolbarContainerColor = if (GlassSupported) Color.Transparent else toolbarContainer,
+            ),
+            expandedShadowElevation = if (GlassSupported) 0.dp else ToolbarElevation,
+            modifier = Modifier
+                .animateContentSize(ExpressiveSprings.defaultSpatial())
+                .then(
+                    if (GlassSupported) {
+                        Modifier.glass(
+                            shape = FloatingToolbarDefaults.ContainerShape,
+                            tint = toolbarContainer.copy(alpha = ToolbarGlassTint),
+                        )
+                    } else {
+                        Modifier
+                    }
+                ),
         ) {
             // The toolbar's own content Row has no item spacing.
             Row(
