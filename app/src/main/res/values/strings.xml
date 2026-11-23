@@ -92,10 +92,11 @@
 
     <string name="settings_subtitle">Helpful adjustments</string>
     <string name="settings_title">Settings</string>
-    <string name="section_appearance">Customization</string>
-    <string name="section_diet">Diet</string>
-    <string name="section_ai">AI</string>
-    <string name="section_data">Data</string>
+    <string name="section_goals">Goals</string>
+    <string name="section_logging">Logging</string>
+    <string name="section_fasting">Fasting</string>
+    <string name="section_gemini">Gemini</string>
+    <string name="section_app">App</string>
     <string name="section_about">About</string>
     <string name="dynamic_color">Dynamic color</string>
     <string name="dynamic_color_summary">Match your wallpaper colors (Android 12+)</string>

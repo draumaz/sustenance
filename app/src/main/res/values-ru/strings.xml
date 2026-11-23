@@ -90,10 +90,11 @@
 
     <string name="settings_subtitle">Полезные настройки</string>
     <string name="settings_title">Настройки</string>
-    <string name="section_appearance">Персонализация</string>
-    <string name="section_diet">Диета</string>
-    <string name="section_ai">ИИ</string>
-    <string name="section_data">Данные</string>
+    <string name="section_goals">Цели</string>
+    <string name="section_logging">Запись еды</string>
+    <string name="section_fasting">Голодание</string>
+    <string name="section_gemini">Gemini</string>
+    <string name="section_app">Приложение</string>
     <string name="section_about">О приложении</string>
     <string name="dynamic_color">Динамические цвета</string>
     <string name="dynamic_color_summary">Использовать цвета системных обоев (Android 12+)</string>
