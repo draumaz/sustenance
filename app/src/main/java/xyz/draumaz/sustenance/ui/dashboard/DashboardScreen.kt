@@ -126,6 +126,11 @@ fun DashboardScreen(
     onDateChanged: (Int) -> Unit = {},
     /** The metric open in the detail pane beside the dashboard, on two-pane layouts. */
     selectedMetric: Metric? = null,
+    /**
+     * Tablet spacing: fixed gaps between sections and more room above the bar. The phone's
+     * SpaceBetween only spreads leftover height, so sections touch once the list overflows.
+     */
+    roomy: Boolean = false,
 ) {
     val context = LocalContext.current
     val app = context.applicationContext as xyz.draumaz.sustenance.SustenanceApp
@@ -389,9 +394,9 @@ fun DashboardScreen(
                                 contentPadding = PaddingValues(
                                     start = 16.dp + gutter, end = 16.dp + gutter,
                                     top = inner.calculateTopPadding() + 3.dp,
-                                    bottom = bottomInset + 16.dp,
+                                    bottom = bottomInset + if (roomy) 32.dp else 16.dp,
                                 ),
-                                verticalArrangement = Arrangement.SpaceBetween,
+                                verticalArrangement = if (roomy) Arrangement.spacedBy(8.dp) else Arrangement.SpaceBetween,
                             ) {
                                 if (energyGroup.isNotEmpty() || foodGroup.isNotEmpty() || lastLogTimerEnabled) {
                                     item {

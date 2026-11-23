@@ -17,6 +17,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerEventType
 import xyz.draumaz.sustenance.ui.components.ExpressiveSprings
+import xyz.draumaz.sustenance.ui.components.PaneMargin
 import xyz.draumaz.sustenance.ui.components.Panes
 import xyz.draumaz.sustenance.ui.components.rememberPaneSplit
 import androidx.compose.material.icons.Icons
@@ -734,6 +735,7 @@ private fun MainNav(
                             bottomInset = if (split?.stacked == true) 0.dp else inner.calculateBottomPadding(),
                             todayClickCount = todayClickCount,
                             selectedMetric = selectedMetric.takeIf { split != null },
+                            roomy = split != null,
                             onOpenMetric = { metric, _ -> openMetric(metric) },
                             onTimerClick = {
                                 navController.navigate("settings?scrollTo=fasting")
@@ -1081,8 +1083,26 @@ private fun SplitWithDetail(
     }
     Panes(
         split = split,
-        start = { Box(Modifier.fillMaxSize().onPointerStart { onTouch(false) }) { list() } },
-        end = { Box(Modifier.fillMaxSize().onPointerStart { onTouch(true) }) { detail() } },
+        // Margins on the window's outer edges (and the top, unless the pane starts below a
+        // hinge): the gap between the panes already has each screen's own 16dp on both sides.
+        start = {
+            Box(
+                Modifier.fillMaxSize()
+                    .padding(start = PaneMargin, top = PaneMargin, end = if (split.stacked) PaneMargin else 0.dp)
+                    .onPointerStart { onTouch(false) }
+            ) { list() }
+        },
+        end = {
+            Box(
+                Modifier.fillMaxSize()
+                    .padding(
+                        start = if (split.stacked) PaneMargin else 0.dp,
+                        top = if (split.stacked) 0.dp else PaneMargin,
+                        end = PaneMargin,
+                    )
+                    .onPointerStart { onTouch(true) }
+            ) { detail() }
+        },
     )
 }
 

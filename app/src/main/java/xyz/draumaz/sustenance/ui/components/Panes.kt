@@ -137,6 +137,12 @@ fun Panes(
     }
 }
 
+/**
+ * Extra room around split panes, on top of the 16dp the screens already leave: phone margins
+ * read as cramped on a tablet, so the outer edges get 24dp and the top clears the window edge.
+ */
+val PaneMargin = 8.dp
+
 /** The widest a single column of cards and rows should run before lines get hard to follow. */
 val ReadableWidth = 720.dp
 
