@@ -1,0 +1,4 @@
+* New Wear OS companion: today's nutrition on your watch, plus a six-macro tile. Tap a cell to jump to that metric
+* New fasting timer widget that fills in towards your fasting goal
+* Both widgets get a roomier layout at large sizes and on the lock screen
+* Background refreshes no longer get stuck retrying when Health Connect refuses a background read
