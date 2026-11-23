@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -147,12 +148,16 @@ fun SettingsScreen(
     val split = rememberPaneSplit()
 
     val pageScroll = rememberScrollState()
-    // Where the fasting section starts within its column on a two-column page; -1 until placed.
+    // A split side by side lays settings out on Today's grid (see below); otherwise an expanded
+    // window gets two centred columns. Either way the page is one non-lazy scroll.
+    val sideBySide = split?.takeIf { !it.stacked }
+    val multiColumn = twoColumns || sideBySide != null
+    // Where the fasting section starts within its column on a multi-column page; -1 until placed.
     var fastingTop by remember { mutableIntStateOf(-1) }
 
-    LaunchedEffect(scrollTo, goalSetupDeferred, twoColumns, fastingTop) {
+    LaunchedEffect(scrollTo, goalSetupDeferred, multiColumn, fastingTop) {
         if (scrollTo != "fasting") return@LaunchedEffect
-        if (twoColumns) {
+        if (multiColumn) {
             if (fastingTop >= 0) pageScroll.animateScrollTo(fastingTop)
         } else {
             // Fasting follows goals and logging, one item lower again while the goal setup
@@ -673,18 +678,68 @@ fun SettingsScreen(
     ) { inner ->
         val top = inner.calculateTopPadding() + 16.dp
         val bottom = bottomInset + 100.dp
-        if (twoColumns) {
+        val fasting: @Composable () -> Unit = {
+            SettingsColumn(Modifier.onPlaced { fastingTop = it.positionInParent().y.roundToInt() }) {
+                fastingSection()
+            }
+        }
+        val pageModifier = Modifier
+            .fillMaxSize()
+            // Shrink above the keyboard so focused fields can scroll into view (adjustResize).
+            .imePadding()
+            .nestedScroll(scrollBehavior.nestedScrollConnection)
+            .verticalScroll(pageScroll)
+        if (sideBySide != null) {
+            // Today's grid: the first column sits exactly where the dashboard does, under the
+            // header and inside the same margins, and the rest share the detail pane's width. So
+            // switching between the two tabs moves nothing that both of them show.
+            BoxWithConstraints(Modifier.fillMaxSize()) {
+                val rest = maxWidth - sideBySide.start - sideBySide.gap - PaneMargin - 32.dp
+                val threeColumns = rest >= ThreeColumnRestWidth
+                Row(pageModifier.padding(top = top, bottom = bottom)) {
+                    SettingsColumn(
+                        Modifier
+                            .width(sideBySide.start)
+                            .padding(start = PaneMargin + 16.dp, end = 16.dp)
+                    ) {
+                        goalPrompt()
+                        goalsSection()
+                        // Three columns pair the targets (goals, fasting) and the ways food gets
+                        // in (logging, Gemini); two keep what the app tracks on the left.
+                        if (threeColumns) fasting() else { loggingSection(); fasting() }
+                    }
+                    Spacer(Modifier.width(sideBySide.gap))
+                    Row(
+                        Modifier
+                            .weight(1f)
+                            .padding(start = 16.dp, end = PaneMargin + 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    ) {
+                        if (threeColumns) {
+                            SettingsColumn(Modifier.weight(1f)) {
+                                loggingSection()
+                                geminiSection()
+                            }
+                            SettingsColumn(Modifier.weight(1f)) {
+                                appSection()
+                                aboutSection()
+                            }
+                        } else {
+                            SettingsColumn(Modifier.weight(1f)) {
+                                geminiSection()
+                                appSection()
+                                aboutSection()
+                            }
+                        }
+                    }
+                }
+            }
+        } else if (twoColumns) {
             // Both columns ride one scroll, so the page reads and pulls down as a whole; capped so
             // a very wide window doesn't stretch the rows' switches away from their labels.
             ReadableGutter(max = TwoColumnWidth) { gutter ->
                 Row(
-                    Modifier
-                        .fillMaxSize()
-                        // Shrink above the keyboard so focused fields can scroll into view (adjustResize).
-                        .imePadding()
-                        .nestedScroll(scrollBehavior.nestedScrollConnection)
-                        .verticalScroll(pageScroll)
-                        .padding(start = 16.dp + gutter, end = 16.dp + gutter, top = top, bottom = bottom),
+                    pageModifier.padding(start = 16.dp + gutter, end = 16.dp + gutter, top = top, bottom = bottom),
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
                     // What the app tracks and how logging behaves on the left; what it's connected
@@ -693,9 +748,7 @@ fun SettingsScreen(
                         goalPrompt()
                         goalsSection()
                         loggingSection()
-                        SettingsColumn(Modifier.onPlaced { fastingTop = it.positionInParent().y.roundToInt() }) {
-                            fastingSection()
-                        }
+                        fasting()
                     }
                     SettingsColumn(Modifier.weight(1f)) {
                         geminiSection()
@@ -727,6 +780,9 @@ fun SettingsScreen(
         }
     }
 }
+
+/** Room beside the dashboard-width column for two more columns of comfortable rows. */
+private val ThreeColumnRestWidth = 816.dp
 
 /** Two columns stop growing here: each then runs about as wide as the phone list's cap. */
 private val TwoColumnWidth = 1280.dp
