@@ -55,7 +55,7 @@ import java.util.Locale
 import kotlin.math.abs
 
 /** What the fasting widget needs to draw; [lastLog] null means unknown or nothing logged. */
-private data class FastState(val lastLog: Instant?, val goalHours: Float, val now: Instant) {
+internal data class FastState(val lastLog: Instant?, val goalHours: Float, val now: Instant) {
     val elapsed: Duration get() = lastLog?.let { Duration.between(it, now).coerceAtLeast(Duration.ZERO) } ?: Duration.ZERO
     val progress: Float
         get() = if (lastLog == null || goalHours <= 0f) 0f
@@ -92,8 +92,9 @@ class FastingWidget : GlanceAppWidget() {
     }
 }
 
+/** Internal so tests can render it at a given size without Health Connect. */
 @Composable
-private fun FastingContent(state: FastState) {
+internal fun FastingContent(state: FastState) {
     val context = LocalContext.current
     val size = LocalSize.current
     val textColor = context.dayNight(R.color.widget_fasting_text)
@@ -261,7 +262,7 @@ private fun Context.dayNight(@ColorRes id: Int): GlanceColor {
  * ([days]) and [scheduleDayRollover] re-renders at the next day boundary. Works in whole minutes:
  * the minute flips with the wall clock, so it can read up to a minute short.
  */
-private class ElapsedClock(val days: Long, val timeZoneId: String) {
+internal class ElapsedClock(val days: Long, val timeZoneId: String) {
     companion object {
         fun of(lastLog: Instant?, now: Instant): ElapsedClock {
             val nowMinute = Math.floorDiv(now.epochSecond, 60L)

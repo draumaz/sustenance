@@ -81,6 +81,10 @@ android {
         compose = true
         buildConfig = true
     }
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+    }
+
     packaging {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
@@ -126,4 +130,11 @@ dependencies {
     // Pushes today's summary to the Wear OS companion (`:wear`) over the Data Layer.
     implementation(libs.play.services.wearable)
     implementation(libs.kotlinx.coroutines.play.services)
+
+    // Widget layout tests: Glance renders content at a given size on the JVM, and Robolectric
+    // supplies the resources (strings, colors) the widgets read.
+    testImplementation(libs.junit)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
+    testImplementation(libs.androidx.glance.appwidget.testing)
 }

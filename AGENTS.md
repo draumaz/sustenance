@@ -19,14 +19,19 @@ Forked from GuyOnWifi/heartwood. GPL-3.0-or-later.
 ## Commands and verification
 
 ```bash
-./gradlew :app:assembleDebug :app:lintDebug :wear:assembleDebug :wear:lintDebug   # run before every push
+./gradlew :app:assembleDebug :app:lintDebug :wear:assembleDebug :wear:lintDebug :app:testDebugUnitTest   # run before every push
 ./gradlew :app:assembleRelease                # unsigned unless signing is configured
 ./gradlew :app:dependencies :wear:dependencies --write-locks   # after any dependency change
 ```
 
 - JDK 17, Gradle 9.8.2, AGP 9.5.0, compileSdk 37 (Compose 1.12 requires it), targetSdk 36, minSdk 30.
-- **There are no unit or instrumented tests.** "Done" means build + lint pass, and for behavior
-  changes, the debug build checked on a device:
+- **The only unit tests cover the widgets** (`app/src/test/.../widget/`): Glance's
+  `glance-appwidget-testing` renders `FastingContent` / `WidgetContent` at given sizes under
+  Robolectric (with a plain `Application`, since `SustenanceApp.onCreate` needs WorkManager) and
+  asserts which layout each size gets, plus plain JUnit checks of the fasting clock's time-zone
+  maths. They check structure, not pixels: RemoteViews inflation problems (e.g. a `View` in a
+  preview layout) only show up on a device. There are no instrumented tests. "Done" means build
+  + lint + unit tests pass, and for behavior changes, the debug build checked on a device:
   ```bash
   adb install -r app/build/outputs/apk/debug/*.apk
   adb shell am start -n xyz.draumaz.sustenance.debug/xyz.draumaz.sustenance.MainActivity

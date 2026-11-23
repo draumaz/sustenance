@@ -89,8 +89,9 @@ class SustenanceWidget : GlanceAppWidget() {
     }
 }
 
+/** Internal so tests can render it at a given size without Health Connect. */
 @Composable
-private fun WidgetContent(tiles: List<MetricSummary>) {
+internal fun WidgetContent(tiles: List<MetricSummary>) {
     val context = LocalContext.current
     val size = LocalSize.current
     // Large hosts (the lock-screen hub, 4x2+ home-screen placements) give each tile ~70dp of
