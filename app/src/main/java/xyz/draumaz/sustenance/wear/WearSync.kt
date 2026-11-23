@@ -13,6 +13,7 @@ import org.json.JSONObject
 import xyz.draumaz.sustenance.SustenanceApp
 import xyz.draumaz.sustenance.data.Metric
 import xyz.draumaz.sustenance.data.MetricSummary
+import xyz.draumaz.sustenance.util.runCatchingCancellable
 import java.time.LocalDate
 
 /**
@@ -39,8 +40,12 @@ object WearSync {
         if (!manager.isAvailable) return
         val goals = app.goals.goals.first()
         val isKeto = app.settings.ketoMode.first()
-        // Same derived food goal the dashboard and widget show when a balance goal is set.
-        val foodGoal = manager.foodGoalForBalance(goals[Metric.CALORIC_BALANCE] ?: 0f, 0)
+        // Same derived food goal the dashboard and widget show when a balance goal is set. Unlike
+        // readDashboard this read throws (e.g. SecurityException without the background
+        // permission), and an exception here would fail the whole widget worker into retries.
+        val foodGoal = runCatchingCancellable {
+            manager.foodGoalForBalance(goals[Metric.CALORIC_BALANCE] ?: 0f, 0)
+        }.getOrNull()
         val finalGoals = if (foodGoal != null) goals + (Metric.FOOD to foodGoal) else goals
         push(context, manager.readDashboard(goals = finalGoals, isKeto = isKeto))
     }
