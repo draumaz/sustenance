@@ -48,6 +48,8 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateIntAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.FastOutLinearInEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -73,6 +75,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeoutOrNull
+import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.math.roundToInt
@@ -1153,26 +1157,66 @@ private fun MetricDetailPane(
     onReLog: (FoodNutrients) -> Unit,
     onManagePermissions: () -> Unit,
 ) {
+    // Keep the current detail on screen until the tapped one has its data, so the pane goes
+    // straight from one filled detail to the next instead of through a spinner and a pop-in.
+    // The view model made here is the one DetailScreen gets: same owner, same key.
+    val requested = metric to dateOffset
+    var shown by remember { mutableStateOf(requested) }
+    val incoming: DetailViewModel = viewModel(
+        key = "${metric.key}_$dateOffset",
+        factory = DetailViewModel.factory(manager, goalsRepo, metric, dateOffset),
+    )
+    LaunchedEffect(requested) {
+        if (requested == shown) return@LaunchedEffect
+        // A slow Health Connect read still switches soon, to the spinner, so a tap never
+        // feels ignored.
+        withTimeoutOrNull(DetailHoldMillis) { incoming.detail.first { it != null } }
+        shown = requested
+    }
+    val slide = with(LocalDensity.current) { DetailSlide.roundToPx() }
     AnimatedContent(
-        targetState = metric,
+        targetState = shown,
         transitionSpec = {
-            (fadeIn(ExpressiveSprings.defaultEffects()) +
-                scaleIn(ExpressiveSprings.defaultSpatial(), initialScale = 0.96f))
-                .togetherWith(fadeOut(ExpressiveSprings.defaultEffects()))
+            // From below for a metric further down the dashboard (or a later day, which comes
+            // up as the pull to the previous one comes down), from above for the reverse.
+            val (fromMetric, fromDay) = initialState
+            val (toMetric, toDay) = targetState
+            val down = if (toMetric != fromMetric) toMetric.ordinal > fromMetric.ordinal else toDay < fromDay
+            val dir = if (down) 1 else -1
+            // Material's fade through: the old detail is gone before the new one starts to
+            // appear, so two details' charts and numbers never show misaligned on top of each
+            // other, and the new one fades in over its slide so it's opaque as it lands.
+            (fadeIn(tween(DetailFadeInMillis, delayMillis = DetailFadeOutMillis, easing = LinearOutSlowInEasing)) +
+                slideInVertically(spring(DetailSwapDamping, DetailSwapStiffness)) { dir * slide })
+                .togetherWith(fadeOut(tween(DetailFadeOutMillis, easing = FastOutLinearInEasing)))
         },
         label = "detail_pane",
-    ) { shown ->
+    ) { (shownMetric, shownDay) ->
         DetailScreen(
             manager = manager,
             goalsRepo = goalsRepo,
-            metric = shown,
-            dateOffset = dateOffset,
+            metric = shownMetric,
+            dateOffset = shownDay,
             onReLog = onReLog,
             onManagePermissions = onManagePermissions,
             onBack = null,
         )
     }
 }
+
+/** The longest the pane keeps the previous detail while the next one loads. */
+private const val DetailHoldMillis = 600L
+
+/** How far a detail travels as it swaps in: enough to read as direction, not as a page turn. */
+private val DetailSlide = 32.dp
+
+/** The incoming detail's slide: no overshoot, settled in about a quarter second. */
+private const val DetailSwapDamping = 1f
+private const val DetailSwapStiffness = 700f
+
+/** Fade-through timings (Material's 90 out, then 210 in). */
+private const val DetailFadeOutMillis = 90
+private const val DetailFadeInMillis = 210
 
 /*
  * Today's and Insights' transitions around a metric's detail. On a phone the tapped tile flies

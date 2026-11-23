@@ -237,9 +237,11 @@ fun DetailScreen(
     ) {
         // A pane this wide (a big tablet or a desktop window beside the dashboard) splits into
         // the summary and the lists instead of centring one narrow column in a sea of margin.
+        // Assumed two-column until the data says there are no lists, so a loading pane doesn't
+        // lay out centred and then snap wide (title and all) as the data lands.
         val d0 = detail
-        val twoColumns = maxWidth >= TwoColumnMinWidth && d0 != null &&
-            (d0.todaySections.isNotEmpty() || d0.recent.isNotEmpty())
+        val twoColumns = maxWidth >= TwoColumnMinWidth &&
+            (d0 == null || d0.todaySections.isNotEmpty() || d0.recent.isNotEmpty())
         val gutter = ((maxWidth - if (twoColumns) TwoColumnMaxWidth else ReadableWidth) / 2).coerceAtLeast(0.dp)
         Scaffold(
             modifier = Modifier.fillMaxSize(),
