@@ -20,7 +20,9 @@ val hasSigning = signingValue("storeFile", "SUSTENANCE_STORE_FILE") != null
 
 android {
     namespace = "xyz.draumaz.sustenance.wear"
-    compileSdk = 37
+    compileSdk {
+        version = release(37) { minorApiLevel = 2 }
+    }
 
     defaultConfig {
         // Must match the phone app's applicationId (and signing key): the Data Layer only
