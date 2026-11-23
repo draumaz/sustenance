@@ -97,6 +97,7 @@ import xyz.draumaz.sustenance.data.RecordRow
 import xyz.draumaz.sustenance.ui.DetailViewModel
 import xyz.draumaz.sustenance.util.FoodNutrients
 import xyz.draumaz.sustenance.ui.components.LineChart
+import xyz.draumaz.sustenance.ui.components.ReadableGutter
 import androidx.compose.foundation.layout.width
 import androidx.compose.ui.text.style.TextOverflow
 import xyz.draumaz.sustenance.ui.components.NutrientIconList
@@ -112,7 +113,8 @@ fun DetailScreen(
     dateOffset: Int = 0,
     onReLog: (FoodNutrients) -> Unit = {},
     onManagePermissions: () -> Unit = {},
-    onBack: () -> Unit,
+    /** Null in the detail pane beside the dashboard, which has nowhere to go back to. */
+    onBack: (() -> Unit)?,
 ) {
     val context = LocalContext.current
     val vm: DetailViewModel = viewModel(
@@ -236,8 +238,10 @@ fun DetailScreen(
                         )
                     },
                     navigationIcon = {
-                        IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.back))
+                        if (onBack != null) {
+                            IconButton(onClick = onBack) {
+                                Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = stringResource(R.string.back))
+                            }
                         }
                     },
                     colors = TopAppBarDefaults.topAppBarColors(
@@ -277,11 +281,12 @@ fun DetailScreen(
                 },
                 modifier = Modifier.fillMaxSize()
             ) {
+                ReadableGutter { gutter ->
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(
-                        start = 16.dp,
-                        end = 16.dp,
+                        start = 16.dp + gutter,
+                        end = 16.dp + gutter,
                         top = inner.calculateTopPadding() + 16.dp,
                         bottom = 16.dp
                     ),
@@ -317,6 +322,7 @@ fun DetailScreen(
                         items(d.recent) { row -> RecordItem(row) }
                         item { Spacer(Modifier.height(100.dp)) } // Leave room for nav pill
                     }
+                }
                 }
             }
         }

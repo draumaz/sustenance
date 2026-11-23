@@ -59,6 +59,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.res.stringResource
 import android.view.HapticFeedbackConstants
 import xyz.draumaz.sustenance.R
+import xyz.draumaz.sustenance.ui.components.selectionBorder
+import xyz.draumaz.sustenance.ui.components.ReadableGutter
 import xyz.draumaz.sustenance.data.GoalsRepository
 import xyz.draumaz.sustenance.data.HealthConnectManager
 import xyz.draumaz.sustenance.data.SettingsRepository
@@ -97,6 +99,8 @@ fun InsightsScreen(
     bottomInset: androidx.compose.ui.unit.Dp,
     onOpenMetric: (Metric) -> Unit,
     onBack: () -> Unit = {},
+    /** The metric open in the detail pane beside this list, on two-pane layouts. */
+    selectedMetric: Metric? = null,
 ) {
     val vm: InsightsViewModel = viewModel(factory = InsightsViewModel.factory(manager, goalsRepo, settingsRepo))
     val state by vm.state.collectAsStateWithLifecycle()
@@ -186,12 +190,13 @@ fun InsightsScreen(
             },
             modifier = Modifier.fillMaxSize(),
         ) {
+            ReadableGutter { gutter ->
             LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize().nestedScroll(scrollBehavior.nestedScrollConnection),
                 contentPadding = PaddingValues(
-                    start = 16.dp,
-                    end = 16.dp,
+                    start = 16.dp + gutter,
+                    end = 16.dp + gutter,
                     top = inner.calculateTopPadding() + 16.dp,
                     bottom = bottomInset + 88.dp,
                 ),
@@ -223,10 +228,12 @@ fun InsightsScreen(
                             stat = stat,
                             onClick = { onOpenMetric(stat.metric) },
                             onEdit = { editing = stat },
-                            editEnabled = !(stat.metric == Metric.FOOD && programmedDeficit)
+                            editEnabled = !(stat.metric == Metric.FOOD && programmedDeficit),
+                            selected = stat.metric == selectedMetric,
                         )
                     }
                 }
+            }
             }
         }
     }
@@ -380,6 +387,7 @@ private fun InsightCard(
     onClick: () -> Unit,
     onEdit: () -> Unit,
     editEnabled: Boolean = true,
+    selected: Boolean = false,
 ) {
     val view = LocalView.current
     val currentVal = if (stat.metric == Metric.CALORIC_BALANCE) stat.todayValue.coerceAtLeast(0f) else stat.todayValue
@@ -405,6 +413,7 @@ private fun InsightCard(
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.extraLarge,
         colors = CardDefaults.cardColors(containerColor = accent.copy(alpha = 0.18f)),
+        border = selectionBorder(selected, accent),
     ) {
         Column(Modifier.padding(horizontal = 24.dp, vertical = 18.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {

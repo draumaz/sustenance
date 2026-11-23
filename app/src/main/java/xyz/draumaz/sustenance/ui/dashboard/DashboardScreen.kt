@@ -83,6 +83,7 @@ import xyz.draumaz.sustenance.data.GoalsRepository
 import xyz.draumaz.sustenance.data.MetricSummary
 import xyz.draumaz.sustenance.ui.DashboardViewModel
 import xyz.draumaz.sustenance.ui.components.MetricCard
+import xyz.draumaz.sustenance.ui.components.ReadableGutter
 import xyz.draumaz.sustenance.ui.components.ScallopedLoadingAnimation
 import xyz.draumaz.sustenance.ui.components.ExpressiveSprings
 import xyz.draumaz.sustenance.ui.components.PreviousDayPullIndicator
@@ -123,6 +124,8 @@ fun DashboardScreen(
     onManagePermissions: () -> Unit,
     onTimerClick: () -> Unit = {},
     onDateChanged: (Int) -> Unit = {},
+    /** The metric open in the detail pane beside the dashboard, on two-pane layouts. */
+    selectedMetric: Metric? = null,
 ) {
     val context = LocalContext.current
     val app = context.applicationContext as xyz.draumaz.sustenance.SustenanceApp
@@ -374,6 +377,7 @@ fun DashboardScreen(
                             val microsGroup = microMetrics.mapNotNull { m -> currentData.find { it.metric == m } }
                             val macrosGroup = currentData.filter { it.metric !in (energyMetrics + foodMetric + microMetrics) }
 
+                            ReadableGutter { gutter ->
                             LazyColumn(
                                 state = listState,
                                 modifier = Modifier
@@ -383,7 +387,7 @@ fun DashboardScreen(
                                         translationY = if (targetOffset == pullDay) -pullDistance else 0f
                                     },
                                 contentPadding = PaddingValues(
-                                    start = 16.dp, end = 16.dp,
+                                    start = 16.dp + gutter, end = 16.dp + gutter,
                                     top = inner.calculateTopPadding() + 3.dp,
                                     bottom = bottomInset + 16.dp,
                                 ),
@@ -397,10 +401,12 @@ fun DashboardScreen(
                                             columns = 2,
                                             onOpenMetric = { onOpenMetric(it, targetOffset) },
                                             onManagePermissions = onManagePermissions,
+                                            selectedMetric = selectedMetric,
                                             bottomContent = {
                                                 foodGroup.forEach { summary ->
                                                     MetricCard(
                                                         summary = summary,
+                                                        selected = summary.metric == selectedMetric,
                                                         onClick = {
                                                             if (summary.granted) {
                                                                 onOpenMetric(summary.metric, targetOffset)
@@ -431,7 +437,8 @@ fun DashboardScreen(
                                             items = macrosGroup,
                                             columns = 2,
                                             onOpenMetric = { onOpenMetric(it, targetOffset) },
-                                            onManagePermissions = onManagePermissions
+                                            onManagePermissions = onManagePermissions,
+                                            selectedMetric = selectedMetric
                                         )
                                     }
                                 }
@@ -442,10 +449,12 @@ fun DashboardScreen(
                                             items = microsGroup,
                                             columns = 1,
                                             onOpenMetric = { onOpenMetric(it, targetOffset) },
-                                            onManagePermissions = onManagePermissions
+                                            onManagePermissions = onManagePermissions,
+                                            selectedMetric = selectedMetric
                                         )
                                     }
                                 }
+                            }
                             }
                         }
                     PreviousDayPullIndicator(
@@ -494,6 +503,7 @@ private fun MetricSection(
     onOpenMetric: (Metric) -> Unit,
     onManagePermissions: () -> Unit,
     modifier: Modifier = Modifier,
+    selectedMetric: Metric? = null,
     extraContent: (@Composable () -> Unit)? = null,
     bottomContent: (@Composable ColumnScope.() -> Unit)? = null
 ) {
@@ -525,6 +535,7 @@ private fun MetricSection(
                         Box(Modifier.weight(1f)) {
                             MetricCard(
                                 summary = summary,
+                                selected = summary.metric == selectedMetric,
                                 onClick = {
                                     if (summary.granted) onOpenMetric(summary.metric) else onManagePermissions()
                                 }

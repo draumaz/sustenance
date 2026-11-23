@@ -16,6 +16,7 @@ datastore = "1.1.7"
 splashscreen = "1.0.1"
 camera = "1.6.1"
 generativeai = "0.9.0"
+window = "1.5.0"
 playServicesWearable = "20.0.1"
 wearCompose = "1.7.2"
 wearTiles = "1.6.2"
@@ -54,6 +55,7 @@ androidx-wear-compose-foundation = { group = "androidx.wear.compose", name = "co
 androidx-wear-tiles = { group = "androidx.wear.tiles", name = "tiles", version.ref = "wearTiles" }
 androidx-wear-protolayout = { group = "androidx.wear.protolayout", name = "protolayout", version.ref = "wearProtolayout" }
 androidx-wear-protolayout-material3 = { group = "androidx.wear.protolayout", name = "protolayout-material3", version.ref = "wearProtolayout" }
+androidx-window = { group = "androidx.window", name = "window", version.ref = "window" }
 play-services-wearable = { group = "com.google.android.gms", name = "play-services-wearable", version.ref = "playServicesWearable" }
 kotlinx-coroutines-play-services = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-play-services", version.ref = "coroutines" }
 kotlinx-coroutines-guava = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-guava", version.ref = "coroutines" }

@@ -10,7 +10,15 @@ import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.PointerEventType
+import xyz.draumaz.sustenance.ui.components.ExpressiveSprings
+import xyz.draumaz.sustenance.ui.components.Panes
+import xyz.draumaz.sustenance.ui.components.rememberPaneSplit
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Insights
 import androidx.compose.material.icons.rounded.Settings
@@ -325,6 +333,19 @@ private fun MainNav(
         currentRoute?.startsWith(Dest.SETTINGS.route) == true || 
         currentRoute?.startsWith("detail/") == true
 
+    // Wide windows and unfolded foldables put a metric's detail in a pane beside Today and
+    // Insights, instead of on a screen of its own: tapping a tile picks what the pane shows.
+    val split = rememberPaneSplit()
+    // Side by side, the bar and camera keep to the list's pane. Stacked across a hinge they
+    // stay full width, over the bottom (detail) pane, clear of the crease either way.
+    val sideBySide = split?.takeIf { !it.stacked }
+    val onSplitRoute = currentRoute == Dest.TODAY.route || currentRoute == Dest.INSIGHTS.route
+    var selectedMetricKey by rememberSaveable { mutableStateOf(Metric.FOOD.key) }
+    val selectedMetric = Metric.fromKey(selectedMetricKey) ?: Metric.FOOD
+    // Which pane the last touch landed in. Scrolling the detail pane shouldn't tuck away the
+    // bar, which sits under the other pane and isn't in the way.
+    var detailPaneTouched by remember { mutableStateOf(false) }
+
     val pbState = remember { PredictiveBackState() }
     var todayClickCount by remember { mutableIntStateOf(0) }
     var dashboardDateOffset by remember { mutableIntStateOf(0) }
@@ -479,6 +500,26 @@ private fun MainNav(
             }
     }
 
+    /**
+     * Opens [metric]'s detail: in the pane beside the list when there is one, else on its own
+     * screen. [offset] pins the day (Insights always shows today); null follows the dashboard's.
+     */
+    fun openMetric(metric: Metric, offset: Int? = null) {
+        if (split != null) {
+            selectedMetricKey = metric.key
+        } else {
+            navController.navigate("detail/${metric.key}" + (offset?.let { "?offset=$it" } ?: ""))
+        }
+    }
+
+    // Unfolding (or widening the window) with a detail open: fold it back into the pane beside
+    // the list it was opened from, so the screen doesn't stay a lone detail with room to spare.
+    LaunchedEffect(split != null, currentRoute) {
+        if (split == null || currentRoute?.startsWith("detail/") != true) return@LaunchedEffect
+        backStack?.arguments?.getString("metricKey")?.let { selectedMetricKey = it }
+        navController.popBackStack()
+    }
+
     val bottomBarHeight = 120.dp
     val bottomBarHeightPx = with(LocalDensity.current) { bottomBarHeight.roundToPx().toFloat() }
     val bottomBarOffsetHeightPx = remember { mutableFloatStateOf(0f) }
@@ -487,10 +528,11 @@ private fun MainNav(
         bottomBarOffsetHeightPx.floatValue = 0f
     }
 
-    val nestedScrollConnection = remember(isCameraActive, isHistoryActive) {
+    val nestedScrollConnection = remember(isCameraActive, isHistoryActive, detailPaneTouched) {
         object : NestedScrollConnection {
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
                 if (isCameraActive && !isHistoryActive) return Offset.Zero
+                if (detailPaneTouched) return Offset.Zero
                 val delta = available.y
                 val newOffset = bottomBarOffsetHeightPx.floatValue + delta
                 bottomBarOffsetHeightPx.floatValue = newOffset.coerceIn(-bottomBarHeightPx, 0f)
@@ -522,7 +564,8 @@ private fun MainNav(
         if (metric != null) {
             val isGranted = manager.permissionFor(metric) in granted
             if (isGranted) {
-                navController.navigate("detail/${metric.key}")
+                if (split != null) navController.popBackStack(Dest.TODAY.route, inclusive = false)
+                openMetric(metric)
             } else {
                 onManagePermissions()
             }
@@ -549,6 +592,17 @@ private fun MainNav(
         label = "camera_blur"
     )
 
+    // The share of the window the bar (and the camera and History it opens into) spans: all of
+    // it, or the list's pane on a split screen. Animated, so switching to Settings, which has
+    // no split, glides the bar back to the middle rather than jumping it there.
+    val barFraction by androidx.compose.animation.core.animateFloatAsState(
+        targetValue = if (sideBySide != null && onSplitRoute) {
+            sideBySide.start / (sideBySide.start + sideBySide.gap + sideBySide.end)
+        } else 1f,
+        animationSpec = ExpressiveSprings.defaultSpatial(),
+        label = "bar_fraction",
+    )
+
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
             modifier = Modifier
@@ -568,6 +622,7 @@ private fun MainNav(
                 Box(
                     modifier = Modifier
                         .offset { IntOffset(x = 0, y = -animatedOffset) }
+                        .fillMaxWidth(barFraction)
                 ) {
                     ExpressiveNavigationBar(
                         navController = navController,
@@ -659,16 +714,27 @@ private fun MainNav(
                     popExitTransition = popExitBack,
                 ) {
                     ScreenCard {
+                      SplitWithDetail(
+                        split = split,
+                        onTouch = { detailPaneTouched = it },
+                        detail = {
+                            MetricDetailPane(
+                                manager, goalsRepo, selectedMetric, dashboardDateOffset,
+                                onReLog = { pendingNutrients = it },
+                                onManagePermissions = onManagePermissions,
+                            )
+                        },
+                      ) {
                         DashboardScreen(
                             manager = manager,
                             goalsRepo = goalsRepo,
                             settingsRepo = settingsRepo,
                             granted = granted,
-                            bottomInset = inner.calculateBottomPadding(),
+                            // Stacked, the bar floats over the bottom (detail) pane, not this one.
+                            bottomInset = if (split?.stacked == true) 0.dp else inner.calculateBottomPadding(),
                             todayClickCount = todayClickCount,
-                            onOpenMetric = { metric, _ ->
-                                navController.navigate("detail/${metric.key}")
-                            },
+                            selectedMetric = selectedMetric.takeIf { split != null },
+                            onOpenMetric = { metric, _ -> openMetric(metric) },
                             onTimerClick = {
                                 navController.navigate("settings?scrollTo=fasting")
                             },
@@ -678,6 +744,7 @@ private fun MainNav(
                                 bottomBarOffsetHeightPx.floatValue = 0f
                             }
                         )
+                      }
                     }
                 }
 
@@ -689,18 +756,29 @@ private fun MainNav(
                     popExitTransition = popExitBack,
                 ) {
                     ScreenCard {
+                      SplitWithDetail(
+                        split = split,
+                        onTouch = { detailPaneTouched = it },
+                        detail = {
+                            MetricDetailPane(
+                                manager, goalsRepo, selectedMetric, dateOffset = 0,
+                                onReLog = { pendingNutrients = it },
+                                onManagePermissions = onManagePermissions,
+                            )
+                        },
+                      ) {
                         InsightsScreen(
                             manager = manager,
                             goalsRepo = goalsRepo,
                             settingsRepo = settingsRepo,
-                            bottomInset = inner.calculateBottomPadding(),
+                            bottomInset = if (split?.stacked == true) 0.dp else inner.calculateBottomPadding(),
                             // Insights always reflects today, so pin the detail view to today
                             // rather than whichever day the Dashboard was last showing.
-                            onOpenMetric = { metric ->
-                                navController.navigate("detail/${metric.key}?offset=0")
-                            },
-                            onBack = { navController.popBackStack() }
+                            onOpenMetric = { metric -> openMetric(metric, offset = 0) },
+                            onBack = { navController.popBackStack() },
+                            selectedMetric = selectedMetric.takeIf { split != null },
                         )
+                      }
                     }
                 }
 
@@ -814,7 +892,8 @@ private fun MainNav(
                 val showGallery = if (exiting) heldBatchMode else isBatchMode
                 Box(
                     modifier = Modifier
-                        .fillMaxSize()
+                        .fillMaxHeight()
+                        .fillMaxWidth(barFraction)
                         .padding(
                             top = inner.calculateTopPadding(),
                             // Track the bar's real height so the viewfinder moves up with it
@@ -925,7 +1004,8 @@ private fun MainNav(
             androidx.compose.animation.AnimatedVisibility(
                 visible = isHistoryActive,
                 enter = fadeIn() + scaleIn(initialScale = 0.95f),
-                exit = fadeOut() + scaleOut(targetScale = 0.95f)
+                exit = fadeOut() + scaleOut(targetScale = 0.95f),
+                modifier = Modifier.fillMaxHeight().fillMaxWidth(barFraction),
             ) {
                 HistoryScreen(
                     manager = manager,
@@ -982,4 +1062,70 @@ private fun MainNav(
         }
     }
 }
+}
+
+/**
+ * [list] alone on a phone, or beside a [detail] pane on a split screen. Reports which pane each
+ * touch (or mouse wheel) starts in through [onTouch]: true for the detail.
+ */
+@Composable
+private fun SplitWithDetail(
+    split: xyz.draumaz.sustenance.ui.components.PaneSplit?,
+    onTouch: (inDetail: Boolean) -> Unit,
+    detail: @Composable () -> Unit,
+    list: @Composable () -> Unit,
+) {
+    if (split == null) {
+        list()
+        return
+    }
+    Panes(
+        split = split,
+        start = { Box(Modifier.fillMaxSize().onPointerStart { onTouch(false) }) { list() } },
+        end = { Box(Modifier.fillMaxSize().onPointerStart { onTouch(true) }) { detail() } },
+    )
+}
+
+/** Calls [onStart] as a press or wheel scroll begins anywhere within, without consuming it. */
+private fun Modifier.onPointerStart(onStart: () -> Unit): Modifier = pointerInput(Unit) {
+    awaitPointerEventScope {
+        while (true) {
+            val event = awaitPointerEvent(PointerEventPass.Initial)
+            if (event.type == PointerEventType.Press || event.type == PointerEventType.Scroll) onStart()
+        }
+    }
+}
+
+/**
+ * The detail pane: [metric]'s detail for the day [dateOffset] days back, crossfading as another
+ * tile is picked. No back arrow: the list it belongs to is right beside it.
+ */
+@Composable
+private fun MetricDetailPane(
+    manager: HealthConnectManager,
+    goalsRepo: GoalsRepository,
+    metric: Metric,
+    dateOffset: Int,
+    onReLog: (FoodNutrients) -> Unit,
+    onManagePermissions: () -> Unit,
+) {
+    AnimatedContent(
+        targetState = metric,
+        transitionSpec = {
+            (fadeIn(ExpressiveSprings.defaultEffects()) +
+                scaleIn(ExpressiveSprings.defaultSpatial(), initialScale = 0.96f))
+                .togetherWith(fadeOut(ExpressiveSprings.defaultEffects()))
+        },
+        label = "detail_pane",
+    ) { shown ->
+        DetailScreen(
+            manager = manager,
+            goalsRepo = goalsRepo,
+            metric = shown,
+            dateOffset = dateOffset,
+            onReLog = onReLog,
+            onManagePermissions = onManagePermissions,
+            onBack = null,
+        )
+    }
 }

@@ -49,6 +49,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import xyz.draumaz.sustenance.R
+import xyz.draumaz.sustenance.ui.components.ReadableWidth
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
 import xyz.draumaz.sustenance.data.Metric
 import xyz.draumaz.sustenance.data.parseDecimal
 import xyz.draumaz.sustenance.ui.theme.GoogleSansFlexRoundedFontFamily
@@ -104,6 +107,10 @@ fun GoalSetupScreen(
                 .verticalScroll(rememberScrollState())
                 .windowInsetsPadding(WindowInsets.systemBars)
                 .padding(horizontal = 24.dp)
+                // A centred column on wide screens, rather than fields stretched edge to edge.
+                .wrapContentWidth()
+                .widthIn(max = ReadableWidth)
+                .fillMaxWidth()
                 .padding(top = 32.dp, bottom = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {

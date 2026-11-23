@@ -26,6 +26,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import xyz.draumaz.sustenance.R
+import xyz.draumaz.sustenance.ui.components.ReadableGutter
 import xyz.draumaz.sustenance.data.HealthConnectManager
 import xyz.draumaz.sustenance.data.HistoryItem
 import xyz.draumaz.sustenance.data.SettingsRepository
@@ -123,12 +124,13 @@ fun HistoryScreen(
                     )
                 }
             } else {
+                ReadableGutter { gutter ->
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(
-                        start = 16.dp,
+                        start = 16.dp + gutter,
                         top = 16.dp,
-                        end = 16.dp,
+                        end = 16.dp + gutter,
                         bottom = 16.dp + bottomInset
                     ),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -180,6 +182,7 @@ fun HistoryScreen(
                             }
                         )
                     }
+                }
                 }
             }
         }

@@ -113,6 +113,8 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.material.icons.extended)
     implementation(libs.androidx.navigation.compose)
+    // Folds and hinges, so the two-pane layout splits at the crease rather than across it.
+    implementation(libs.androidx.window)
     debugImplementation(libs.androidx.ui.tooling)
 
     implementation(libs.androidx.health.connect)

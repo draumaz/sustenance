@@ -57,7 +57,9 @@ fun MetricCard(
     summary: MetricSummary,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    containerColor: Color = MaterialTheme.colorScheme.surfaceContainerLow
+    containerColor: Color = MaterialTheme.colorScheme.surfaceContainerLow,
+    /** Its detail is open in the pane beside the dashboard (two-pane layouts only). */
+    selected: Boolean = false,
 ) {
     val view = LocalView.current
     val accent = summary.metric.accent
@@ -98,6 +100,7 @@ fun MetricCard(
         modifier = modifier.height(48.dp).fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         color = containerColor,
+        border = selectionBorder(selected),
     ) {
         Box(Modifier.fillMaxSize().clip(RoundedCornerShape(16.dp))) {
             if (showProgress && animatedProgress > 0.001f) {
