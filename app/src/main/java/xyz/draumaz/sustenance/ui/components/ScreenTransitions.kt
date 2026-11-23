@@ -29,9 +29,10 @@ import androidx.navigation.NavBackStackEntry
 /*
  * Card-style screen transitions for the NavHost.
  *
- * Pop: the leaving screen shrinks into a rounded card and slides right. Push (opening a metric's
- * detail) is the same motion in reverse: the new screen grows in from the right as a card and
- * squares off, while the screen underneath shifts left.
+ * Pop: the leaving screen shrinks into a rounded card and slides right. Push (opening goals, or
+ * a metric's detail on a split layout) is the same motion in reverse: the new screen grows in
+ * from the right as a card and squares off, while the screen underneath shifts left. On phones a
+ * metric's detail flies open out of its tile instead (MetricFlyIn.kt).
  *
  * Pop transitions Navigation Compose seeks these with the predictive back
  * gesture, so the leaving screen shrinks into a rounded card and slides right while the

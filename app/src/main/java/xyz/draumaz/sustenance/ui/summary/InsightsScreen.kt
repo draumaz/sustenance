@@ -60,6 +60,7 @@ import androidx.compose.ui.res.stringResource
 import android.view.HapticFeedbackConstants
 import xyz.draumaz.sustenance.R
 import xyz.draumaz.sustenance.ui.components.selectionBorder
+import xyz.draumaz.sustenance.ui.components.metricFlyIn
 import xyz.draumaz.sustenance.ui.components.ReadableGutter
 import xyz.draumaz.sustenance.data.GoalsRepository
 import xyz.draumaz.sustenance.data.HealthConnectManager
@@ -410,7 +411,7 @@ private fun InsightCard(
             view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
             onClick()
         },
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.metricFlyIn(stat.metric, MaterialTheme.shapes.extraLarge).fillMaxWidth(),
         shape = MaterialTheme.shapes.extraLarge,
         colors = CardDefaults.cardColors(containerColor = accent.copy(alpha = 0.18f)),
         border = selectionBorder(selected, accent),

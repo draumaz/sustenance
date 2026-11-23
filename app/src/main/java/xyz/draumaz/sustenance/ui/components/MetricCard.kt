@@ -97,7 +97,7 @@ fun MetricCard(
             view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
             onClick()
         },
-        modifier = modifier.height(48.dp).fillMaxWidth(),
+        modifier = modifier.metricFlyIn(summary.metric, RoundedCornerShape(16.dp)).height(48.dp).fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         color = containerColor,
         border = selectionBorder(selected),

@@ -18,6 +18,17 @@ import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerEventType
 import xyz.draumaz.sustenance.ui.components.ExpressiveSprings
 import xyz.draumaz.sustenance.ui.components.PaneMargin
+import xyz.draumaz.sustenance.ui.components.LocalFlyInDestination
+import xyz.draumaz.sustenance.ui.components.LocalFlyInScope
+import xyz.draumaz.sustenance.ui.components.flyDetailEnter
+import xyz.draumaz.sustenance.ui.components.flyDetailExit
+import xyz.draumaz.sustenance.ui.components.flyListEnter
+import xyz.draumaz.sustenance.ui.components.flyListExit
+import xyz.draumaz.sustenance.ui.components.isClosingMetric
+import xyz.draumaz.sustenance.ui.components.isOpeningMetric
+import xyz.draumaz.sustenance.ui.components.metricFlyIn
+import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.foundation.shape.RoundedCornerShape
 import xyz.draumaz.sustenance.ui.components.Panes
 import xyz.draumaz.sustenance.ui.components.rememberPaneSplit
 import androidx.compose.material.icons.Icons
@@ -700,20 +711,23 @@ private fun MainNav(
         },
     ) { inner ->
         Box(modifier = Modifier.fillMaxSize()) {
+          // Tiles fly open into their details on phones (see MetricFlyIn.kt). The blur sits on
+          // this layout rather than the NavHost so a tile mid-flight, drawn in its overlay, blurs too.
+          SharedTransitionLayout(Modifier.fillMaxSize().blur(rootBlur)) {
+           CompositionLocalProvider(LocalFlyInScope provides this.takeIf { split == null }) {
             NavHost(
                 navController = navController,
                 startDestination = Dest.TODAY.route,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .blur(rootBlur),
+                modifier = Modifier.fillMaxSize(),
             ) {
                 composable(
                     Dest.TODAY.route,
                     enterTransition = { fadeIn(tween(200)) },
-                    exitTransition = { if (isOpeningCard()) pushExitUnder() else fadeOut(tween(200)) },
-                    popEnterTransition = popEnterBack,
+                    exitTransition = { listExit() },
+                    popEnterTransition = { listPopEnter() },
                     popExitTransition = popExitBack,
                 ) {
+                  CompositionLocalProvider(LocalFlyInDestination provides this) {
                     ScreenCard {
                       SplitWithDetail(
                         split = split,
@@ -748,15 +762,17 @@ private fun MainNav(
                         )
                       }
                     }
+                  }
                 }
 
                 composable(
                     Dest.INSIGHTS.route,
                     enterTransition = { fadeIn(tween(200)) },
-                    exitTransition = { if (isOpeningCard()) pushExitUnder() else fadeOut(tween(200)) },
-                    popEnterTransition = popEnterBack,
+                    exitTransition = { listExit() },
+                    popEnterTransition = { listPopEnter() },
                     popExitTransition = popExitBack,
                 ) {
+                  CompositionLocalProvider(LocalFlyInDestination provides this) {
                     ScreenCard {
                       SplitWithDetail(
                         split = split,
@@ -782,6 +798,7 @@ private fun MainNav(
                         )
                       }
                     }
+                  }
                 }
 
                 composable(
@@ -843,14 +860,17 @@ private fun MainNav(
                         // Optional day override; absent means follow the Dashboard's selected day.
                         navArgument("offset") { type = NavType.IntType; defaultValue = -1 },
                     ),
-                    enterTransition = pushEnterCard,
+                    enterTransition = { if (split == null) flyDetailEnter() else pushEnterCard() },
                     exitTransition = { fadeOut(tween(200)) },
                     popEnterTransition = popEnterBack,
-                    popExitTransition = popExitBack,
+                    popExitTransition = { if (split == null) flyDetailExit() else popExitBack() },
                 ) { entry ->
+                    val key = entry.arguments?.getString("metricKey") ?: ""
+                    val metric = Metric.fromKey(key) ?: Metric.TOTAL_CALORIES
+                  CompositionLocalProvider(LocalFlyInDestination provides this) {
+                   // Opaque, so the list behind doesn't show through while it flies open.
+                   Box(Modifier.fillMaxSize().metricFlyIn(metric, RoundedCornerShape(16.dp))) {
                     ScreenCard {
-                        val key = entry.arguments?.getString("metricKey") ?: ""
-                        val metric = Metric.fromKey(key) ?: Metric.TOTAL_CALORIES
                         val offsetArg = entry.arguments?.getInt("offset") ?: -1
                         DetailScreen(
                             manager = manager,
@@ -862,8 +882,12 @@ private fun MainNav(
                             onBack = { navController.popBackStack() }
                         )
                     }
+                   }
+                  }
                 }
             }
+           }
+          }
 
             // Interaction Shield for blurred background
             if (rootBlur > 0.dp) {
@@ -1149,3 +1173,19 @@ private fun MetricDetailPane(
         )
     }
 }
+
+/*
+ * Today's and Insights' transitions around a metric's detail. On a phone the tapped tile flies
+ * open into the detail, so the list only recedes behind it (and returns as the detail shrinks
+ * back); the goals editor still pushes in as a card. Split layouts never open a detail route
+ * for long (it folds into the pane), so they keep the card motions.
+ */
+private fun androidx.compose.animation.AnimatedContentTransitionScope<androidx.navigation.NavBackStackEntry>.listExit() =
+    when {
+        isOpeningMetric() -> flyListExit()
+        isOpeningCard() -> pushExitUnder()
+        else -> fadeOut(tween(200))
+    }
+
+private fun androidx.compose.animation.AnimatedContentTransitionScope<androidx.navigation.NavBackStackEntry>.listPopEnter() =
+    if (isClosingMetric()) flyListEnter() else popEnterBack()
