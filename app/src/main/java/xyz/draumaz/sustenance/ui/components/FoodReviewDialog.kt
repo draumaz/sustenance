@@ -49,6 +49,8 @@ import kotlinx.coroutines.launch
 import android.view.HapticFeedbackConstants
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.window.Dialog
@@ -189,316 +191,433 @@ fun FoodReviewDialog(
         }
     }
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        modifier = Modifier.fillMaxWidth(0.95f),
-        properties = DialogProperties(usePlatformDefaultWidth = false),
-        icon = {
-            Icon(
-                Icons.Rounded.Restaurant,
-                contentDescription = null,
-                modifier = Modifier.size(28.dp),
-                tint = MaterialTheme.colorScheme.primary
-            )
-        },
-        title = {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                BasicTextField(
-                    value = foodItem.replace("\\s*\\(\\d+g\\)".toRegex(), "").trim(),
-                    onValueChange = { foodItem = it },
-                    textStyle = MaterialTheme.typography.titleLarge.copy(
-                        fontWeight = FontWeight.Bold,
-                        textAlign = TextAlign.Center,
-                        color = MaterialTheme.colorScheme.onSurface
-                    ),
-                    cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
+    val timeFormatter = remember { DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT) }
+    val logInstant = { now.with(selectedTime).atZone(ZoneId.systemDefault()).toInstant() }
+    val onLogClick = {
+        if (judgementalMode && judgement is Metric.Judgement.Negative) {
+            showConfirmationDialog = true
+        } else {
+            onLog(currentNutrients, 1.0, logInstant())
+        }
+    }
+
+    // The pieces both layouts share: a phone stacks them in one AlertDialog; an expanded window
+    // spreads them into columns so the label keeps a readable width instead of stretching.
+    val titleField: @Composable (TextStyle, TextAlign, Modifier) -> Unit = { style, align, modifier ->
+        BasicTextField(
+            value = foodItem.replace("\\s*\\(\\d+g\\)".toRegex(), "").trim(),
+            onValueChange = { foodItem = it },
+            textStyle = style.copy(
+                fontWeight = FontWeight.Bold,
+                textAlign = align,
+                color = MaterialTheme.colorScheme.onSurface
+            ),
+            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+            modifier = modifier
+        )
+    }
+
+    val timeChip: @Composable () -> Unit = {
+        AssistChip(
+            onClick = { showTimePicker = true },
+            label = { Text(selectedTime.format(timeFormatter)) },
+            leadingIcon = {
+                Icon(
+                    Icons.Rounded.AccessTime,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp)
                 )
+            },
+            shape = CircleShape,
+            colors = AssistChipDefaults.assistChipColors(
+                labelColor = MaterialTheme.colorScheme.primary,
+                leadingIconContentColor = MaterialTheme.colorScheme.primary
+            ),
+            border = BorderStroke(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+            )
+        )
+    }
 
-                Spacer(Modifier.height(4.dp))
-
+    // Gram Selector & Judgement Badge
+    val portionRow: @Composable () -> Unit = {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                modifier = Modifier.weight(1f)
+            ) {
                 Row(
+                    modifier = Modifier.padding(2.dp),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center,
-                    modifier = Modifier.fillMaxWidth()
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    val timeFormatter = remember { DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT) }
-                    AssistChip(
-                        onClick = { showTimePicker = true },
-                        label = { Text(selectedTime.format(timeFormatter)) },
-                        leadingIcon = {
-                            Icon(
-                                Icons.Rounded.AccessTime,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp)
-                            )
-                        },
-                        shape = CircleShape,
-                        colors = AssistChipDefaults.assistChipColors(
-                            labelColor = MaterialTheme.colorScheme.primary,
-                            leadingIconContentColor = MaterialTheme.colorScheme.primary
+                    val minusInteractionSource = remember { MutableInteractionSource() }
+                    IconButton(
+                        onClick = {},
+                        interactionSource = minusInteractionSource,
+                        colors = IconButtonDefaults.filledIconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.surface,
+                            contentColor = MaterialTheme.colorScheme.onSurface
                         ),
-                        border = BorderStroke(
-                            width = 1.dp,
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                        modifier = Modifier
+                            .size(40.dp)
+                            .repeatingClickable(
+                                interactionSource = minusInteractionSource,
+                                onAdjust = { multiplier ->
+                                    if (currentGrams > 0.0) {
+                                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                                        val step = if (gramIncrementEnabled) (gramIncrement * multiplier).toDouble() else (baseGrams * multiplier)
+                                        val next = (currentGrams - step).coerceAtLeast(0.0)
+                                        scaleNutrients(next)
+                                        currentGrams = next
+                                    }
+                                }
+                            )
+                    ) {
+                        Icon(Icons.Rounded.Remove, stringResource(R.string.less))
+                    }
+
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        BasicTextField(
+                            value = quantityText,
+                            onValueChange = { newValue ->
+                                val sanitized = newValue.replace(',', '.')
+                                val num = sanitized.toDoubleOrNull()
+                                if (num != null && num >= 0) {
+                                    scaleNutrients(num)
+                                    currentGrams = num
+                                }
+                                quantityText = newValue
+                            },
+                            textStyle = MaterialTheme.typography.titleLarge.copy(
+                                fontWeight = FontWeight.Black,
+                                textAlign = TextAlign.Center,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            ),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            modifier = Modifier.widthIn(min = 60.dp)
                         )
+                        Text(
+                            text = stringResource(R.string.grams_label),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    val plusInteractionSource = remember { MutableInteractionSource() }
+                    IconButton(
+                        onClick = {},
+                        interactionSource = plusInteractionSource,
+                        colors = IconButtonDefaults.filledIconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        ),
+                        modifier = Modifier
+                            .size(40.dp)
+                            .repeatingClickable(
+                                interactionSource = plusInteractionSource,
+                                onAdjust = { multiplier ->
+                                    view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                                    val step = if (gramIncrementEnabled) (gramIncrement * multiplier).toDouble() else (baseGrams * multiplier)
+                                    val next = currentGrams + step
+                                    scaleNutrients(next)
+                                    currentGrams = next
+                                }
+                            )
+                    ) {
+                        Icon(Icons.Rounded.Add, stringResource(R.string.more))
+                    }
+                }
+            }
+
+            if (judgementalMode) {
+                Spacer(Modifier.width(8.dp))
+                val isNegative = judgement is Metric.Judgement.Negative
+                val color = if (isNegative) MaterialTheme.colorScheme.error else Color(0xFF4CAF50)
+
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(MorphingScallopedShape(0f, 1f, bumpsCount = 2f))
+                        .background(color.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = if (isNegative) Icons.Rounded.Cancel else Icons.Rounded.CheckCircle,
+                        contentDescription = null,
+                        tint = color,
+                        modifier = Modifier.size(22.dp)
                     )
                 }
+            }
+        }
+    }
 
-                if (showTimePicker) {
-                    val timePickerState = rememberTimePickerState(
-                        initialHour = selectedTime.hour,
-                        initialMinute = selectedTime.minute,
-                    )
-                    Dialog(onDismissRequest = { showTimePicker = false }) {
-                        Surface(
-                            shape = RoundedCornerShape(28.dp),
-                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(24.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally
+    // Nutrition Facts Label
+    val label: @Composable () -> Unit = {
+        val ratio = if (baseGrams > 0) currentGrams / baseGrams else 1.0
+        val updateBase = { base: MutableDoubleState, newValue: String ->
+            safeParse(newValue)?.let { num ->
+                if (ratio > 0) base.doubleValue = num / ratio else base.doubleValue = num
+            }
+            Unit
+        }
+
+        val getGoal = { m: Metric -> goals[m] ?: GoalCatalog.defaults[m] ?: 0f }
+
+        NutritionFactsLabel(
+            currentGrams = currentGrams,
+            cal = cal,
+            onCalChange = { s -> cal = s; updateBase(calBase, s) },
+            fat = fat,
+            onFatChange = { s -> fat = s; updateBase(fatBase, s) },
+            fatPercentage = formatTargetPercentage(safeParse(fat) ?: 0.0, getGoal(Metric.FAT)),
+            satFat = satFat,
+            onSatFatChange = { s -> satFat = s; updateBase(satFatBase, s) },
+            satFatPercentage = formatTargetPercentage(safeParse(satFat) ?: 0.0, getGoal(Metric.SATURATED_FAT)),
+            carb = carb,
+            onCarbChange = { s -> carb = s; updateBase(carbBase, s) },
+            carbPercentage = formatTargetPercentage(safeParse(carb) ?: 0.0, getGoal(Metric.CARBS)),
+            fiber = fiber,
+            onFiberChange = { s -> fiber = s; updateBase(fiberBase, s) },
+            fiberPercentage = formatTargetPercentage(safeParse(fiber) ?: 0.0, getGoal(Metric.FIBER)),
+            sugar = sugar,
+            onSugarChange = { s -> sugar = s; updateBase(sugarBase, s) },
+            sugarPercentage = formatTargetPercentage(safeParse(sugar) ?: 0.0, getGoal(Metric.SUGAR)),
+            prot = prot,
+            onProtChange = { s -> prot = s; updateBase(protBase, s) },
+            protPercentage = formatTargetPercentage(safeParse(prot) ?: 0.0, getGoal(Metric.PROTEIN)),
+            sodium = sodium,
+            onSodiumChange = { s -> sodium = s; updateBase(sodiumBase, s) },
+            sodiumPercentage = formatTargetPercentage(safeParse(sodium) ?: 0.0, getGoal(Metric.SODIUM)),
+            modifier = Modifier.fillMaxWidth()
+        )
+    }
+
+    val logButton: @Composable (Modifier) -> Unit = { modifier ->
+        Button(
+            onClick = onLogClick,
+            modifier = modifier,
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Icon(Icons.Rounded.Done, null)
+            Spacer(Modifier.width(8.dp))
+            Text(stringResource(R.string.log_food))
+        }
+    }
+
+    if (isExpandedWindow()) {
+        // Read outside the Dialog, whose own window would report the card's size instead.
+        val windowWidth = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.width.toDp() }
+        Dialog(
+            onDismissRequest = onDismiss,
+            properties = DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            Surface(
+                // Wide enough for two comfortable columns; past 960dp the label's values drift
+                // away from their names again. Sized outright: fillMaxWidth would pin the width
+                // before a widthIn after it could cap it.
+                modifier = Modifier.width(minOf(windowWidth * 0.9f, 960.dp)),
+                shape = AlertDialogDefaults.shape,
+                color = AlertDialogDefaults.containerColor,
+                tonalElevation = AlertDialogDefaults.TonalElevation
+            ) {
+                Row(
+                    modifier = Modifier
+                        .height(IntrinsicSize.Min)
+                        .padding(32.dp),
+                    horizontalArrangement = Arrangement.spacedBy(32.dp)
+                ) {
+                    // What was eaten, how much, and when; with the actions pinned to the bottom.
+                    Column(
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Icon(
+                            Icons.Rounded.Restaurant,
+                            contentDescription = null,
+                            modifier = Modifier.size(32.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        titleField(
+                            MaterialTheme.typography.headlineSmall,
+                            TextAlign.Start,
+                            Modifier.fillMaxWidth()
+                        )
+                        timeChip()
+                        portionRow()
+                        // The room a phone lacks shows Gemini's reasoning outright, rather than
+                        // behind a button: it's what the user checks the numbers against.
+                        if (nutrients.explanation.isNotEmpty()) {
+                            Surface(
+                                shape = RoundedCornerShape(16.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                                modifier = Modifier.fillMaxWidth().weight(1f, fill = false)
                             ) {
-                                Text(
-                                    text = stringResource(R.string.log_food),
-                                    style = MaterialTheme.typography.labelLarge,
-                                    modifier = Modifier.fillMaxWidth().padding(bottom = 20.dp)
-                                )
-                                TimePicker(state = timePickerState)
-                                Row(
-                                    modifier = Modifier.fillMaxWidth().padding(top = 24.dp),
-                                    horizontalArrangement = Arrangement.End
+                                Column(
+                                    modifier = Modifier
+                                        .verticalScroll(rememberScrollState())
+                                        .padding(16.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    TextButton(onClick = { showTimePicker = false }) {
-                                        Text(stringResource(R.string.cancel))
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            Icons.AutoMirrored.Rounded.HelpOutline,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(18.dp),
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                        Spacer(Modifier.width(8.dp))
+                                        Text(
+                                            stringResource(R.string.estimate_explanation),
+                                            style = MaterialTheme.typography.titleSmall,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
                                     }
-                                    TextButton(
-                                        onClick = {
-                                            selectedTime = LocalTime.of(timePickerState.hour, timePickerState.minute)
-                                            showTimePicker = false
-                                        }
-                                    ) {
-                                        Text(stringResource(R.string.save))
-                                    }
+                                    ExplanationPoints(nutrients.explanation)
                                 }
                             }
                         }
-                    }
-                }
-
-                Spacer(Modifier.height(8.dp))
-
-                // Gram Selector & Judgement Badge
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    Surface(
-                        shape = CircleShape,
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                        modifier = Modifier.weight(1f)
-                    ) {
+                        Spacer(Modifier.weight(1f))
                         Row(
-                            modifier = Modifier.padding(2.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            val minusInteractionSource = remember { MutableInteractionSource() }
-                            IconButton(
-                                onClick = {},
-                                interactionSource = minusInteractionSource,
-                                colors = IconButtonDefaults.filledIconButtonColors(
-                                    containerColor = MaterialTheme.colorScheme.surface,
-                                    contentColor = MaterialTheme.colorScheme.onSurface
-                                ),
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .repeatingClickable(
-                                        interactionSource = minusInteractionSource,
-                                        onAdjust = { multiplier ->
-                                            if (currentGrams > 0.0) {
-                                                view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                                                val step = if (gramIncrementEnabled) (gramIncrement * multiplier).toDouble() else (baseGrams * multiplier)
-                                                val next = (currentGrams - step).coerceAtLeast(0.0)
-                                                scaleNutrients(next)
-                                                currentGrams = next
-                                            }
-                                        }
-                                    )
-                            ) {
-                                Icon(Icons.Rounded.Remove, stringResource(R.string.less))
+                            TextButton(onClick = onDismiss) {
+                                Text(stringResource(R.string.cancel), color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
-                            
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                BasicTextField(
-                                    value = quantityText,
-                                    onValueChange = { newValue ->
-                                        val sanitized = newValue.replace(',', '.')
-                                        val num = sanitized.toDoubleOrNull()
-                                        if (num != null && num >= 0) {
-                                            scaleNutrients(num)
-                                            currentGrams = num
-                                        }
-                                        quantityText = newValue
-                                    },
-                                    textStyle = MaterialTheme.typography.titleLarge.copy(
-                                        fontWeight = FontWeight.Black,
-                                        textAlign = TextAlign.Center,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    ),
-                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                                    modifier = Modifier.widthIn(min = 60.dp)
-                                )
-                                Text(
-                                    text = stringResource(R.string.grams_label),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-
-                            val plusInteractionSource = remember { MutableInteractionSource() }
-                            IconButton(
-                                onClick = {},
-                                interactionSource = plusInteractionSource,
-                                colors = IconButtonDefaults.filledIconButtonColors(
-                                    containerColor = MaterialTheme.colorScheme.primary,
-                                    contentColor = MaterialTheme.colorScheme.onPrimary
-                                ),
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .repeatingClickable(
-                                        interactionSource = plusInteractionSource,
-                                        onAdjust = { multiplier ->
-                                            view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                                            val step = if (gramIncrementEnabled) (gramIncrement * multiplier).toDouble() else (baseGrams * multiplier)
-                                            val next = currentGrams + step
-                                            scaleNutrients(next)
-                                            currentGrams = next
-                                        }
-                                    )
-                            ) {
-                                Icon(Icons.Rounded.Add, stringResource(R.string.more))
-                            }
+                            logButton(Modifier.weight(1f))
                         }
                     }
-
-                    if (judgementalMode) {
-                        Spacer(Modifier.width(8.dp))
-                        val isNegative = judgement is Metric.Judgement.Negative
-                        val color = if (isNegative) MaterialTheme.colorScheme.error else Color(0xFF4CAF50)
-                        
-                        Box(
-                            modifier = Modifier
-                                .size(44.dp)
-                                .clip(MorphingScallopedShape(0f, 1f, bumpsCount = 2f))
-                                .background(color.copy(alpha = 0.15f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = if (isNegative) Icons.Rounded.Cancel else Icons.Rounded.CheckCircle,
-                                contentDescription = null,
-                                tint = color,
-                                modifier = Modifier.size(22.dp)
-                            )
-                        }
-                    }
-                }
-            }
-        },
-        text = {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-
-                // Nutrition Facts Label
-                val ratio = if (baseGrams > 0) currentGrams / baseGrams else 1.0
-                val updateBase = { base: MutableDoubleState, newValue: String ->
-                    safeParse(newValue)?.let { num ->
-                        if (ratio > 0) base.doubleValue = num / ratio else base.doubleValue = num
-                    }
-                    Unit
-                }
-
-                val getGoal = { m: Metric -> goals[m] ?: GoalCatalog.defaults[m] ?: 0f }
-
-                NutritionFactsLabel(
-                    currentGrams = currentGrams,
-                    cal = cal,
-                    onCalChange = { s -> cal = s; updateBase(calBase, s) },
-                    fat = fat,
-                    onFatChange = { s -> fat = s; updateBase(fatBase, s) },
-                    fatPercentage = formatTargetPercentage(safeParse(fat) ?: 0.0, getGoal(Metric.FAT)),
-                    satFat = satFat,
-                    onSatFatChange = { s -> satFat = s; updateBase(satFatBase, s) },
-                    satFatPercentage = formatTargetPercentage(safeParse(satFat) ?: 0.0, getGoal(Metric.SATURATED_FAT)),
-                    carb = carb,
-                    onCarbChange = { s -> carb = s; updateBase(carbBase, s) },
-                    carbPercentage = formatTargetPercentage(safeParse(carb) ?: 0.0, getGoal(Metric.CARBS)),
-                    fiber = fiber,
-                    onFiberChange = { s -> fiber = s; updateBase(fiberBase, s) },
-                    fiberPercentage = formatTargetPercentage(safeParse(fiber) ?: 0.0, getGoal(Metric.FIBER)),
-                    sugar = sugar,
-                    onSugarChange = { s -> sugar = s; updateBase(sugarBase, s) },
-                    sugarPercentage = formatTargetPercentage(safeParse(sugar) ?: 0.0, getGoal(Metric.SUGAR)),
-                    prot = prot,
-                    onProtChange = { s -> prot = s; updateBase(protBase, s) },
-                    protPercentage = formatTargetPercentage(safeParse(prot) ?: 0.0, getGoal(Metric.PROTEIN)),
-                    sodium = sodium,
-                    onSodiumChange = { s -> sodium = s; updateBase(sodiumBase, s) },
-                    sodiumPercentage = formatTargetPercentage(safeParse(sodium) ?: 0.0, getGoal(Metric.SODIUM)),
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-        },
-        confirmButton = {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Button(
-                    onClick = {
-                        if (judgementalMode && judgement is Metric.Judgement.Negative) {
-                            showConfirmationDialog = true
-                        } else {
-                            val combinedInstant = now.with(selectedTime).atZone(ZoneId.systemDefault()).toInstant()
-                            onLog(currentNutrients, 1.0, combinedInstant)
-                        }
-                    },
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp)
-                ) {
-                    Icon(Icons.Rounded.Done, null)
-                    Spacer(Modifier.width(8.dp))
-                    Text(stringResource(R.string.log_food))
-                }
-                // Only items fresh from Gemini carry an explanation (not re-logs from history).
-                if (nutrients.explanation.isNotEmpty()) {
-                    FilledTonalIconButton(
-                        onClick = { showExplanation = true },
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.size(ButtonDefaults.MinHeight)
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.Center
                     ) {
-                        Icon(Icons.AutoMirrored.Rounded.HelpOutline, stringResource(R.string.estimate_explanation))
+                        label()
                     }
                 }
-            }
-        },
-        dismissButton = {
-            TextButton(
-                onClick = onDismiss,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(stringResource(R.string.cancel), color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
-    )
+    } else {
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            // A phone gets nearly its full width; a medium window (an unfolded foldable, a small
+            // tablet) stops at a column's width rather than stretching the label across it.
+            modifier = Modifier.widthIn(max = 560.dp).fillMaxWidth(0.95f),
+            properties = DialogProperties(usePlatformDefaultWidth = false),
+            icon = {
+                Icon(
+                    Icons.Rounded.Restaurant,
+                    contentDescription = null,
+                    modifier = Modifier.size(28.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            },
+            title = {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    titleField(
+                        MaterialTheme.typography.titleLarge,
+                        TextAlign.Center,
+                        Modifier.fillMaxWidth().padding(horizontal = 16.dp)
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    timeChip()
+                    Spacer(Modifier.height(8.dp))
+                    portionRow()
+                }
+            },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    label()
+                }
+            },
+            confirmButton = {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    logButton(Modifier.weight(1f))
+                    // Only items fresh from Gemini carry an explanation (not re-logs from history).
+                    if (nutrients.explanation.isNotEmpty()) {
+                        FilledTonalIconButton(
+                            onClick = { showExplanation = true },
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.size(ButtonDefaults.MinHeight)
+                        ) {
+                            Icon(Icons.AutoMirrored.Rounded.HelpOutline, stringResource(R.string.estimate_explanation))
+                        }
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(stringResource(R.string.cancel), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        )
+    }
+
+    if (showTimePicker) {
+        val timePickerState = rememberTimePickerState(
+            initialHour = selectedTime.hour,
+            initialMinute = selectedTime.minute,
+        )
+        Dialog(onDismissRequest = { showTimePicker = false }) {
+            Surface(
+                shape = RoundedCornerShape(28.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = stringResource(R.string.log_food),
+                        style = MaterialTheme.typography.labelLarge,
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 20.dp)
+                    )
+                    TimePicker(state = timePickerState)
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(top = 24.dp),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        TextButton(onClick = { showTimePicker = false }) {
+                            Text(stringResource(R.string.cancel))
+                        }
+                        TextButton(
+                            onClick = {
+                                selectedTime = LocalTime.of(timePickerState.hour, timePickerState.minute)
+                                showTimePicker = false
+                            }
+                        ) {
+                            Text(stringResource(R.string.save))
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     if (showExplanation) {
         AlertDialog(
@@ -510,12 +629,7 @@ fun FoodReviewDialog(
                     modifier = Modifier.verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    nutrients.explanation.forEach { point ->
-                        Row {
-                            Text("•", modifier = Modifier.padding(end = 8.dp))
-                            Text(emphasizeAmounts(point, MaterialTheme.colorScheme.primary))
-                        }
-                    }
+                    ExplanationPoints(nutrients.explanation)
                 }
             },
             confirmButton = {
@@ -534,8 +648,7 @@ fun FoodReviewDialog(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        val combinedInstant = now.with(selectedTime).atZone(ZoneId.systemDefault()).toInstant()
-                        onLog(currentNutrients, 1.0, combinedInstant)
+                        onLog(currentNutrients, 1.0, logInstant())
                         showConfirmationDialog = false
                     }
                 ) {
@@ -548,6 +661,17 @@ fun FoodReviewDialog(
                 }
             }
         )
+    }
+}
+
+/** Gemini's reasoning as bullets, with the amounts picked out so they can be checked at a glance. */
+@Composable
+private fun ExplanationPoints(points: List<String>) {
+    points.forEach { point ->
+        Row {
+            Text("•", modifier = Modifier.padding(end = 8.dp))
+            Text(emphasizeAmounts(point, MaterialTheme.colorScheme.primary))
+        }
     }
 }
 

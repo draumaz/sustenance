@@ -106,6 +106,18 @@ fun rememberPaneSplit(): PaneSplit? {
 }
 
 /**
+ * Whether the window is a tablet-sized canvas: as wide as the two-pane split needs and tall
+ * enough not to be a phone on its side. Dialogs use it to lay out in columns, not stretch.
+ */
+@Composable
+fun isExpandedWindow(): Boolean {
+    val size = LocalWindowInfo.current.containerSize
+    return with(LocalDensity.current) {
+        size.width.toDp() >= ExpandedWidth && size.height.toDp() >= MinSplitHeight
+    }
+}
+
+/**
  * The start pane's size and the gap for a fold spanning [from] to [to]: a gutter at least
  * FoldGutter across, centred on the fold, since some devices report a hinge as a zero-width line.
  */
