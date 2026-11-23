@@ -30,6 +30,9 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -97,7 +100,7 @@ import xyz.draumaz.sustenance.data.RecordRow
 import xyz.draumaz.sustenance.ui.DetailViewModel
 import xyz.draumaz.sustenance.util.FoodNutrients
 import xyz.draumaz.sustenance.ui.components.LineChart
-import xyz.draumaz.sustenance.ui.components.ReadableGutter
+import xyz.draumaz.sustenance.ui.components.ReadableWidth
 import androidx.compose.foundation.layout.width
 import androidx.compose.ui.text.style.TextOverflow
 import xyz.draumaz.sustenance.ui.components.NutrientIconList
@@ -105,6 +108,12 @@ import xyz.draumaz.sustenance.data.formatValue
 import xyz.draumaz.sustenance.data.parseDecimal
 
 @OptIn(ExperimentalMaterial3Api::class)
+/** The detail pane splits into summary and lists from this width. */
+private val TwoColumnMinWidth = 900.dp
+
+/** Two columns stop growing here, so neither runs much wider than the single column's cap. */
+private val TwoColumnMaxWidth = 1440.dp
+
 @Composable
 fun DetailScreen(
     manager: HealthConnectManager,
@@ -219,17 +228,25 @@ fun DetailScreen(
         )
     }
 
-    Box(
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
             .pointerInput(Unit) {
                 detectTapGestures { selectedChartPoint = null }
             }
     ) {
+        // A pane this wide (a big tablet or a desktop window beside the dashboard) splits into
+        // the summary and the lists instead of centring one narrow column in a sea of margin.
+        val d0 = detail
+        val twoColumns = maxWidth >= TwoColumnMinWidth && d0 != null &&
+            (d0.todaySections.isNotEmpty() || d0.recent.isNotEmpty())
+        val gutter = ((maxWidth - if (twoColumns) TwoColumnMaxWidth else ReadableWidth) / 2).coerceAtLeast(0.dp)
         Scaffold(
             modifier = Modifier.fillMaxSize(),
             topBar = {
                 TopAppBar(
+                    // Over the cards rather than at the pane's edge, wherever the gutter puts them.
+                    modifier = Modifier.padding(horizontal = gutter),
                     title = {
                         Text(
                             metric.title(),
@@ -281,19 +298,15 @@ fun DetailScreen(
                 },
                 modifier = Modifier.fillMaxSize()
             ) {
-                ReadableGutter { gutter ->
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(
-                        start = 16.dp + gutter,
-                        end = 16.dp + gutter,
-                        top = inner.calculateTopPadding() + 16.dp,
-                        bottom = 16.dp
-                    ),
-                    verticalArrangement = Arrangement.spacedBy(20.dp),
-                ) {
+                val top = inner.calculateTopPadding() + 16.dp
+                val summary: LazyListScope.() -> Unit = {
                     item { HeaderCard(d, onEditGoal = { showGoalDialog = true }) }
                     item { ChartCard(d, selectedChartPoint) { selectedChartPoint = it } }
+                }
+                val stats: LazyListScope.() -> Unit = {
+                    if (d.stats.isNotEmpty()) item { StatsCard(d) }
+                }
+                val foodItems: LazyListScope.() -> Unit = {
                     if (d.todaySections.isNotEmpty()) {
                         item(key = "food_items") {
                             FoodItemsCard(
@@ -309,7 +322,8 @@ fun DetailScreen(
                             )
                         }
                     }
-                    if (d.stats.isNotEmpty()) item { StatsCard(d) }
+                }
+                val recent: LazyListScope.() -> Unit = {
                     if (d.recent.isNotEmpty()) {
                         item {
                             Text(
@@ -323,6 +337,46 @@ fun DetailScreen(
                         item { Spacer(Modifier.height(100.dp)) } // Leave room for nav pill
                     }
                 }
+                if (twoColumns) {
+                    // Each column scrolls on its own: the day's numbers stay in view while a long
+                    // intake list moves beside them.
+                    Row(
+                        Modifier.fillMaxSize().padding(horizontal = 16.dp + gutter),
+                        horizontalArrangement = Arrangement.spacedBy(20.dp),
+                    ) {
+                        LazyColumn(
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
+                            contentPadding = PaddingValues(top = top, bottom = 16.dp),
+                            verticalArrangement = Arrangement.spacedBy(20.dp),
+                        ) {
+                            summary()
+                            stats()
+                        }
+                        LazyColumn(
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
+                            contentPadding = PaddingValues(top = top, bottom = 16.dp),
+                            verticalArrangement = Arrangement.spacedBy(20.dp),
+                        ) {
+                            foodItems()
+                            recent()
+                        }
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        contentPadding = PaddingValues(
+                            start = 16.dp + gutter,
+                            end = 16.dp + gutter,
+                            top = top,
+                            bottom = 16.dp
+                        ),
+                        verticalArrangement = Arrangement.spacedBy(20.dp),
+                    ) {
+                        summary()
+                        foodItems()
+                        stats()
+                        recent()
+                    }
                 }
             }
         }
