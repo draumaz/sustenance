@@ -102,8 +102,9 @@ class SettingsRepository(private val context: Context) {
         prefs[gramIncrementEnabledKey] ?: false
     }
 
-    val gramIncrement: Flow<Int> = context.settingsDataStore.data.map { prefs ->
-        (prefs[gramIncrementKey] ?: 1).coerceAtLeast(1)
+    /** The custom +/− step in grams, or null when none is set: the buttons then step by one serving. */
+    val gramIncrement: Flow<Int?> = context.settingsDataStore.data.map { prefs ->
+        prefs[gramIncrementKey]?.takeIf { it > 0 }
     }
 
     val fastBreakingCalories: Flow<Int> = context.settingsDataStore.data.map { prefs ->
@@ -212,9 +213,10 @@ class SettingsRepository(private val context: Context) {
         }
     }
 
-    suspend fun setGramIncrement(increment: Int) {
+    suspend fun setGramIncrement(increment: Int?) {
         context.settingsDataStore.edit { prefs ->
-            prefs[gramIncrementKey] = increment.coerceAtLeast(1)
+            if (increment == null || increment <= 0) prefs.remove(gramIncrementKey)
+            else prefs[gramIncrementKey] = increment
         }
     }
 

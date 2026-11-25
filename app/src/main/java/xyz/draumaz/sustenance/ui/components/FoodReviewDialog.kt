@@ -101,7 +101,7 @@ fun FoodReviewDialog(
     onLog: (FoodNutrients, Double, Instant) -> Unit,
     judgementalMode: Boolean = false,
     gramIncrementEnabled: Boolean = false,
-    gramIncrement: Int = 1,
+    gramIncrement: Int? = null,
     currentTotals: Map<Metric, Float> = emptyMap(),
     goals: Map<Metric, Float> = emptyMap(),
 ) {
@@ -129,6 +129,8 @@ fun FoodReviewDialog(
     }
 
     var currentGrams by remember(nutrients) { mutableDoubleStateOf(baseGrams) }
+    // Without a custom step, +/− move by whole servings (28g → 56g → 84g), so − walks back to 0.
+    val stepGrams = gramIncrement?.takeIf { gramIncrementEnabled }?.toDouble() ?: baseGrams
     var quantityText by remember(nutrients) { mutableStateOf(format(currentGrams)) }
 
     val calBase = remember(nutrients) { mutableDoubleStateOf(nutrients.calories) }
@@ -272,7 +274,7 @@ fun FoodReviewDialog(
                                 onAdjust = { multiplier ->
                                     if (currentGrams > 0.0) {
                                         view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                                        val step = if (gramIncrementEnabled) (gramIncrement * multiplier).toDouble() else (baseGrams * multiplier)
+                                        val step = stepGrams * multiplier
                                         val next = (currentGrams - step).coerceAtLeast(0.0)
                                         scaleNutrients(next)
                                         currentGrams = next
@@ -325,7 +327,7 @@ fun FoodReviewDialog(
                                 interactionSource = plusInteractionSource,
                                 onAdjust = { multiplier ->
                                     view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
-                                    val step = if (gramIncrementEnabled) (gramIncrement * multiplier).toDouble() else (baseGrams * multiplier)
+                                    val step = stepGrams * multiplier
                                     val next = currentGrams + step
                                     scaleNutrients(next)
                                     currentGrams = next

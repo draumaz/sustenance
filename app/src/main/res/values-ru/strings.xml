@@ -103,6 +103,7 @@
     <string name="gram_increment">Шаг изменения в граммах</string>
     <string name="gram_increment_summary">Шаг кнопок +/− при просмотре еды</string>
     <string name="gram_increment_amount">Шаг</string>
+    <string name="gram_increment_placeholder">Одна порция</string>
     <string name="judgemental_mode">Предупреждать о лимитах</string>
     <string name="judgemental_mode_summary">Отмечать продукты, с которыми вы превысите дневной лимит</string>
     <string name="always_batch">Всегда серией</string>

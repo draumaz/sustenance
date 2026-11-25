@@ -105,6 +105,7 @@
     <string name="gram_increment">Gram increment</string>
     <string name="gram_increment_summary">Step size for the +/− buttons when reviewing food</string>
     <string name="gram_increment_amount">Step size</string>
+    <string name="gram_increment_placeholder">One serving</string>
     <string name="judgemental_mode">Limit heads-up</string>
     <string name="judgemental_mode_summary">Flag foods that would put you over a daily limit</string>
     <string name="always_batch">Always batch</string>

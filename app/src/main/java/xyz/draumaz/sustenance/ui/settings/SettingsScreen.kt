@@ -265,17 +265,19 @@ fun SettingsScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     OutlinedTextField(
-                        value = tempIncrement ?: gramIncrement.toString(),
+                        value = tempIncrement ?: gramIncrement?.toString().orEmpty(),
                         onValueChange = { newValue ->
                             if (newValue.isEmpty() || newValue.all { it.isDigit() }) {
                                 tempIncrement = newValue
-                                newValue.toIntOrNull()?.takeIf { it > 0 }?.let { vm.setGramIncrement(it) }
+                                // An empty field clears the custom step, so +/− fall back to one serving.
+                                if (newValue.isEmpty()) vm.setGramIncrement(null)
+                                else newValue.toIntOrNull()?.takeIf { it > 0 }?.let { vm.setGramIncrement(it) }
                             }
                         },
                         modifier = Modifier.weight(1f),
                         singleLine = true,
                         label = { Text(stringResource(R.string.gram_increment_amount)) },
-                        placeholder = { Text("1") },
+                        placeholder = { Text(stringResource(R.string.gram_increment_placeholder)) },
                         suffix = { Text(stringResource(R.string.unit_g)) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                     )

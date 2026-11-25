@@ -382,7 +382,7 @@ private fun MainNav(
     val alwaysBatch by settingsRepo.alwaysBatch.collectAsState(initial = true)
     var bingeCheck by remember { mutableStateOf<BingeCheck?>(null) }
     val gramIncrementEnabled by settingsRepo.gramIncrementEnabled.collectAsState(initial = false)
-    val gramIncrement by settingsRepo.gramIncrement.collectAsState(initial = 1)
+    val gramIncrement by settingsRepo.gramIncrement.collectAsState(initial = null)
     val ketoMode by settingsRepo.ketoMode.collectAsState(initial = false)
     val currentTotals by produceState(initialValue = emptyMap<Metric, Float>(), goals, ketoMode, manager) {
         suspend fun update() {

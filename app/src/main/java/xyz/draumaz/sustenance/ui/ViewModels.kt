@@ -265,7 +265,7 @@ class SettingsViewModel(
     val bingeCheckEnabled = repository.bingeCheckEnabled.stateIn(viewModelScope, SharingStarted.Eagerly, true)
     val alwaysBatch = repository.alwaysBatch.stateIn(viewModelScope, SharingStarted.Eagerly, true)
     val gramIncrementEnabled = repository.gramIncrementEnabled.stateIn(viewModelScope, SharingStarted.Eagerly, false)
-    val gramIncrement = repository.gramIncrement.stateIn(viewModelScope, SharingStarted.Eagerly, 1)
+    val gramIncrement = repository.gramIncrement.stateIn(viewModelScope, SharingStarted.Eagerly, null)
     val fastBreakingCalories = repository.fastBreakingCalories.stateIn(viewModelScope, SharingStarted.Eagerly, 0)
     val fastingGoalHours = repository.fastingGoalHours.stateIn(viewModelScope, SharingStarted.Eagerly, 16f)
     val fastingNotificationsEnabled = repository.fastingNotificationsEnabled.stateIn(viewModelScope, SharingStarted.Eagerly, false)
@@ -303,7 +303,7 @@ class SettingsViewModel(
         viewModelScope.launch { repository.setGramIncrementEnabled(enabled) }
     }
 
-    fun setGramIncrement(increment: Int) {
+    fun setGramIncrement(increment: Int?) {
         viewModelScope.launch { repository.setGramIncrement(increment) }
     }
 
