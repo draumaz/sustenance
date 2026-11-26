@@ -13,6 +13,9 @@ import android.text.format.DateFormat
 import android.util.TypedValue
 import android.widget.RemoteViews
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -81,14 +84,21 @@ class FastingWidget : GlanceAppWidget() {
         // Without the background-read permission the live read fails (returns null), so fall
         // back to the last time the dashboard saw, which uses the same fast-breaking threshold.
         val live = if (app.healthConnect.isAvailable) app.healthConnect.readLastFoodLogTime(threshold) else null
-        val state = FastState(
-            lastLog = live ?: settings.getCachedLastLogTime(),
-            goalHours = settings.fastingGoalHours.first(),
-            now = Instant.now(),
-        )
+        val lastLog = live ?: settings.getCachedLastLogTime()
+        val initialGoal = settings.fastingGoalHours.first()
 
-        scheduleDayRollover(context, state.lastLog, state.now)
-        provideContent { FastingContent(state) }
+        scheduleDayRollover(context, lastLog, Instant.now())
+        provideContent {
+            // Glance runs provideGlance once per session and keeps the session composing for a
+            // while after each update, so a goal read up there stays stale for any update() that
+            // lands inside it: opening the app refreshes the widget, so a goal edited in Settings
+            // right after always hit a live session and never showed. Collecting the setting here
+            // recomposes the open session as soon as the edit is stored; a fresh session reads
+            // it in provideGlance as before. The fill is relative to now, so take the time anew.
+            val goalHours by settings.fastingGoalHours.collectAsState(initialGoal)
+            val state = remember(goalHours) { FastState(lastLog, goalHours, Instant.now()) }
+            FastingContent(state)
+        }
     }
 }
 
