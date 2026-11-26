@@ -45,6 +45,7 @@ import java.time.LocalTime
 import java.time.Period
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import kotlin.math.abs
 import kotlin.reflect.KClass
 import kotlin.time.Duration.Companion.seconds
 
@@ -254,7 +255,7 @@ class HealthConnectManager(internal val context: Context) {
                 }
             }
         }
-        val rawSummaries = deferredSummaries.awaitAll()
+        val rawSummaries = withFoodLeftOnBalance(deferredSummaries.awaitAll())
 
         if (!isKeto) return@coroutineScope rawSummaries
 
@@ -288,6 +289,24 @@ class HealthConnectManager(internal val context: Context) {
         return@coroutineScope rawSummaries
     }
 
+    /**
+     * Appends "(x left/over)" against the food goal to the caloric balance, the hint Food's
+     * half-width card has no room for. The food goal here is the one the card's fill uses: the
+     * one implied by a balance goal when there is one, so what's left is what can still be eaten
+     * while keeping the deficit.
+     */
+    private fun withFoodLeftOnBalance(summaries: List<MetricSummary>): List<MetricSummary> {
+        val food = summaries.find { it.metric == Metric.FOOD } ?: return summaries
+        val foodGoal = food.goal ?: return summaries
+        if (!food.hasData) return summaries
+        val diff = foodGoal - (food.spark.lastOrNull() ?: 0f)
+        val label = context.getString(if (diff >= 0f) R.string.left else R.string.over)
+        val suffix = " (${Metric.FOOD.formatValue(abs(diff))} $label)"
+        return summaries.map {
+            if (it.metric == Metric.CALORIC_BALANCE && it.hasData) it.copy(value = it.value + suffix) else it
+        }
+    }
+
     private suspend fun summarize(metric: Metric, goal: Float?, dateOffset: Int): MetricSummary {
         val points = series(metric, days = 7 + dateOffset)
         if (points.size <= dateOffset) {
@@ -305,16 +324,9 @@ class HealthConnectManager(internal val context: Context) {
                     metric == Metric.CALORIC_BALANCE -> {
                         val absToday = if (today < 0) -today else today
                         val sign = if (today > 0) "-" else if (today < 0) "+" else ""
-                        val formatted = "$sign${metric.formatValue(absToday)}$unit"
-                        if (goal != null && goal > 0) {
-                            val diff = goal - today
-                            val (absDiff, label) = if (diff > 0) {
-                                diff to context.getString(R.string.left)
-                            } else {
-                                -diff to context.getString(R.string.over)
-                            }
-                            "$formatted (${metric.formatValue(absDiff)} $label)"
-                        } else formatted
+                        // readDashboard appends what's left of the food goal: this card has the
+                        // room for it that Food's half-width one lacks.
+                        "$sign${metric.formatValue(absToday)}$unit"
                     }
                     // Food's "(… left)" doesn't fit its half-width card beside Total energy, nor
                     // the watch's row; its progress fill shows what's left instead.
