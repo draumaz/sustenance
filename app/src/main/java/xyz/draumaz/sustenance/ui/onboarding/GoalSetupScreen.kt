@@ -76,8 +76,8 @@ private val blurbs = mapOf(
 /**
  * The last step of first-time setup, shown after Health Connect is linked and before the
  * dashboard loads, so the user sets daily targets up front. "Not now" keeps [initial].
- * Settings reopens it with [editing] set, which swaps "Not now" for "Cancel". The carb goal always
- * counts total carbs; [netCarbMode] adds a note saying so, since the dashboard then shows net carbs.
+ * Settings reopens it with [editing] set, which swaps "Not now" for "Cancel". [netCarbMode] adds a
+ * note that the carb goal then counts net carbs (carbs minus fiber), as the dashboard does.
  */
 @Composable
 fun GoalSetupScreen(

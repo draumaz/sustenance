@@ -259,20 +259,27 @@ class HealthConnectManager(internal val context: Context) {
 
         if (!isKeto) return@coroutineScope rawSummaries
 
-        // Net Carb mode headlines carbs minus fiber, but the carb goal is a total-carb goal: the
-        // spark (which drives progress, the widget and the over-limit check) stays total carbs.
+        // Net Carb mode counts carbs minus fiber, goal included: the headline, what's left, and
+        // the spark (which drives the card's fill, the widget, the watch and the log warnings)
+        // are all net, so they agree with each other.
         val fiberSummary = rawSummaries.find { it.metric == Metric.FIBER }
         val carbsSummary = rawSummaries.find { it.metric == Metric.CARBS }
 
         if (carbsSummary != null && fiberSummary != null && carbsSummary.granted && fiberSummary.granted) {
-            val fiberVal = fiberSummary.spark.lastOrNull() ?: 0f
-            val carbsVal = carbsSummary.spark.lastOrNull() ?: 0f
-            val netCarbs = (carbsVal - fiberVal).coerceAtLeast(0f)
+            // Both sparks end on the same day; a day without fiber data counts as no fiber.
+            val fiberSpark = fiberSummary.spark
+            val netSpark = carbsSummary.spark.mapIndexed { i, carbs ->
+                val fiber = fiberSpark.getOrNull(fiberSpark.size - carbsSummary.spark.size + i) ?: 0f
+                (carbs - fiber).coerceAtLeast(0f)
+            }
+            val netCarbs = netSpark.lastOrNull() ?: 0f
             val goal = goals[Metric.CARBS]
 
             val unit = context.getString(Metric.CARBS.unitRes)
-            val displayValue = if (goal != null && goal > 0) {
-                val diff = carbsVal - goal
+            val displayValue = if (!carbsSummary.hasData) {
+                carbsSummary.value
+            } else if (goal != null && goal > 0) {
+                val diff = netCarbs - goal
                 val absDiff = if (diff < 0) -diff else diff
                 val label = context.getString(if (diff >= 0) R.string.over else R.string.left)
                 "${Metric.CARBS.formatValue(netCarbs)}$unit (${Metric.CARBS.formatValue(absDiff)} $label)"
@@ -281,6 +288,7 @@ class HealthConnectManager(internal val context: Context) {
             val netCarbsSummary = carbsSummary.copy(
                 titleOverride = context.getString(R.string.metric_net_carbs),
                 value = displayValue,
+                spark = netSpark,
             )
 
             return@coroutineScope rawSummaries.map { if (it.metric == Metric.CARBS) netCarbsSummary else it }

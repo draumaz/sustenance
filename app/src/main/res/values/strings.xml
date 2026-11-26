@@ -230,7 +230,7 @@
     <string name="goal_setup_save">Save goals</string>
     <string name="goal_setup_skip">Not now</string>
     <string name="goal_setup_total_carbs">Daily limit · total carbs</string>
-    <string name="goal_setup_net_carb_note">Net Carb mode shows carbs minus fiber, but this goal counts total carbs, fiber included.</string>
+    <string name="goal_setup_net_carb_note">In Net Carb mode this goal counts net carbs: carbs minus fiber.</string>
     <string name="goal_blurb_food">The energy in what you eat. Eating more than you burn over time leads to weight gain; too little leaves you tired and short on nutrients.</string>
     <string name="goal_blurb_protein">Builds and repairs muscle, skin, and organs, and keeps you full for longer. Adults need about 0.8 g per kg of body weight, more if you\'re active or older.</string>
     <string name="goal_blurb_carbs">Your body\'s main fuel, especially for the brain and exercise. Whole grains, fruit, and legumes serve you well; refined starches and sugar spike blood sugar and add little else.</string>

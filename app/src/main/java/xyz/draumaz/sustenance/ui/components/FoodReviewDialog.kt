@@ -104,6 +104,7 @@ fun FoodReviewDialog(
     gramIncrement: Int? = null,
     currentTotals: Map<Metric, Float> = emptyMap(),
     goals: Map<Metric, Float> = emptyMap(),
+    netCarbs: Boolean = false,
 ) {
     val view = LocalView.current
     var foodItem by remember { mutableStateOf(nutrients.foodItem) }
@@ -167,8 +168,8 @@ fun FoodReviewDialog(
         sodium = safeParse(sodium) ?: 0.0
     )
 
-    val judgement = remember(currentNutrients, currentTotals, goals) {
-        Metric.judgeFoodItem(currentNutrients, currentTotals, goals)
+    val judgement = remember(currentNutrients, currentTotals, goals, netCarbs) {
+        Metric.judgeFoodItem(currentNutrients, currentTotals, goals, netCarbs)
     }
 
     fun scaleNutrients(newGrams: Double) {

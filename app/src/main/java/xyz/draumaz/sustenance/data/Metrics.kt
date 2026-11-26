@@ -88,11 +88,14 @@ enum class Metric(
         fun judgeFoodItem(
             nutrients: FoodNutrients,
             currentTotals: Map<Metric, Float>,
-            goals: Map<Metric, Float>
+            goals: Map<Metric, Float>,
+            /** Net Carb mode: the carb goal and [currentTotals] count carbs minus fiber. */
+            netCarbs: Boolean = false,
         ): Judgement {
+            val carbs = if (netCarbs) (nutrients.carbs - nutrients.fiber).coerceAtLeast(0.0) else nutrients.carbs
             val metricsToCheck = listOf(
                 Metric.TOTAL_CALORIES to nutrients.calories.toFloat(),
-                Metric.CARBS to nutrients.carbs.toFloat(),
+                Metric.CARBS to carbs.toFloat(),
                 Metric.FAT to nutrients.fat.toFloat(),
                 Metric.SATURATED_FAT to nutrients.saturatedFat.toFloat(),
                 Metric.SODIUM to nutrients.sodium.toFloat(),

@@ -1074,6 +1074,7 @@ private fun MainNav(
                     gramIncrement = gramIncrement,
                     currentTotals = currentTotals,
                     goals = goals,
+                    netCarbs = ketoMode,
                     onLog = { nuts, count, timestamp ->
                         scope.launch {
                             val priorLogs = if (bingeCheckEnabled) {
