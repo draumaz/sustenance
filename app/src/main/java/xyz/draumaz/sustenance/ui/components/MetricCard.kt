@@ -175,16 +175,6 @@ fun MetricItemContent(
             )
 
             val baseStyle = MaterialTheme.typography.bodyLarge
-            var textStyle by remember(summary.value, hasFill, textColor, baseStyle) {
-                mutableStateOf(baseStyle.copy(
-                    fontSize = if (isCompact) 13.sp else 16.sp,
-                    lineHeight = if (isCompact) 15.sp else 18.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    letterSpacing = (-0.5).sp,
-                    color = textColor,
-                    shadow = if (hasFill) textShadow else null
-                ))
-            }
 
             val displayValue = if (locked) stringResource(R.string.locked) else summary.value
 
@@ -197,6 +187,18 @@ fun MetricItemContent(
                 },
                 label = "metric_value_morph"
             ) { valueText ->
+                // Each value shrinks to fit on its own: with one shared style, a long outgoing
+                // value overflowing mid-transition would leave the shorter new one shrunk too.
+                var textStyle by remember(valueText, hasFill, textColor, baseStyle) {
+                    mutableStateOf(baseStyle.copy(
+                        fontSize = if (isCompact) 13.sp else 16.sp,
+                        lineHeight = if (isCompact) 15.sp else 18.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        letterSpacing = (-0.5).sp,
+                        color = textColor,
+                        shadow = if (hasFill) textShadow else null
+                    ))
+                }
                 Text(
                     text = valueText,
                     style = textStyle,
