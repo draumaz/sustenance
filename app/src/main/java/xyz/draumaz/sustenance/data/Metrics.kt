@@ -58,12 +58,19 @@ enum class Metric(
      * Resource for the metric's display name. FIBER follows the device region: "fiber" where
      * simplified (US) spelling is standard, "fibre" where British spelling is used.
      */
-    fun titleResFor(locales: LocaleList): Int =
-        if (this == FIBER && usesFibreSpelling(locales)) R.string.metric_fibre else titleRes
+    fun titleResFor(locales: LocaleList, netCarbs: Boolean = false): Int = when {
+        this == FIBER && usesFibreSpelling(locales) -> R.string.metric_fibre
+        this == CARBS && netCarbs -> R.string.metric_net_carbs
+        else -> titleRes
+    }
 
-    /** Region-aware display name; use instead of stringResource(metric.titleRes). */
+    /**
+     * Region-aware display name; use instead of stringResource(metric.titleRes). [netCarbs]
+     * (Net Carb mode) names CARBS "Net carbs", where its values are carbs minus fiber.
+     */
     @Composable
-    fun title(): String = stringResource(titleResFor(LocalConfiguration.current.locales))
+    fun title(netCarbs: Boolean = false): String =
+        stringResource(titleResFor(LocalConfiguration.current.locales, netCarbs))
 
     sealed class Judgement {
         object Positive : Judgement()

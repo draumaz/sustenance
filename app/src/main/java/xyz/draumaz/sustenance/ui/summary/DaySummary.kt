@@ -42,6 +42,8 @@ internal fun buildDayReport(
     logs: List<NutritionRecord>,
     deficitGoal: Boolean,
     yesterday: Boolean,
+    /** Net Carb mode: the carb fact (value and goal) counts carbs minus fiber. */
+    netCarbs: Boolean = false,
 ): DayReport? {
     if (logs.isEmpty()) return null
     val day = if (yesterday) "yesterday" else "today"
@@ -71,7 +73,7 @@ internal fun buildDayReport(
                 val goalNote = if (stat.metric == Metric.FOOD && deficitGoal) {
                     " (set from calories burned minus the deficit goal, so it rises as they move)"
                 } else ""
-                "${labelFor(stat.metric)}, $kind: $day ${num(value)} $unit, goal ${num(goal)} $unit$goalNote. Status: $status." to status.substringBefore(" by")
+                "${labelFor(stat.metric, netCarbs)}, $kind: $day ${num(value)} $unit, goal ${num(goal)} $unit$goalNote. Status: $status." to status.substringBefore(" by")
             }
         }
         goalLines += "- $line"
@@ -132,12 +134,12 @@ private fun unitFor(metric: Metric): String = when (metric) {
     else -> "g"
 }
 
-private fun labelFor(metric: Metric): String = when (metric) {
+private fun labelFor(metric: Metric, netCarbs: Boolean): String = when (metric) {
     Metric.TOTAL_CALORIES -> "Calories burned (activity and resting)"
     Metric.FOOD -> "Calories eaten"
     Metric.CALORIC_BALANCE -> "Calorie deficit"
     Metric.PROTEIN -> "Protein"
-    Metric.CARBS -> "Carbs"
+    Metric.CARBS -> if (netCarbs) "Net carbs (carbs minus fibre)" else "Carbs"
     Metric.FAT -> "Fat"
     Metric.SATURATED_FAT -> "Saturated fat"
     Metric.SODIUM -> "Sodium"

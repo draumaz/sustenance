@@ -646,6 +646,7 @@ private fun MainNav(
                         destinations = topLevel,
                         predictiveBackState = pbState,
                         dateOffset = dashboardDateOffset,
+                        netCarbs = ketoMode,
                         hasApiKey = hasApiKey,
                         isCameraMode = isCameraActive && !isAnalyzing,
                         isBatchMode = isBatchMode,
@@ -742,7 +743,7 @@ private fun MainNav(
                         onTouch = { detailPaneTouched = it },
                         detail = {
                             MetricDetailPane(
-                                manager, goalsRepo, selectedMetric, dashboardDateOffset,
+                                manager, goalsRepo, settingsRepo, selectedMetric, dashboardDateOffset,
                                 onReLog = { pendingNutrients = it },
                                 onManagePermissions = onManagePermissions,
                             )
@@ -790,7 +791,7 @@ private fun MainNav(
                         onTouch = { detailPaneTouched = it },
                         detail = {
                             MetricDetailPane(
-                                manager, goalsRepo, selectedMetric, dateOffset = 0,
+                                manager, goalsRepo, settingsRepo, selectedMetric, dateOffset = 0,
                                 onReLog = { pendingNutrients = it },
                                 onManagePermissions = onManagePermissions,
                             )
@@ -894,6 +895,7 @@ private fun MainNav(
                         DetailScreen(
                             manager = manager,
                             goalsRepo = goalsRepo,
+                            settingsRepo = settingsRepo,
                             metric = metric,
                             dateOffset = if (offsetArg >= 0) offsetArg else dashboardDateOffset,
                             onReLog = { pendingNutrients = it },
@@ -1168,6 +1170,7 @@ private fun Modifier.onPointerStart(onStart: () -> Unit): Modifier = pointerInpu
 private fun MetricDetailPane(
     manager: HealthConnectManager,
     goalsRepo: GoalsRepository,
+    settingsRepo: SettingsRepository,
     metric: Metric,
     dateOffset: Int,
     onReLog: (FoodNutrients) -> Unit,
@@ -1180,7 +1183,7 @@ private fun MetricDetailPane(
     var shown by remember { mutableStateOf(requested) }
     val incoming: DetailViewModel = viewModel(
         key = "${metric.key}_$dateOffset",
-        factory = DetailViewModel.factory(manager, goalsRepo, metric, dateOffset),
+        factory = DetailViewModel.factory(manager, goalsRepo, settingsRepo, metric, dateOffset),
     )
     LaunchedEffect(requested) {
         if (requested == shown) return@LaunchedEffect
@@ -1211,6 +1214,7 @@ private fun MetricDetailPane(
         DetailScreen(
             manager = manager,
             goalsRepo = goalsRepo,
+            settingsRepo = settingsRepo,
             metric = shownMetric,
             dateOffset = shownDay,
             onReLog = onReLog,

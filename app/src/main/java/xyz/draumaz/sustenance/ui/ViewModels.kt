@@ -175,6 +175,7 @@ class DashboardViewModel(
 class DetailViewModel(
     private val manager: HealthConnectManager,
     private val goalsRepo: GoalsRepository,
+    private val settingsRepo: SettingsRepository,
     private val metric: Metric,
     private val dateOffset: Int = 0,
 ) : ViewModel() {
@@ -184,9 +185,12 @@ class DetailViewModel(
     private val _refreshing = MutableStateFlow(false)
     val refreshing = _refreshing.asStateFlow()
 
+    /** Net Carb mode, which turns CARBS into carbs minus fiber (title included). */
+    val netCarbs = settingsRepo.ketoMode.stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
     init {
         viewModelScope.launch {
-            goalsRepo.goals.collect { _ ->
+            combine(goalsRepo.goals, settingsRepo.ketoMode) { _, _ -> }.collect {
                 refresh(showIndicator = false)
             }
         }
@@ -215,7 +219,8 @@ class DetailViewModel(
                     goals[metric]
                 }
 
-                _detail.value = manager.readDetail(metric, finalGoal, caloricBalanceGoal != 0f, dateOffset)
+                val netCarbs = settingsRepo.ketoMode.first()
+                _detail.value = manager.readDetail(metric, finalGoal, caloricBalanceGoal != 0f, dateOffset, netCarbs)
                 if (showIndicator) delay(500)
             } finally {
                 _refreshing.value = false
@@ -244,8 +249,8 @@ class DetailViewModel(
     }
 
     companion object {
-        fun factory(manager: HealthConnectManager, goalsRepo: GoalsRepository, metric: Metric, dateOffset: Int = 0) = viewModelFactory {
-            initializer { DetailViewModel(manager, goalsRepo, metric, dateOffset) }
+        fun factory(manager: HealthConnectManager, goalsRepo: GoalsRepository, settingsRepo: SettingsRepository, metric: Metric, dateOffset: Int = 0) = viewModelFactory {
+            initializer { DetailViewModel(manager, goalsRepo, settingsRepo, metric, dateOffset) }
         }
     }
 }

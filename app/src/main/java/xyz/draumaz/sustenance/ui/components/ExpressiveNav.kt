@@ -112,6 +112,8 @@ fun ExpressiveNavigationBar(
     destinations: List<xyz.draumaz.sustenance.ui.Dest>,
     predictiveBackState: PredictiveBackState,
     dateOffset: Int = 0,
+    /** Net Carb mode, so an open carbs detail labels the pill "Net carbs" as its title does. */
+    netCarbs: Boolean = false,
     hasApiKey: Boolean = false,
     isCameraMode: Boolean = false,
     isBatchMode: Boolean = false,
@@ -306,7 +308,7 @@ fun ExpressiveNavigationBar(
                         // Like Today, the tab that owns an open detail takes on its metric.
                         val ownedMetric = if (ownsDetail) detailMetric else null
                         ExpressiveNavItem(
-                            label = ownedMetric?.title() ?: stringResource(dest.labelRes),
+                            label = ownedMetric?.title(netCarbs) ?: stringResource(dest.labelRes),
                             icon = ownedMetric?.icon ?: dest.icon,
                             selected = previewSelected(
                                 isSelected = isSelected,
@@ -330,7 +332,7 @@ fun ExpressiveNavigationBar(
                     val targetMetric = if (todayOwnsDetail) detailMetric else null
 
                     val labelText = when {
-                        targetMetric != null -> targetMetric.title()
+                        targetMetric != null -> targetMetric.title(netCarbs)
                         isLog -> stringResource(R.string.log)
                         dateOffset == 0 -> stringResource(todayDest.labelRes)
                         dateOffset == 1 -> stringResource(R.string.yesterday)

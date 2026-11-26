@@ -38,6 +38,8 @@ import kotlinx.coroutines.launch
 data class InsightsState(
     val loading: Boolean = true,
     val stats: List<WeeklyStat> = emptyList(),
+    /** Net Carb mode: the carb stat is carbs minus fiber, and is titled so. */
+    val netCarbs: Boolean = false,
 )
 
 class InsightsViewModel(
@@ -48,6 +50,8 @@ class InsightsViewModel(
 
     // Raw daily series per metric (null until first load completes).
     private val series = MutableStateFlow<Map<Metric, List<SeriesPoint>>?>(null)
+    /** The Net Carb mode [series] was read in, so the stats never mix one mode's carbs with the other's title. */
+    private val seriesNetCarbs = MutableStateFlow(false)
     private val todayLogs = MutableStateFlow<List<NutritionRecord>>(emptyList())
     /** Only read while nothing is logged today: the AI summary looks back at yesterday then. */
     private val yesterdayLogs = MutableStateFlow<List<NutritionRecord>>(emptyList())
@@ -55,7 +59,7 @@ class InsightsViewModel(
     private val _refreshing = MutableStateFlow(value = false)
     val refreshing = _refreshing.asStateFlow()
 
-    val state = combine(series, todayLogs, goalsRepo.goals) { seriesByMetric, logs, goals ->
+    val state = combine(series, seriesNetCarbs, todayLogs, goalsRepo.goals) { seriesByMetric, netCarbs, logs, goals ->
         if (seriesByMetric == null) {
             InsightsState(loading = true)
         } else {
@@ -85,7 +89,7 @@ class InsightsViewModel(
                             when (metric) {
                                 Metric.FOOD, Metric.TOTAL_CALORIES -> log.energy?.inKilocalories ?: 0.0
                                 Metric.PROTEIN -> log.protein?.inGrams ?: 0.0
-                                Metric.CARBS -> log.totalCarbohydrate?.inGrams ?: 0.0
+                                Metric.CARBS -> carbsOf(log, netCarbs)
                                 Metric.FAT -> log.totalFat?.inGrams ?: 0.0
                                 Metric.FIBER -> log.dietaryFiber?.inGrams ?: 0.0
                                 Metric.SATURATED_FAT -> log.saturatedFat?.inGrams ?: 0.0
@@ -98,7 +102,7 @@ class InsightsViewModel(
                             val offenderVal = when (metric) {
                                 Metric.FOOD, Metric.TOTAL_CALORIES -> biggestOffender.energy?.inKilocalories ?: 0.0
                                 Metric.PROTEIN -> biggestOffender.protein?.inGrams ?: 0.0
-                                Metric.CARBS -> biggestOffender.totalCarbohydrate?.inGrams ?: 0.0
+                                Metric.CARBS -> carbsOf(biggestOffender, netCarbs)
                                 Metric.FAT -> biggestOffender.totalFat?.inGrams ?: 0.0
                                 Metric.FIBER -> biggestOffender.dietaryFiber?.inGrams ?: 0.0
                                 Metric.SATURATED_FAT -> biggestOffender.saturatedFat?.inGrams ?: 0.0
@@ -128,7 +132,7 @@ class InsightsViewModel(
                     insight = insight
                 )
             }
-            InsightsState(loading = false, stats = stats)
+            InsightsState(loading = false, stats = stats, netCarbs = netCarbs)
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), InsightsState())
 
@@ -144,7 +148,11 @@ class InsightsViewModel(
     }.distinctUntilChanged()
 
     init {
-        refresh(showIndicator = false)
+        // The first value loads the screen; a later one is Net Carb mode toggled in Settings
+        // while this screen's view model lives on in the back stack.
+        viewModelScope.launch {
+            settings.ketoMode.distinctUntilChanged().collect { refresh(showIndicator = false) }
+        }
         viewModelScope.launch {
             combine(state, todayLogs, yesterdayLogs, gemini, summaryRetries) { s, today, yesterday, g, _ ->
                 SummaryInput(s, today, yesterday, g)
@@ -171,9 +179,9 @@ class InsightsViewModel(
         // (a finished day, which is when tips for the next day are most useful).
         val yesterday = todayLogs.isEmpty()
         val report = if (yesterday) {
-            buildDayReport(yesterdayFacts(s.stats, deficitGoal), yesterdayLogs, deficitGoal > 0f, yesterday = true)
+            buildDayReport(yesterdayFacts(s.stats, deficitGoal), yesterdayLogs, deficitGoal > 0f, yesterday = true, netCarbs = s.netCarbs)
         } else {
-            buildDayReport(todayFacts(s.stats), todayLogs, deficitGoal > 0f, yesterday = false)
+            buildDayReport(todayFacts(s.stats), todayLogs, deficitGoal > 0f, yesterday = false, netCarbs = s.netCarbs)
         } ?: run { _summary.value = DaySummaryState.Hidden; return }
         val (key, model) = g
         val language = manager.context.resources.configuration.locales[0].getDisplayLanguage(Locale.ENGLISH)
@@ -210,9 +218,10 @@ class InsightsViewModel(
             if (showIndicator) _refreshing.value = true
             val granted = runCatchingCancellable { manager.grantedPermissions() }.getOrDefault(emptySet())
             val metrics = GoalCatalog.metrics.filter { manager.permissionFor(it) in granted }
+            val netCarbs = settings.ketoMode.first()
             val seriesMap = coroutineScope {
                 metrics.map { metric ->
-                    async { metric to runCatchingCancellable { manager.readDailySeries(metric, 7) }.getOrDefault(emptyList()) }
+                    async { metric to runCatchingCancellable { manager.readDailySeries(metric, 7, netCarbs = netCarbs) }.getOrDefault(emptyList()) }
                 }.awaitAll().toMap()
             }
             // Logs before the series: the first state with stats then already has today's food,
@@ -230,6 +239,7 @@ class InsightsViewModel(
                 }
                 todayLogs.value = today
             }
+            seriesNetCarbs.value = netCarbs
             series.value = seriesMap
 
             if (showIndicator) delay(500.milliseconds)
@@ -243,6 +253,12 @@ class InsightsViewModel(
 
     companion object {
         private val SUMMARY_DEBOUNCE = 1_000.milliseconds
+
+        /** A log's carbs, net of its fiber in Net Carb mode, to match the carb stat. */
+        private fun carbsOf(log: NutritionRecord, netCarbs: Boolean): Double {
+            val carbs = log.totalCarbohydrate?.inGrams ?: 0.0
+            return if (netCarbs) (carbs - (log.dietaryFiber?.inGrams ?: 0.0)).coerceAtLeast(0.0) else carbs
+        }
 
         fun factory(manager: HealthConnectManager, goalsRepo: GoalsRepository, settings: SettingsRepository) = viewModelFactory {
             initializer { InsightsViewModel(manager, goalsRepo, settings) }

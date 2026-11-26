@@ -93,6 +93,7 @@ import android.view.HapticFeedbackConstants
 import xyz.draumaz.sustenance.R
 import java.time.Duration
 import xyz.draumaz.sustenance.data.GoalsRepository
+import xyz.draumaz.sustenance.data.SettingsRepository
 import xyz.draumaz.sustenance.data.HealthConnectManager
 import xyz.draumaz.sustenance.data.Metric
 import xyz.draumaz.sustenance.data.MetricDetail
@@ -118,6 +119,7 @@ private val TwoColumnMaxWidth = 1440.dp
 fun DetailScreen(
     manager: HealthConnectManager,
     goalsRepo: GoalsRepository,
+    settingsRepo: SettingsRepository,
     metric: Metric,
     dateOffset: Int = 0,
     onReLog: (FoodNutrients) -> Unit = {},
@@ -128,9 +130,10 @@ fun DetailScreen(
     val context = LocalContext.current
     val vm: DetailViewModel = viewModel(
         key = "${metric.key}_$dateOffset",
-        factory = DetailViewModel.factory(manager, goalsRepo, metric, dateOffset),
+        factory = DetailViewModel.factory(manager, goalsRepo, settingsRepo, metric, dateOffset),
     )
     val detail by vm.detail.collectAsStateWithLifecycle()
+    val netCarbs by vm.netCarbs.collectAsStateWithLifecycle()
     val refreshing by vm.refreshing.collectAsStateWithLifecycle()
     var showGoalDialog by remember { mutableStateOf(false) }
     var recordToDelete by remember { mutableStateOf<RecordRow?>(null) }
@@ -158,7 +161,7 @@ fun DetailScreen(
     if (showGoalDialog) {
         val currentGoal = detail?.goal ?: 0f
         var text by remember { mutableStateOf(currentGoal.toString().removeSuffix(".0")) }
-        val titleText = if (metric == Metric.CALORIC_BALANCE) stringResource(R.string.edit_caloric_balance_offset) else stringResource(R.string.edit_metric_goal, metric.title())
+        val titleText = if (metric == Metric.CALORIC_BALANCE) stringResource(R.string.edit_caloric_balance_offset) else stringResource(R.string.edit_metric_goal, metric.title(netCarbs))
         AlertDialog(
             onDismissRequest = { showGoalDialog = false },
             title = { Text(titleText) },
@@ -251,7 +254,7 @@ fun DetailScreen(
                     modifier = Modifier.padding(horizontal = gutter),
                     title = {
                         Text(
-                            metric.title(),
+                            metric.title(netCarbs),
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.ExtraBold
                         )

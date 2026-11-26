@@ -25,6 +25,7 @@ import xyz.draumaz.sustenance.data.parseDecimal
 @Composable
 fun GoalEditDialog(
     stat: WeeklyStat,
+    netCarbs: Boolean,
     onDismiss: () -> Unit,
     onSave: (Float) -> Unit,
 ) {
@@ -33,7 +34,7 @@ fun GoalEditDialog(
             if (stat.goal % 1f == 0f) stat.goal.toInt().toString() else stat.goal.toString()
         )
     }
-    val title = if (stat.metric == Metric.CALORIC_BALANCE) stringResource(R.string.edit_caloric_balance_offset) else stringResource(R.string.edit_metric_goal, stat.metric.title())
+    val title = if (stat.metric == Metric.CALORIC_BALANCE) stringResource(R.string.edit_caloric_balance_offset) else stringResource(R.string.edit_metric_goal, stat.metric.title(netCarbs))
     val prompt = if (stat.metric == Metric.CALORIC_BALANCE) stringResource(R.string.offset_label, stringResource(stat.metric.unitRes)) else stringResource(R.string.target_label, stringResource(stat.metric.unitRes))
     AlertDialog(
         onDismissRequest = onDismiss,

@@ -532,12 +532,14 @@ class HealthConnectManager(internal val context: Context) {
         metric: Metric,
         goal: Float? = null,
         isCaloricBalanceActive: Boolean = false,
-        dateOffset: Int = 0
+        dateOffset: Int = 0,
+        /** Net Carb mode: CARBS reads carbs minus fiber. */
+        netCarbs: Boolean = false,
     ): MetricDetail {
         val isGoalEditable = !(metric == Metric.FOOD && isCaloricBalanceActive)
         return runCatchingCancellable {
             val days = if (metric.kind == MetricKind.DAILY_TOTAL) 7 else 90
-            val points = series(metric, days, dateOffset)
+            val points = series(metric, days, dateOffset, netCarbs)
             val unit = context.getString(metric.unitRes)
 
             if (points.isEmpty()) {
@@ -673,20 +675,38 @@ class HealthConnectManager(internal val context: Context) {
 
     // ---- Public series for summary ----------------------------------------------------------
 
-    /** Daily totals over [days] for a [MetricKind.DAILY_TOTAL] metric; empty otherwise. */
-    suspend fun readDailySeries(metric: Metric, days: Int, dateOffset: Int = 0): List<SeriesPoint> =
-        if (metric.kind == MetricKind.DAILY_TOTAL) series(metric, days, dateOffset) else emptyList()
+    /**
+     * Daily totals over [days] for a [MetricKind.DAILY_TOTAL] metric; empty otherwise. With
+     * [netCarbs] (Net Carb mode), CARBS is carbs minus fiber.
+     */
+    suspend fun readDailySeries(metric: Metric, days: Int, dateOffset: Int = 0, netCarbs: Boolean = false): List<SeriesPoint> =
+        if (metric.kind == MetricKind.DAILY_TOTAL) series(metric, days, dateOffset, netCarbs) else emptyList()
 
     // ---- Series builders -----------------------------------------------------------------------
 
-    private suspend fun series(metric: Metric, days: Int, dateOffset: Int = 0): List<SeriesPoint> =
+    private suspend fun series(metric: Metric, days: Int, dateOffset: Int = 0, netCarbs: Boolean = false): List<SeriesPoint> =
         when (metric.kind) {
-            MetricKind.DAILY_TOTAL -> when (metric) {
-                Metric.CALORIC_BALANCE -> caloricBalanceSeries(days, dateOffset)
+            MetricKind.DAILY_TOTAL -> when {
+                metric == Metric.CALORIC_BALANCE -> caloricBalanceSeries(days, dateOffset)
+                metric == Metric.CARBS && netCarbs -> netCarbsSeries(days, dateOffset)
                 else -> dailyTotalSeries(metric, days, dateOffset)
             }
             MetricKind.LATEST -> latestSeries(metric, days, dateOffset)
         }
+
+    /**
+     * Carbs minus fiber per day, never below zero. Fiber is best effort, as on the dashboard:
+     * without it (no grant, or a failed read) days count no fiber rather than losing the carbs.
+     */
+    private suspend fun netCarbsSeries(days: Int, dateOffset: Int = 0): List<SeriesPoint> = coroutineScope {
+        val fiberDeferred = async {
+            runCatchingCancellable { dailyTotalSeries(Metric.FIBER, days, dateOffset) }.getOrDefault(emptyList())
+        }
+        val carbs = dailyTotalSeries(Metric.CARBS, days, dateOffset)
+        val fiber = fiberDeferred.await()
+        // Both series run over the same days, index for index.
+        carbs.mapIndexed { i, p -> p.copy(value = (p.value - (fiber.getOrNull(i)?.value ?: 0f)).coerceAtLeast(0f)) }
+    }
 
     private suspend fun caloricBalanceSeries(days: Int, dateOffset: Int = 0): List<SeriesPoint> = coroutineScope {
         val energyDeferred = async { dailyTotalSeries(Metric.TOTAL_CALORIES, days, dateOffset) }

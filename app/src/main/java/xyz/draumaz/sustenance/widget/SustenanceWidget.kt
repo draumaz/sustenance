@@ -213,7 +213,7 @@ private fun Tile(
                     Text(text = emoji, style = TextStyle(fontSize = 13.sp))
                     Spacer(GlanceModifier.width(6.dp))
                     Text(
-                        text = context.getString(tile.metric.titleResFor(context.resources.configuration.locales)),
+                        text = tile.titleOverride ?: context.getString(tile.metric.titleResFor(context.resources.configuration.locales)),
                         maxLines = 1,
                         style = TextStyle(
                             color = GlanceTheme.colors.onSecondaryContainer,

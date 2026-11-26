@@ -227,6 +227,7 @@ fun InsightsScreen(
                     ) {
                         InsightCard(
                             stat = stat,
+                            netCarbs = state.netCarbs,
                             onClick = { onOpenMetric(stat.metric) },
                             onEdit = { editing = stat },
                             editEnabled = !(stat.metric == Metric.FOOD && programmedDeficit),
@@ -242,6 +243,7 @@ fun InsightsScreen(
     editing?.let { stat ->
         GoalEditDialog(
             stat = stat,
+            netCarbs = state.netCarbs,
             onDismiss = { editing = null },
             onSave = { value -> vm.setGoal(stat.metric, value); editing = null },
         )
@@ -385,6 +387,7 @@ private fun SummaryBullet(text: AnnotatedString, style: TextStyle) {
 @Composable
 private fun InsightCard(
     stat: WeeklyStat,
+    netCarbs: Boolean,
     onClick: () -> Unit,
     onEdit: () -> Unit,
     editEnabled: Boolean = true,
@@ -428,7 +431,7 @@ private fun InsightCard(
                 Spacer(Modifier.size(20.dp))
                 Column(Modifier.weight(1f)) {
                     Text(
-                        stat.metric.title(),
+                        stat.metric.title(netCarbs),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Black,
                         letterSpacing = (-0.5).sp
