@@ -316,7 +316,9 @@ class HealthConnectManager(internal val context: Context) {
                             "$formatted (${metric.formatValue(absDiff)} $label)"
                         } else formatted
                     }
-                    metric == Metric.TOTAL_CALORIES -> "${metric.formatValue(today)}$unit"
+                    // Food's "(… left)" doesn't fit its half-width card beside Total energy, nor
+                    // the watch's row; its progress fill shows what's left instead.
+                    metric == Metric.TOTAL_CALORIES || metric == Metric.FOOD -> "${metric.formatValue(today)}$unit"
                     goal != null -> {
                         val diff = today - goal
                         val absDiff = if (diff < 0) -diff else diff

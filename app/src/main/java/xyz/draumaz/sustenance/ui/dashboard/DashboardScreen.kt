@@ -81,7 +81,6 @@ import xyz.draumaz.sustenance.data.HealthConnectManager
 import xyz.draumaz.sustenance.data.Metric
 import xyz.draumaz.sustenance.data.GoalsRepository
 import xyz.draumaz.sustenance.data.MetricSummary
-import xyz.draumaz.sustenance.data.formatValue
 import xyz.draumaz.sustenance.ui.DashboardViewModel
 import xyz.draumaz.sustenance.ui.components.MetricCard
 import xyz.draumaz.sustenance.ui.components.ReadableGutter
@@ -380,15 +379,7 @@ fun DashboardScreen(
                             val balanceMetric = listOf(Metric.CALORIC_BALANCE)
                             val microMetrics = listOf(Metric.SUGAR, Metric.SATURATED_FAT, Metric.SODIUM)
 
-                            // Food's "(… left)" doesn't fit its half-width card, so it shows just
-                            // the eaten total like Total energy beside it. The summary itself keeps
-                            // it: the watch shows the full text.
-                            val kcal = stringResource(R.string.unit_kcal)
-                            val energyGroup = currentData.filter { it.metric in energyMetrics }.map { s ->
-                                if (s.metric == Metric.FOOD && s.granted && s.hasData) {
-                                    s.copy(value = "${s.metric.formatValue(s.spark.lastOrNull() ?: 0f)}$kcal")
-                                } else s
-                            }
+                            val energyGroup = currentData.filter { it.metric in energyMetrics }
                             val balanceGroup = currentData.filter { it.metric in balanceMetric }
                             val microsGroup = microMetrics.mapNotNull { m -> currentData.find { it.metric == m } }
                             val macrosGroup = currentData.filter { it.metric !in (energyMetrics + balanceMetric + microMetrics) }
