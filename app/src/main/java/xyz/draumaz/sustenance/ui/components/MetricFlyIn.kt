@@ -35,6 +35,14 @@ val LocalFlyInScope = compositionLocalOf<SharedTransitionScope?> { null }
 /** The NavHost destination's own transition, which the shared bounds animate alongside. */
 val LocalFlyInDestination = compositionLocalOf<AnimatedVisibilityScope?> { null }
 
+/**
+ * The list a tile lives on, or for a detail the list it was opened from. It's part of the
+ * shared key so a tile only ever matches its own detail: Today and Insights both show the
+ * energy and macro tiles, and with one key per metric, switching tabs tried to fly each tile
+ * to its twin on the other tab, cut short by the quick tab crossfade.
+ */
+val LocalFlyInOrigin = compositionLocalOf { "" }
+
 private const val FLY_OPEN_MILLIS = 450
 private const val FLY_CLOSE_MILLIS = 320
 private const val FADE_OUT_MILLIS = 110
@@ -63,9 +71,10 @@ private val flyBounds = BoundsTransform { initial, target ->
 fun Modifier.metricFlyIn(metric: Metric, shape: Shape): Modifier {
     val shared = LocalFlyInScope.current ?: return this
     val destination = LocalFlyInDestination.current ?: return this
+    val origin = LocalFlyInOrigin.current
     return with(shared) {
         this@metricFlyIn.sharedBounds(
-            sharedContentState = rememberSharedContentState("metric_${metric.key}"),
+            sharedContentState = rememberSharedContentState("metric_${origin}_${metric.key}"),
             animatedVisibilityScope = destination,
             // Fade through rather than crossfade: what's leaving is gone in the first stretch,
             // and what's arriving comes in once the bounds are well under way, so a tile's text

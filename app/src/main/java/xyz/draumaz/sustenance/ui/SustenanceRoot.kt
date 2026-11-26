@@ -19,6 +19,7 @@ import androidx.compose.ui.input.pointer.PointerEventType
 import xyz.draumaz.sustenance.ui.components.ExpressiveSprings
 import xyz.draumaz.sustenance.ui.components.PaneMargin
 import xyz.draumaz.sustenance.ui.components.LocalFlyInDestination
+import xyz.draumaz.sustenance.ui.components.LocalFlyInOrigin
 import xyz.draumaz.sustenance.ui.components.LocalFlyInScope
 import xyz.draumaz.sustenance.ui.components.flyDetailEnter
 import xyz.draumaz.sustenance.ui.components.flyDetailExit
@@ -731,7 +732,10 @@ private fun MainNav(
                     popEnterTransition = { listPopEnter() },
                     popExitTransition = popExitBack,
                 ) {
-                  CompositionLocalProvider(LocalFlyInDestination provides this) {
+                  CompositionLocalProvider(
+                    LocalFlyInDestination provides this,
+                    LocalFlyInOrigin provides Dest.TODAY.route,
+                  ) {
                     ScreenCard {
                       SplitWithDetail(
                         split = split,
@@ -776,7 +780,10 @@ private fun MainNav(
                     popEnterTransition = { listPopEnter() },
                     popExitTransition = popExitBack,
                 ) {
-                  CompositionLocalProvider(LocalFlyInDestination provides this) {
+                  CompositionLocalProvider(
+                    LocalFlyInDestination provides this,
+                    LocalFlyInOrigin provides Dest.INSIGHTS.route,
+                  ) {
                     ScreenCard {
                       SplitWithDetail(
                         split = split,
@@ -871,7 +878,15 @@ private fun MainNav(
                 ) { entry ->
                     val key = entry.arguments?.getString("metricKey") ?: ""
                     val metric = Metric.fromKey(key) ?: Metric.TOTAL_CALORIES
-                  CompositionLocalProvider(LocalFlyInDestination provides this) {
+                    // The list underneath is the one it opened from, so it flies back into that
+                    // list's tile. Captured once: the entry below changes as the detail pops.
+                    val origin = remember(entry) {
+                        navController.previousBackStackEntry?.destination?.route ?: Dest.TODAY.route
+                    }
+                  CompositionLocalProvider(
+                    LocalFlyInDestination provides this,
+                    LocalFlyInOrigin provides origin,
+                  ) {
                    // Opaque, so the list behind doesn't show through while it flies open.
                    Box(Modifier.fillMaxSize().metricFlyIn(metric, RoundedCornerShape(16.dp))) {
                     ScreenCard {
