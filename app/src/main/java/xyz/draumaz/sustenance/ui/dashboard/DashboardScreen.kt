@@ -81,6 +81,7 @@ import xyz.draumaz.sustenance.data.HealthConnectManager
 import xyz.draumaz.sustenance.data.Metric
 import xyz.draumaz.sustenance.data.GoalsRepository
 import xyz.draumaz.sustenance.data.MetricSummary
+import xyz.draumaz.sustenance.data.formatValue
 import xyz.draumaz.sustenance.ui.DashboardViewModel
 import xyz.draumaz.sustenance.ui.components.MetricCard
 import xyz.draumaz.sustenance.ui.components.ReadableGutter
@@ -373,14 +374,24 @@ fun DashboardScreen(
 
                             val currentData = data ?: summariesMap[dateOffset] ?: summariesMap[0] ?: manager.initialSummaries()
 
-                            val energyMetrics = listOf(Metric.TOTAL_CALORIES, Metric.CALORIC_BALANCE)
-                            val foodMetric = listOf(Metric.FOOD)
+                            // Burned and eaten share the half-width row; the balance between
+                            // them gets the full-width card beneath.
+                            val energyMetrics = listOf(Metric.TOTAL_CALORIES, Metric.FOOD)
+                            val balanceMetric = listOf(Metric.CALORIC_BALANCE)
                             val microMetrics = listOf(Metric.SUGAR, Metric.SATURATED_FAT, Metric.SODIUM)
 
-                            val energyGroup = currentData.filter { it.metric in energyMetrics }
-                            val foodGroup = currentData.filter { it.metric in foodMetric }
+                            // Food's "(… left)" doesn't fit its half-width card, so it shows just
+                            // the eaten total like Total energy beside it. The summary itself keeps
+                            // it: the watch shows the full text.
+                            val kcal = stringResource(R.string.unit_kcal)
+                            val energyGroup = currentData.filter { it.metric in energyMetrics }.map { s ->
+                                if (s.metric == Metric.FOOD && s.granted && s.hasData) {
+                                    s.copy(value = "${s.metric.formatValue(s.spark.lastOrNull() ?: 0f)}$kcal")
+                                } else s
+                            }
+                            val balanceGroup = currentData.filter { it.metric in balanceMetric }
                             val microsGroup = microMetrics.mapNotNull { m -> currentData.find { it.metric == m } }
-                            val macrosGroup = currentData.filter { it.metric !in (energyMetrics + foodMetric + microMetrics) }
+                            val macrosGroup = currentData.filter { it.metric !in (energyMetrics + balanceMetric + microMetrics) }
 
                             ReadableGutter { gutter ->
                             LazyColumn(
@@ -398,7 +409,7 @@ fun DashboardScreen(
                                 ),
                                 verticalArrangement = if (roomy) Arrangement.spacedBy(8.dp) else Arrangement.SpaceBetween,
                             ) {
-                                if (energyGroup.isNotEmpty() || foodGroup.isNotEmpty() || lastLogTimerEnabled) {
+                                if (energyGroup.isNotEmpty() || balanceGroup.isNotEmpty() || lastLogTimerEnabled) {
                                     item {
                                         MetricSection(
                                             title = stringResource(R.string.section_energy),
@@ -408,7 +419,7 @@ fun DashboardScreen(
                                             onManagePermissions = onManagePermissions,
                                             selectedMetric = selectedMetric,
                                             bottomContent = {
-                                                foodGroup.forEach { summary ->
+                                                balanceGroup.forEach { summary ->
                                                     MetricCard(
                                                         summary = summary,
                                                         selected = summary.metric == selectedMetric,
