@@ -3,6 +3,7 @@
 /app/build/
 /wear/build/
 app/release
+wear/release
 *.apk
 *.aab
 *.ap_
