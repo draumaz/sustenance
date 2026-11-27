@@ -198,11 +198,12 @@ internal fun FastingContent(state: FastState) {
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Elapsed(state, fontSize = if (size.height < 52.dp) 16.sp else 19.sp)
-                // H:MM:SS at this size already takes most of a 2-cell-wide widget.
+                // The clock at this size already takes most of a 2-cell-wide widget. The goal
+                // with its time needs about 3 cells; between, the time alone fits.
                 if (size.width >= 180.dp) {
                     Spacer(GlanceModifier.defaultWeight())
                     Text(
-                        text = state.goalLabel(context),
+                        text = compactGoalText(context, state, full = size.width >= 240.dp),
                         maxLines = 1,
                         style = TextStyle(color = textColor, fontSize = 11.sp, fontWeight = FontWeight.Medium),
                     )
@@ -308,6 +309,13 @@ private fun goalMetTime(context: Context, state: FastState): String? {
     val goalMet = lastLog.plusMillis((state.goalHours * 3_600_000f).toLong())
     // Follows the device's 12/24-hour setting, like the dashboard's fasting timer.
     return DateFormat.getTimeFormat(context).format(Date.from(goalMet))
+}
+
+/** The compact layout's goal: with when it's met if [full], or just that time if not. */
+private fun compactGoalText(context: Context, state: FastState, full: Boolean): String {
+    val at = goalMetTime(context, state) ?: return state.goalLabel(context)
+    return if (full) context.getString(R.string.widget_fasting_goal_by, state.goalHoursLabel(), at)
+    else context.getString(R.string.widget_fasting_by, at)
 }
 
 /** The progress, plus when the goal will be met while the fast is still short of it. */

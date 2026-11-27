@@ -49,8 +49,21 @@ class FastingWidgetLayoutTest {
     }
 
     @Test
+    fun midCompact_addsWhenTheGoalIsMet() = render(200, 50, fastingFor(8)) {
+        exists("by ", true)
+        absent("Goal", true)
+        absent("Time fasting", false)
+    }
+
+    @Test
+    fun compactGoalReached_saysSo() = render(250, 50, fastingFor(20)) {
+        exists("Goal reached", false)
+        absent(" by ", true)
+    }
+
+    @Test
     fun wideCompact_addsTheGoal() = render(250, 50, fastingFor(8)) {
-        exists("Goal 16h", false)
+        exists("Goal 16h by ", true)
         absent("Time fasting", false)
         absent("since", true)
     }
