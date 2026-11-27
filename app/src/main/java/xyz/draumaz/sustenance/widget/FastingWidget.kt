@@ -13,6 +13,7 @@ import android.text.format.DateFormat
 import android.util.TypedValue
 import android.widget.RemoteViews
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -47,7 +48,14 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.color.ColorProvider
 import androidx.glance.unit.ColorProvider as GlanceColor
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.mapLatest
+import kotlinx.coroutines.flow.onStart
 import xyz.draumaz.sustenance.MainActivity
 import xyz.draumaz.sustenance.R
 import xyz.draumaz.sustenance.SustenanceApp
@@ -79,28 +87,49 @@ class FastingWidget : GlanceAppWidget() {
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val app = context.applicationContext as SustenanceApp
         val settings = app.settings
-        val threshold = settings.fastBreakingCalories.first().toDouble()
-
-        // Without the background-read permission the live read fails (returns null), so fall
-        // back to the last time the dashboard saw, which uses the same fast-breaking threshold.
-        val live = if (app.healthConnect.isAvailable) app.healthConnect.readLastFoodLogTime(threshold) else null
-        val lastLog = live ?: settings.getCachedLastLogTime()
+        val initialLastLog = readLastLog(app, settings.fastBreakingCalories.first())
         val initialGoal = settings.fastingGoalHours.first()
 
-        scheduleDayRollover(context, lastLog, Instant.now())
         provideContent {
             // Glance runs provideGlance once per session and keeps the session composing for a
-            // while after each update, so a goal read up there stays stale for any update() that
-            // lands inside it: opening the app refreshes the widget, so a goal edited in Settings
-            // right after always hit a live session and never showed. Collecting the setting here
-            // recomposes the open session as soon as the edit is stored; a fresh session reads
-            // it in provideGlance as before. The fill is relative to now, so take the time anew.
+            // while after each update, so values read up there stay stale for any update() that
+            // lands inside it: opening the app refreshes the widget, so an edit made in the app
+            // right after always hit a live session and never showed. Everything that moves the
+            // widget is followed here instead, so the open session recomposes as soon as it
+            // changes; a fresh session reads the same values in provideGlance as before.
             val goalHours by settings.fastingGoalHours.collectAsState(initialGoal)
-            val state = remember(goalHours) { FastState(lastLog, goalHours, Instant.now()) }
+            val lastLog by remember { lastLogUpdates(app) }.collectAsState(initialLastLog)
+            // The fill is relative to now, so take the time anew whenever an input changes.
+            val state = remember(lastLog, goalHours) { FastState(lastLog, goalHours, Instant.now()) }
+            LaunchedEffect(state.lastLog) { scheduleDayRollover(context, state.lastLog, state.now) }
             FastingContent(state)
         }
     }
 }
+
+/**
+ * The last meal at the fast-breaking threshold. Without the background-read permission the live
+ * read fails (returns null), so fall back to the last time the dashboard saw, which uses the
+ * same threshold.
+ */
+private suspend fun readLastLog(app: SustenanceApp, threshold: Int): Instant? {
+    val live = if (app.healthConnect.isAvailable) app.healthConnect.readLastFoodLogTime(threshold.toDouble()) else null
+    return live ?: app.settings.getCachedLastLogTime()
+}
+
+/**
+ * Re-reads the last meal when the fast-breaking threshold changes (a smaller snack may no longer
+ * count) or Health Connect reports new data (our own food logs at once, other apps' within its
+ * 30-second poll). The first combination is skipped: provideGlance has just read exactly that.
+ */
+@OptIn(ExperimentalCoroutinesApi::class)
+private fun lastLogUpdates(app: SustenanceApp): Flow<Instant?> =
+    combine(
+        app.settings.fastBreakingCalories.distinctUntilChanged(),
+        app.healthConnect.changes.onStart { emit(Unit) },
+    ) { threshold, _ -> threshold }
+        .drop(1)
+        .mapLatest { readLastLog(app, it) }
 
 /**
  * Aspect ratio and resting-edge offset of widget_fasting_bubbles (viewport 24x120, resting

@@ -313,7 +313,12 @@ class SettingsViewModel(
     }
 
     fun setFastBreakingCalories(calories: Int) {
-        viewModelScope.launch { repository.setFastBreakingCalories(calories) }
+        viewModelScope.launch {
+            repository.setFastBreakingCalories(calories)
+            // The threshold decides which meal ended the fast, so the fasting widget's fill
+            // can move; re-render only after the write lands, as for the goal below.
+            WidgetUpdateWorker.enqueue(app)
+        }
     }
 
     fun setFastingGoalHours(hours: Float) {
