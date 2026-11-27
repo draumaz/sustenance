@@ -58,14 +58,27 @@ class FastingWidgetLayoutTest {
     @Test
     fun medium_showsLabelAndFooterButNoPercentage() = render(180, 100, fastingFor(8)) {
         exists("Time fasting", false)
-        exists("Goal 16h · since ", true)
+        exists("Goal 16h by ", true)
+        absent("since", true)
         absent("50%", false)
+    }
+
+    @Test
+    fun wideMedium_addsWhenTheFastBegan() = render(300, 100, fastingFor(8)) {
+        exists("Goal 16h by ", true)
+        exists(" · since ", true)
+    }
+
+    @Test
+    fun mediumGoalReached_hasNoGoalTime() = render(300, 100, fastingFor(20)) {
+        exists("Goal reached · since ", true)
+        absent(" by ", true)
     }
 
     @Test
     fun large_addsThePercentage() = render(411, 251, fastingFor(8)) {
         exists("Time fasting", false)
-        exists("50%", false)
+        exists("50% · ", true)
         exists("Goal 16h · since ", true)
     }
 

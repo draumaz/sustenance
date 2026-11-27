@@ -192,7 +192,6 @@ internal fun FastingContent(state: FastState) {
             ) {}
         }
 
-        val footer = footerText(context, state)
         if (compact) {
             Row(
                 modifier = GlanceModifier.fillMaxSize().padding(horizontal = 12.dp),
@@ -232,7 +231,7 @@ internal fun FastingContent(state: FastState) {
                 Elapsed(state, fontSize = clockSp.sp)
                 Spacer(GlanceModifier.defaultWeight())
                 Text(
-                    text = footer,
+                    text = footerText(context, state, withGoalTime = false, withSince = true),
                     maxLines = 1,
                     modifier = GlanceModifier.fillMaxWidth(),
                     style = TextStyle(color = textColor, fontSize = 14.sp),
@@ -251,8 +250,10 @@ internal fun FastingContent(state: FastState) {
                 Spacer(GlanceModifier.height(2.dp))
                 Elapsed(state, fontSize = if (size.height >= 110.dp && size.width >= 160.dp) 32.sp else 24.sp)
                 Spacer(GlanceModifier.height(2.dp))
+                // At 11sp the goal time and the start time only fit on one line together from
+                // about this width; below it the goal time wins, being the one not shown elsewhere.
                 Text(
-                    text = footer,
+                    text = footerText(context, state, withGoalTime = true, withSince = size.width >= 260.dp),
                     maxLines = 1,
                     modifier = GlanceModifier.fillMaxWidth(),
                     style = TextStyle(color = textColor, fontSize = 11.sp),
@@ -293,29 +294,41 @@ private fun Elapsed(state: FastState, fontSize: TextUnit) {
     AndroidRemoteViews(views, GlanceModifier.height((fontSize.value * fontScale * 1.3f).dp))
 }
 
+private fun FastState.goalHoursLabel(): String =
+    if (goalHours % 1f == 0f) goalHours.toInt().toString() else goalHours.toString()
+
 private fun FastState.goalLabel(context: Context): String =
     if (goalReached) context.getString(R.string.widget_fasting_goal_reached)
-    else context.getString(
-        R.string.widget_fasting_goal,
-        if (goalHours % 1f == 0f) goalHours.toInt().toString() else goalHours.toString(),
-    )
+    else context.getString(R.string.widget_fasting_goal, goalHoursLabel())
+
+/** When the current fast meets the goal, or null with no fast or once it's been met. */
+private fun goalMetTime(context: Context, state: FastState): String? {
+    val lastLog = state.lastLog ?: return null
+    if (state.goalReached) return null
+    val goalMet = lastLog.plusMillis((state.goalHours * 3_600_000f).toLong())
+    // Follows the device's 12/24-hour setting, like the dashboard's fasting timer.
+    return DateFormat.getTimeFormat(context).format(Date.from(goalMet))
+}
 
 /** The progress, plus when the goal will be met while the fast is still short of it. */
 private fun percentText(context: Context, state: FastState): String {
     val percent = (state.progress * 100).toInt()
-    val lastLog = state.lastLog
-    if (lastLog == null || state.goalReached) return context.getString(R.string.widget_fasting_percent, percent)
-    val goalMet = lastLog.plusMillis((state.goalHours * 3_600_000f).toLong())
-    // Follows the device's 12/24-hour setting, like the footer's "since" time.
-    val at = DateFormat.getTimeFormat(context).format(Date.from(goalMet))
+    val at = goalMetTime(context, state) ?: return context.getString(R.string.widget_fasting_percent, percent)
     return context.getString(R.string.widget_fasting_percent_eta, percent, at)
 }
 
-private fun footerText(context: Context, state: FastState): String {
-    val lastLog = state.lastLog ?: return state.goalLabel(context)
-    // Follows the device's 12/24-hour setting, like the dashboard's fasting timer.
+/**
+ * The goal (with when it'll be met, if [withGoalTime] and it's still ahead) and when the fast
+ * began, if [withSince]. The large layout has the goal time up by the percentage already.
+ */
+private fun footerText(context: Context, state: FastState, withGoalTime: Boolean, withSince: Boolean): String {
+    val at = if (withGoalTime) goalMetTime(context, state) else null
+    val goal = if (at != null) context.getString(R.string.widget_fasting_goal_by, state.goalHoursLabel(), at)
+    else state.goalLabel(context)
+    val lastLog = state.lastLog
+    if (lastLog == null || !withSince) return goal
     val since = DateFormat.getTimeFormat(context).format(Date.from(lastLog))
-    return "${state.goalLabel(context)} · ${context.getString(R.string.widget_fasting_since, since)}"
+    return "$goal · ${context.getString(R.string.widget_fasting_since, since)}"
 }
 
 /**

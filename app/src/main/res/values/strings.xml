@@ -5,6 +5,7 @@
     <string name="widget_fasting_name">Fasting timer</string>
     <string name="widget_fasting_description">Your current fast, filling in towards your goal.</string>
     <string name="widget_fasting_goal">Goal %1$sh</string>
+    <string name="widget_fasting_goal_by">Goal %1$sh by %2$s</string>
     <string name="widget_fasting_since">since %1$s</string>
     <string name="widget_fasting_goal_reached">Goal reached</string>
     <string name="widget_fasting_no_data">No meals logged yet</string>
