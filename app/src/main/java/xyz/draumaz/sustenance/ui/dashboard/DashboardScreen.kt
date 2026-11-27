@@ -83,6 +83,10 @@ import xyz.draumaz.sustenance.data.GoalsRepository
 import xyz.draumaz.sustenance.data.MetricSummary
 import xyz.draumaz.sustenance.ui.DashboardViewModel
 import xyz.draumaz.sustenance.ui.components.MetricCard
+import xyz.draumaz.sustenance.ui.components.GlassDefaults
+import xyz.draumaz.sustenance.ui.components.GlassSupported
+import xyz.draumaz.sustenance.ui.components.glassIfSupported
+import xyz.draumaz.sustenance.ui.components.glassOr
 import xyz.draumaz.sustenance.ui.components.ReadableGutter
 import xyz.draumaz.sustenance.ui.components.ScallopedLoadingAnimation
 import xyz.draumaz.sustenance.ui.components.ExpressiveSprings
@@ -514,11 +518,18 @@ private fun MetricSection(
     extraContent: (@Composable () -> Unit)? = null,
     bottomContent: (@Composable ColumnScope.() -> Unit)? = null
 ) {
+    // Frosted glass on Android 17 QPR2, the navigation pill's material: a wash of the section's
+    // usual container colour over a blur of whatever is behind it. The shadow goes, as the
+    // pill's does, since it would smudge through a see-through card.
+    val shape = RoundedCornerShape(28.dp)
+    val container = MaterialTheme.colorScheme.surfaceContainerHigh
     Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(28.dp),
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        shadowElevation = 6.dp
+        modifier = modifier
+            .fillMaxWidth()
+            .glassIfSupported(shape, container.copy(alpha = GlassDefaults.CardTint)),
+        shape = shape,
+        color = glassOr(container),
+        shadowElevation = if (GlassSupported) 0.dp else 6.dp
     ) {
         Column(
             modifier = Modifier.padding(16.dp)

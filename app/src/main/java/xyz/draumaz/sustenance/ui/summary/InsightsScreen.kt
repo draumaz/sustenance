@@ -61,6 +61,9 @@ import android.view.HapticFeedbackConstants
 import xyz.draumaz.sustenance.R
 import xyz.draumaz.sustenance.ui.components.selectionBorder
 import xyz.draumaz.sustenance.ui.components.metricFlyIn
+import xyz.draumaz.sustenance.ui.components.GlassDefaults
+import xyz.draumaz.sustenance.ui.components.glassIfSupported
+import xyz.draumaz.sustenance.ui.components.glassOr
 import xyz.draumaz.sustenance.ui.components.ReadableGutter
 import xyz.draumaz.sustenance.data.GoalsRepository
 import xyz.draumaz.sustenance.data.HealthConnectManager
@@ -277,11 +280,16 @@ private fun DaySummaryCard(
             .fillMaxWidth()
             // Before the height so the expand/collapse animates instead of snapping.
             .animateContentSize()
-            .then(if (!open && collapsedHeight > 0.dp) Modifier.height(collapsedHeight) else Modifier),
+            .then(if (!open && collapsedHeight > 0.dp) Modifier.height(collapsedHeight) else Modifier)
+            // Glass as the stat cards below (see InsightCard).
+            .glassIfSupported(
+                MaterialTheme.shapes.extraLarge,
+                MaterialTheme.colorScheme.primaryContainer.copy(alpha = GlassDefaults.CardTint),
+            ),
         shape = MaterialTheme.shapes.extraLarge,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer,
-            disabledContainerColor = MaterialTheme.colorScheme.primaryContainer,
+            containerColor = glassOr(MaterialTheme.colorScheme.primaryContainer),
+            disabledContainerColor = glassOr(MaterialTheme.colorScheme.primaryContainer),
             disabledContentColor = MaterialTheme.colorScheme.onPrimaryContainer,
         ),
     ) {
@@ -414,9 +422,16 @@ private fun InsightCard(
             view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
             onClick()
         },
-        modifier = Modifier.metricFlyIn(stat.metric, MaterialTheme.shapes.extraLarge).fillMaxWidth(),
+        // Frosted glass on Android 17 QPR2, the navigation pill's material. The card's accent
+        // wash was already see-through, so it keeps its own strength as the glass tint: the
+        // blur goes under it, and the card's colour against the page doesn't change. Inside the
+        // fly-in so the glass travels with the card into its detail.
+        modifier = Modifier
+            .metricFlyIn(stat.metric, MaterialTheme.shapes.extraLarge)
+            .fillMaxWidth()
+            .glassIfSupported(MaterialTheme.shapes.extraLarge, accent.copy(alpha = 0.18f)),
         shape = MaterialTheme.shapes.extraLarge,
-        colors = CardDefaults.cardColors(containerColor = accent.copy(alpha = 0.18f)),
+        colors = CardDefaults.cardColors(containerColor = glassOr(accent.copy(alpha = 0.18f))),
         border = selectionBorder(selected, accent),
     ) {
         Column(Modifier.padding(horizontal = 24.dp, vertical = 18.dp)) {

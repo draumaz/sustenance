@@ -64,7 +64,23 @@ private val DefaultBlur: () -> Dp = { GlassDefaults.Blur }
 object GlassDefaults {
     /** Strong enough that list text behind turns to colour, not readable ghosts. */
     val Blur = 24.dp
+
+    /**
+     * How much of a card's usual container colour its glass keeps: the navigation pill's wash,
+     * so the cards and the bar read as one material.
+     */
+    const val CardTint = 0.5f
 }
+
+/**
+ * [glass] on QPR2, nothing elsewhere: for a card whose own container turns transparent under
+ * glass (see [glassOr]) and keeps its solid colour on older devices.
+ */
+fun Modifier.glassIfSupported(shape: Shape, tint: Color): Modifier =
+    if (GlassSupported) glass(shape, tint) else this
+
+/** The container colour for a card wearing [glassIfSupported]: clear under glass, [solid] without. */
+fun glassOr(solid: Color): Color = if (GlassSupported) Color.Transparent else solid
 
 private data class GlassElement(
     val shape: Shape,
