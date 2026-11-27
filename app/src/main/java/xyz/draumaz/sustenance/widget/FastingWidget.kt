@@ -220,7 +220,7 @@ internal fun FastingContent(state: FastState) {
                     Spacer(GlanceModifier.defaultWeight())
                     if (state.lastLog != null) {
                         Text(
-                            text = context.getString(R.string.widget_fasting_percent, (state.progress * 100).toInt()),
+                            text = percentText(context, state),
                             maxLines = 1,
                             style = TextStyle(color = textColor, fontSize = 15.sp, fontWeight = FontWeight.Bold),
                         )
@@ -299,6 +299,17 @@ private fun FastState.goalLabel(context: Context): String =
         R.string.widget_fasting_goal,
         if (goalHours % 1f == 0f) goalHours.toInt().toString() else goalHours.toString(),
     )
+
+/** The progress, plus when the goal will be met while the fast is still short of it. */
+private fun percentText(context: Context, state: FastState): String {
+    val percent = (state.progress * 100).toInt()
+    val lastLog = state.lastLog
+    if (lastLog == null || state.goalReached) return context.getString(R.string.widget_fasting_percent, percent)
+    val goalMet = lastLog.plusMillis((state.goalHours * 3_600_000f).toLong())
+    // Follows the device's 12/24-hour setting, like the footer's "since" time.
+    val at = DateFormat.getTimeFormat(context).format(Date.from(goalMet))
+    return context.getString(R.string.widget_fasting_percent_eta, percent, at)
+}
 
 private fun footerText(context: Context, state: FastState): String {
     val lastLog = state.lastLog ?: return state.goalLabel(context)
